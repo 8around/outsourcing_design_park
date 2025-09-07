@@ -75,6 +75,9 @@ export default function ProcessStageManager({
     return Math.round((completedCount / stages.length) * 100)
   }
 
+  // stages를 stage_order 기준으로 정렬
+  const sortedStages = [...stages].sort((a, b) => a.stage_order - b.stage_order)
+
   return (
     <div className="space-y-4">
       {/* 전체 진행률 표시 */}
@@ -93,7 +96,7 @@ export default function ProcessStageManager({
 
       {/* 공정 단계 목록 */}
       <div className="space-y-2">
-        {stages.map((stage, index) => (
+        {sortedStages.map((stage, index) => (
           <div
             key={stage.stage_name}
             className="border border-gray-200 rounded-lg overflow-hidden"

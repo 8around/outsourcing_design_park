@@ -34,3 +34,7 @@ node_modules/
 .vercel
 out/
 coverage/
+
+# Task files
+# tasks.json
+# tasks/ 

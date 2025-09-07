@@ -135,9 +135,9 @@ export default function EditProjectPage() {
         is_urgent: projectData.is_urgent || false
       })
 
-      // 공정 단계 설정
+      // 공정 단계 설정 (stage_order로 정렬)
       if (projectData.process_stages && projectData.process_stages.length > 0) {
-        setProcessStages(projectData.process_stages.map(stage => ({
+        const sortedStages = projectData.process_stages.map(stage => ({
           id: stage.id,
           stage_name: stage.stage_name,
           stage_order: stage.stage_order,
@@ -145,7 +145,8 @@ export default function EditProjectPage() {
           delay_reason: stage.delay_reason,
           start_date: stage.start_date,
           end_date: stage.end_date
-        })))
+        })).sort((a, b) => a.stage_order - b.stage_order)
+        setProcessStages(sortedStages)
       } else {
         // 기본 공정 단계 설정
         setProcessStages(
