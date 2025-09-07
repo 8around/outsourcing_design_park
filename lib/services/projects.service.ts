@@ -29,6 +29,8 @@ export class ProjectService {
         .select(`
           *,
           creator:created_by(id, name, email),
+          sales_manager_user:sales_manager(id, name, email),
+          site_manager_user:site_manager(id, name, email),
           process_stages(*),
           project_images(*),
           favorites:project_favorites(*)
@@ -106,7 +108,10 @@ export class ProjectService {
         .select(`
           *,
           creator:created_by(id, name, email),
+          sales_manager_user:sales_manager(id, name, email),
+          site_manager_user:site_manager(id, name, email),
           process_stages(*),
+          project_images(*),
           favorites:project_favorites(*)
         `)
         .eq('id', projectId)

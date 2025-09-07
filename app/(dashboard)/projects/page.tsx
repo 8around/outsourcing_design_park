@@ -354,11 +354,11 @@ export default function ProjectsPage() {
                           </div>
                           <div className="flex items-center gap-2">
                             <TeamOutlined />
-                            <span>{project.site_manager}</span>
+                            <span>{project.site_manager_user?.name || '미지정'}</span>
                           </div>
                           <div className="flex items-center gap-2">
                             <UserOutlined />
-                            <span>{project.sales_manager}</span>
+                            <span>{project.sales_manager_user?.name || '미지정'}</span>
                           </div>
                         </div>
 
