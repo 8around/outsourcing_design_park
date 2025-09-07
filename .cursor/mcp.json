@@ -1,0 +1,59 @@
+{
+	"mcpServers": {
+		"task-master-ai": {
+			"type": "stdio",
+			"command": "npx",
+			"args": [
+				"-y",
+				"--package=task-master-ai",
+				"task-master-ai"
+			],
+			"env": {
+				"ANTHROPIC_API_KEY": "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",
+				"PERPLEXITY_API_KEY": "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",
+				"OPENAI_API_KEY": "YOUR_OPENAI_KEY_HERE",
+				"GOOGLE_API_KEY": "YOUR_GOOGLE_KEY_HERE",
+				"XAI_API_KEY": "YOUR_XAI_KEY_HERE",
+				"OPENROUTER_API_KEY": "YOUR_OPENROUTER_KEY_HERE",
+				"MISTRAL_API_KEY": "YOUR_MISTRAL_KEY_HERE",
+				"AZURE_OPENAI_API_KEY": "YOUR_AZURE_KEY_HERE",
+				"OLLAMA_API_KEY": "YOUR_OLLAMA_API_KEY_HERE"
+			}
+		},
+		"playwright": {
+			"type": "stdio",
+			"command": "npx",
+			"args": [
+				"@playwright/mcp@latest"
+			]
+		},
+		"sequential-thinking": {
+			"type": "stdio",
+			"command": "npx",
+			"args": [
+				"-y",
+				"@modelcontextprotocol/server-sequential-thinking"
+			]
+		},
+		"supabase": {
+			"type": "stdio",
+			"command": "npx",
+			"args": [
+				"-y",
+				"@supabase/mcp-server-supabase@latest",
+				"--project-ref=ebjujolvcxaswczfpqwt"
+			],
+			"env": {
+				"SUPABASE_ACCESS_TOKEN": "sbp_b8c32053ec4777cdbbe8f9bfbd15a51e91418873"
+			}
+		},
+		"context7": {
+			"type": "stdio",
+			"command": "npx",
+			"args": [
+				"-y",
+				"@upstash/context7-mcp@latest"
+			]
+		}
+	}
+}
