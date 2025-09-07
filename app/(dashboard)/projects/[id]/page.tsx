@@ -60,7 +60,6 @@ export default function ProjectDetailPage() {
   const [project, setProject] = useState<ProjectData | null>(null)
   const [salesManager, setSalesManager] = useState<any>(null)
   const [siteManager, setSiteManager] = useState<any>(null)
-  const [deleting, setDeleting] = useState(false)
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
 
   // 프로젝트 정보 가져오기
@@ -114,26 +113,6 @@ export default function ProjectDetailPage() {
     }
   }
 
-  // 프로젝트 삭제
-  const handleDelete = async () => {
-    if (!project) return
-
-    const confirmed = window.confirm('정말로 이 프로젝트를 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.')
-    
-    if (!confirmed) return
-
-    setDeleting(true)
-    try {
-      await projectService.deleteProject(project.id)
-      toast.success('프로젝트가 삭제되었습니다.')
-      router.push('/projects')
-    } catch (error) {
-      console.error('프로젝트 삭제 실패:', error)
-      toast.error('프로젝트 삭제에 실패했습니다.')
-    } finally {
-      setDeleting(false)
-    }
-  }
 
   // 날짜 포맷팅
   const formatDate = (dateString: string) => {
@@ -218,13 +197,6 @@ export default function ProjectDetailPage() {
                 >
                   수정
                 </Link>
-                <button
-                  onClick={handleDelete}
-                  disabled={deleting}
-                  className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 font-medium disabled:opacity-50"
-                >
-                  {deleting ? '삭제 중...' : '삭제'}
-                </button>
               </>
             )}
           </div>

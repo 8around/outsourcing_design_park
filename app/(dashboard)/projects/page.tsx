@@ -16,7 +16,6 @@ import {
   TeamOutlined,
   EditOutlined,
   EyeOutlined,
-  DeleteOutlined,
   ExclamationCircleOutlined,
   ReloadOutlined,
   UserOutlined,
@@ -89,28 +88,6 @@ export default function ProjectsPage() {
     }
   }
 
-  // 프로젝트 삭제
-  const handleDeleteProject = (e: React.MouseEvent, project: Project) => {
-    e.stopPropagation()
-    
-    confirm({
-      title: '프로젝트 삭제',
-      icon: <ExclamationCircleOutlined />,
-      content: `"${project.site_name}" 프로젝트를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.`,
-      okText: '삭제',
-      okType: 'danger',
-      cancelText: '취소',
-      onOk: async () => {
-        try {
-          await projectService.deleteProject(project.id)
-          message.success('프로젝트가 삭제되었습니다.')
-          fetchProjects(true)
-        } catch (error) {
-          message.error('프로젝트 삭제에 실패했습니다.')
-        }
-      }
-    })
-  }
 
   // 공정 상태 색상
   const getStageColor = (stage: ProcessStageName) => {
@@ -406,14 +383,6 @@ export default function ProjectsPage() {
                                 e.stopPropagation()
                                 router.push(`/projects/${project.id}/edit`)
                               }}
-                            />
-                          </Tooltip>
-                          <Tooltip title="삭제">
-                            <Button
-                              size="small"
-                              danger
-                              icon={<DeleteOutlined />}
-                              onClick={(e) => handleDeleteProject(e, project)}
                             />
                           </Tooltip>
                         </div>
