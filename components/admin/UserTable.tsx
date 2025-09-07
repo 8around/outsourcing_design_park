@@ -16,7 +16,7 @@ interface User {
   id: string;
   name: string;
   email: string;
-  phone?: string;
+  phone?: string | null;
   created_at: string;
   is_approved: boolean;
   approved_at?: string | null;
@@ -67,7 +67,7 @@ export default function UserTable({
               {name}
             </span>
             {record.role === 'admin' && (
-              <Tag color="red" size="small">관리자</Tag>
+              <Tag color="red">관리자</Tag>
             )}
           </Space>
         ),
@@ -94,7 +94,7 @@ export default function UserTable({
       {
         title: '상태',
         key: 'status',
-        render: (_, record: User) => {
+        render: (_: any, record: User) => {
           if (record.is_approved) {
             return <Badge status="success" text="승인됨" />;
           } else if (record.approved_at) {
@@ -108,10 +108,10 @@ export default function UserTable({
           { text: '승인됨', value: 'approved' },
           { text: '거절됨', value: 'rejected' },
         ],
-        onFilter: (value: any, record: User) => {
+        onFilter: (value: any, record: User): boolean => {
           if (value === 'pending') return !record.is_approved && !record.approved_at;
-          if (value === 'approved') return record.is_approved;
-          if (value === 'rejected') return !record.is_approved && record.approved_at;
+          if (value === 'approved') return !!record.is_approved;
+          if (value === 'rejected') return !record.is_approved && !!record.approved_at;
           return true;
         },
       },
@@ -122,7 +122,7 @@ export default function UserTable({
       title: '작업',
       key: 'actions',
       width: 200,
-      render: (_, record: User) => {
+      render: (_: any, record: User) => {
         const actions = [];
         
         // 상세보기 버튼 (모든 상태에서 표시)

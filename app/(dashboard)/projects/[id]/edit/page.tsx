@@ -9,6 +9,7 @@ import ImageUploader from '@/components/projects/ImageUploader'
 import ProcessStageManager from '@/components/projects/ProcessStageManager'
 import UserSelector from '@/components/projects/UserSelector'
 import { toast } from 'react-hot-toast'
+import type { ProcessStageName } from '@/types/project'
 
 // 공정 단계 정의
 const PROCESS_STAGES = [
@@ -229,7 +230,7 @@ export default function EditProjectPage() {
         expected_completion_date: formData.expected_completion_date,
         installation_request_date: formData.installation_request_date,
         is_urgent: formData.is_urgent,
-        current_process_stage: formData.current_process_stage
+        current_process_stage: formData.current_process_stage as ProcessStageName
       }
 
       await projectService.updateProject(projectId, projectData)

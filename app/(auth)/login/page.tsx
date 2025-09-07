@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { message, Alert } from 'antd'
 import { ExclamationCircleOutlined, CloseCircleOutlined, WarningOutlined } from '@ant-design/icons'
@@ -8,7 +8,7 @@ import LoginForm from '@/components/auth/LoginForm'
 import { authService } from '@/lib/services/auth.service'
 import { useAuthStore } from '@/lib/store/auth.store'
 
-export default function LoginPage() {
+function LoginContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const setUser = useAuthStore(state => state.setUser)
@@ -101,5 +101,13 @@ export default function LoginPage() {
       )}
       <LoginForm onSubmit={handleLogin} />
     </div>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <LoginContent />
+    </Suspense>
   )
 }

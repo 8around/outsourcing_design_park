@@ -121,12 +121,12 @@ export default function ProjectsPage() {
   // 상태별 색상
   const getStatusColor = (project: Project) => {
     const hasDelayed = project.process_stages?.some(s => s.status === 'delayed')
-    if (hasDelayed) return 'error'
+    if (hasDelayed) return 'exception'
     
     const progress = calculateProgress(project)
     if (progress === 100) return 'success'
-    if (progress > 0) return 'processing'
-    return 'default'
+    if (progress > 0) return 'active'
+    return 'normal'
   }
 
   useEffect(() => {

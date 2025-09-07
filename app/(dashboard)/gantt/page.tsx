@@ -28,7 +28,7 @@ import {
   DeleteOutlined
 } from '@ant-design/icons'
 import { useRouter } from 'next/navigation'
-import moment from 'moment'
+import dayjs from 'dayjs'
 
 const { Title, Text } = Typography
 const { RangePicker } = DatePicker
@@ -298,8 +298,8 @@ export default function GanttPage() {
     setSelectedTask(task)
     form.setFieldsValue({
       name: task.name,
-      start: moment(task.start),
-      end: moment(task.end),
+      start: dayjs(task.start),
+      end: dayjs(task.end),
       progress: task.progress,
       assignee: task.assignee,
       priority: task.priority
@@ -384,7 +384,7 @@ export default function GanttPage() {
             </Select>
 
             <RangePicker
-              value={[moment(viewState.dateRange[0]), moment(viewState.dateRange[1])]}
+              value={[dayjs(viewState.dateRange[0]), dayjs(viewState.dateRange[1])]}
               onChange={(dates) => {
                 if (dates) {
                   setViewState(prev => ({ 
@@ -468,7 +468,7 @@ export default function GanttPage() {
                       <div className="task-name">{task.name}</div>
                       <div className="task-meta">
                         <Space size="small">
-                          <Tag size="small" color={getStatusColor(task.status)}>
+                          <Tag color={getStatusColor(task.status)}>
                             {task.status}
                           </Tag>
                           <Text type="secondary" className="text-xs">

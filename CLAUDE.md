@@ -52,6 +52,7 @@
 
 ## 기능 개발 & 수정 & DB 설계시
 - PRD.md 파일을 읽어야함
+- npm run build로 문제 발생하는지 확인 후 해결
 
 ## 테스트 계정(로그인할때 사용)
 - email: ref6318@gmail.com

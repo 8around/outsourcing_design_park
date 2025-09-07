@@ -31,7 +31,7 @@ interface User {
   id: string;
   name: string;
   email: string;
-  phone?: string;
+  phone?: string | null;
   created_at: string;
   is_approved: boolean;
   approved_at?: string | null;
@@ -265,13 +265,6 @@ export default function UsersManagement() {
                 onSearch={setSearchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full"
-                style={{
-                  '& .ant-input': {
-                    borderRadius: '12px',
-                    border: '1px solid #e5e7eb',
-                    background: '#ffffff',
-                  }
-                }}
                 prefix={<SearchOutlined className="text-gray-400" />}
               />
             </div>
