@@ -186,6 +186,7 @@ export default function ProjectsPage() {
               size="large"
               allowClear
             >
+              <Option value="">전체</Option>
               {Object.entries(PROCESS_STAGES).map(([key, label]) => (
                 <Option key={key} value={key}>
                   {label}
