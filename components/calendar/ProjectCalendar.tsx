@@ -9,8 +9,6 @@ import {
   Modal,
   Tag,
   Descriptions,
-  Select,
-  Checkbox,
   Drawer,
   List,
   Badge,
@@ -27,7 +25,6 @@ import {
   ClockCircleOutlined,
   ProjectOutlined,
   ExclamationCircleOutlined,
-  FilterOutlined,
   PlusOutlined,
   EnvironmentOutlined,
   PhoneOutlined,
@@ -118,12 +115,6 @@ export default function ProjectCalendar() {
   const [confirmModalVisible, setConfirmModalVisible] = useState(false)
   const [draggedEvent, setDraggedEvent] = useState<EventDropArg | null>(null)
   
-  // 필터 상태
-  const [statusFilter, setStatusFilter] = useState<ProjectStatus[]>([])
-  const [managerFilter, setManagerFilter] = useState<string[]>([])
-  const [urgentOnly, setUrgentOnly] = useState(false)
-  const [managers, setManagers] = useState<{id: string, name: string}[]>([])
-  
   const isAdmin = user?.role === 'admin'
 
   // 프로젝트 데이터 가져오기
@@ -153,25 +144,6 @@ export default function ProjectCalendar() {
       }
       
       setProjects(projectsData || [])
-      
-      // 관리자 목록 추출 - 사용자 정보가 없는 경우 빈 배열로 설정
-      const allManagers = new Map()
-      projectsData?.forEach(project => {
-        // sales_manager와 site_manager가 UUID 문자열로만 저장되어 있는 경우 처리
-        if (project.sales_manager) {
-          allManagers.set(project.sales_manager, {
-            id: project.sales_manager,
-            name: `담당자 ${project.sales_manager.substring(0, 8)}` // UUID 일부를 표시
-          })
-        }
-        if (project.site_manager) {
-          allManagers.set(project.site_manager, {
-            id: project.site_manager,
-            name: `현장담당 ${project.site_manager.substring(0, 8)}`
-          })
-        }
-      })
-      setManagers(Array.from(allManagers.values()))
       
     } catch (error) {
       console.error('Error fetching projects:', error)
@@ -231,33 +203,10 @@ export default function ProjectCalendar() {
     })
   }, [])
 
-  // 필터링된 이벤트 생성
+  // 이벤트 생성
   const filteredEvents = useMemo(() => {
-    let filteredProjects = [...projects]
-    
-    // 상태 필터
-    if (statusFilter.length > 0) {
-      filteredProjects = filteredProjects.filter(project => {
-        const event = convertProjectsToEvents([project])[0]
-        return statusFilter.includes(event.extendedProps.status)
-      })
-    }
-    
-    // 담당자 필터
-    if (managerFilter.length > 0) {
-      filteredProjects = filteredProjects.filter(project => {
-        return managerFilter.includes(project.sales_manager || '') ||
-               managerFilter.includes(project.site_manager || '')
-      })
-    }
-    
-    // 긴급 프로젝트 필터
-    if (urgentOnly) {
-      filteredProjects = filteredProjects.filter(project => project.is_urgent)
-    }
-    
-    return convertProjectsToEvents(filteredProjects)
-  }, [projects, statusFilter, managerFilter, urgentOnly, convertProjectsToEvents])
+    return convertProjectsToEvents(projects)
+  }, [projects, convertProjectsToEvents])
 
   // 초기 데이터 로드
   useEffect(() => {
@@ -391,94 +340,6 @@ export default function ProjectCalendar() {
           새 프로젝트
         </Button>
       </div>
-
-      {/* 필터 영역 */}
-      <Card className="mb-4">
-        <Space direction="vertical" size="middle" style={{ width: '100%' }}>
-          <Row gutter={[16, 16]} align="middle">
-            <Col xs={24} sm={6}>
-              <Text strong>상태별 필터:</Text>
-            </Col>
-            <Col xs={24} sm={18}>
-              <Select
-                mode="multiple"
-                placeholder="프로젝트 상태 선택"
-                style={{ width: '100%', maxWidth: 400 }}
-                value={statusFilter}
-                onChange={setStatusFilter}
-                allowClear
-              >
-                {Object.entries(statusLabels).map(([key, label]) => (
-                  <Select.Option key={key} value={key}>
-                    <Tag color={statusColors[key as ProjectStatus]}>
-                      {label}
-                    </Tag>
-                  </Select.Option>
-                ))}
-              </Select>
-            </Col>
-          </Row>
-          
-          <Row gutter={[16, 16]} align="middle">
-            <Col xs={24} sm={6}>
-              <Text strong>담당자별 필터:</Text>
-            </Col>
-            <Col xs={24} sm={18}>
-              <Select
-                mode="multiple"
-                placeholder="담당자 선택"
-                style={{ width: '100%', maxWidth: 400 }}
-                value={managerFilter}
-                onChange={setManagerFilter}
-                allowClear
-              >
-                {managers.map(manager => (
-                  <Select.Option key={manager.id} value={manager.id}>
-                    {manager.name}
-                  </Select.Option>
-                ))}
-              </Select>
-            </Col>
-          </Row>
-          
-          <Row gutter={[16, 16]} align="middle">
-            <Col xs={24} sm={6}>
-              <Text strong>긴급 프로젝트:</Text>
-            </Col>
-            <Col xs={24} sm={18}>
-              <Checkbox 
-                checked={urgentOnly}
-                onChange={(e) => setUrgentOnly(e.target.checked)}
-              >
-                긴급 프로젝트만 보기
-              </Checkbox>
-            </Col>
-          </Row>
-          
-          <Divider className="my-2" />
-          
-          {/* 범례 */}
-          <Row gutter={[16, 16]} align="middle">
-            <Col xs={24} sm={6}>
-              <Text strong>상태 범례:</Text>
-            </Col>
-            <Col xs={24} sm={18}>
-              <Space wrap>
-                {Object.entries(statusLabels).map(([key, label]) => (
-                  <Tag 
-                    key={key} 
-                    color={statusColors[key as ProjectStatus]}
-                    style={{ margin: '2px' }}
-                  >
-                    {key === 'urgent' && <ExclamationCircleOutlined />}
-                    {' '}{label}
-                  </Tag>
-                ))}
-              </Space>
-            </Col>
-          </Row>
-        </Space>
-      </Card>
 
       {/* 캘린더 뷰 */}
       <Card loading={loading}>
