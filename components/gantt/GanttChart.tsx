@@ -3,7 +3,7 @@
 import React, { useMemo, useEffect, useState } from 'react'
 import { Gantt, Task, ViewMode } from 'gantt-task-react'
 import 'gantt-task-react/dist/index.css'
-import { Card, Spin, Alert, Pagination, Select, Space, Typography, Button } from 'antd'
+import { Card, Spin, Alert, Pagination, Space, Typography, Button } from 'antd'
 import { 
   DownOutlined, 
   RightOutlined,
@@ -15,7 +15,6 @@ import type { Project, ProcessStage } from '@/types/project'
 import { CustomTaskListHeader, CustomTaskListTable } from './CustomTaskList'
 
 const { Text } = Typography
-const { Option } = Select
 
 interface GanttChartProps {
   viewMode?: ViewMode
@@ -38,7 +37,7 @@ export function GanttChart({
   const [error, setError] = useState<string | null>(null)
   const [projects, setProjects] = useState<Project[]>([])
   const [currentPage, setCurrentPage] = useState(1)
-  const [pageSize, setPageSize] = useState(10)
+  const [pageSize, setPageSize] = useState(3) // 한 페이지에 3개씩 표시
   const [total, setTotal] = useState(0)
   const [selectedTask, setSelectedTask] = useState<Task | null>(null)
   const [expandedProjects, setExpandedProjects] = useState<Set<string>>(new Set())
@@ -146,14 +145,55 @@ export function GanttChart({
         ? { backgroundColor: '#ff4d4f', progressColor: '#a8071a', progressSelectedColor: '#5c0011' }
         : { backgroundColor: '#722ed1', progressColor: '#391085', progressSelectedColor: '#120338' }
 
+      // 공정 단계에서 시작일과 종료일 계산
+      let projectStartDate: Date | null = null
+      let projectEndDate: Date | null = null
+      
+      if (project.process_stages && project.process_stages.length > 0) {
+        const stageDates = project.process_stages.map(stage => {
+          const startDate = stage.start_date ? new Date(stage.start_date) 
+                         : stage.actual_start_date ? new Date(stage.actual_start_date) 
+                         : null
+          const endDate = stage.end_date ? new Date(stage.end_date)
+                       : stage.actual_end_date ? new Date(stage.actual_end_date)
+                       : null
+          return { startDate, endDate }
+        }).filter(dates => dates.startDate || dates.endDate)
+        
+        if (stageDates.length > 0) {
+          // 가장 이른 시작일 찾기
+          const validStartDates = stageDates
+            .filter(d => d.startDate)
+            .map(d => d.startDate as Date)
+          if (validStartDates.length > 0) {
+            projectStartDate = new Date(Math.min(...validStartDates.map(d => d.getTime())))
+          }
+          
+          // 가장 늦은 종료일 찾기
+          const validEndDates = stageDates
+            .filter(d => d.endDate)
+            .map(d => d.endDate as Date)
+          if (validEndDates.length > 0) {
+            projectEndDate = new Date(Math.max(...validEndDates.map(d => d.getTime())))
+          }
+        }
+      }
+      
+      // 날짜가 없는 경우 예상 완료일 사용
+      if (!projectStartDate || !projectEndDate) {
+        const fallbackDate = new Date(project.expected_completion_date)
+        projectStartDate = projectStartDate || fallbackDate
+        projectEndDate = projectEndDate || fallbackDate
+      }
+
       // 프로젝트 그룹 태스크
       const projectId = `project-${project.id}`
       const hasChildTasks = !!(project.process_stages && project.process_stages.length > 0)
       const projectTask: Task & { hasChildren?: boolean } = {
         id: projectId,
         name: project.site_name + (project.is_urgent ? ' [긴급]' : ''),
-        start: new Date(project.order_date),
-        end: new Date(project.expected_completion_date),
+        start: projectStartDate,
+        end: projectEndDate,
         type: 'project',
         progress: calculateProjectProgress(project.process_stages || []),
         hideChildren: !expandedProjects.has(projectId),
@@ -166,8 +206,8 @@ export function GanttChart({
       if (project.process_stages && project.process_stages.length > 0) {
         const sortedStages = [...project.process_stages].sort((a, b) => a.stage_order - b.stage_order)
         
-        // 이전 단계의 종료일을 추적하기 위한 변수
-        let previousEndDate = new Date(project.order_date)
+        // 이전 단계의 종료일을 추적하기 위한 변수 (프로젝트 시작일 사용)
+        let previousEndDate = projectStartDate
         
         sortedStages.forEach((stage, stageIndex) => {
           const stageProgress = getStageProgress(stage.status)
@@ -355,24 +395,12 @@ export function GanttChart({
         </div>
       </Card>
       
-      {/* 페이지네이션 및 페이지 크기 선택 */}
+      {/* 페이지네이션 */}
       <div style={{ marginTop: '20px', padding: '0 24px' }}>
         <Space size="middle" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap' }}>
-          <Space>
-            <Text>페이지 크기:</Text>
-            <Select value={pageSize} onChange={(value) => {
-              setPageSize(value)
-              setCurrentPage(1) // 페이지 크기 변경 시 첫 페이지로
-            }}>
-              <Option value={10}>10개</Option>
-              <Option value={20}>20개</Option>
-              <Option value={50}>50개</Option>
-              <Option value={100}>100개</Option>
-            </Select>
-            <Text type="secondary">
-              전체 {total}개 프로젝트 중 {(currentPage - 1) * pageSize + 1}-{Math.min(currentPage * pageSize, total)}개 표시
-            </Text>
-          </Space>
+          <Text type="secondary">
+            전체 {total}개 프로젝트 중 {(currentPage - 1) * pageSize + 1}-{Math.min(currentPage * pageSize, total)}개 표시
+          </Text>
           
           <Pagination
             current={currentPage}
