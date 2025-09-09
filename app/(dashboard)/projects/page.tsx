@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { 
   Card, Row, Col, Button, Input, Select, Space, Typography, Empty, 
-  Skeleton, Tag, Progress, message, Modal, Badge, Tooltip 
+  Skeleton, Tag, Progress, message, Modal, Badge, Tooltip, Pagination 
 } from 'antd'
 import {
   ProjectOutlined,
@@ -62,7 +62,7 @@ export default function ProjectsPage() {
       const response = await projectService.getProjects(
         appliedFilters,
         { sortBy: 'created_at', order: 'desc' },
-        { page: currentPage, limit: 20 }
+        { page: currentPage, limit: 10 }
       )
 
       setProjects(response.data)
@@ -393,6 +393,21 @@ export default function ProjectsPage() {
             )
           })}
         </Row>
+      )}
+
+      {/* 페이지네이션 */}
+      {!loading && projects.length > 0 && (
+        <div className="flex justify-center mt-8">
+          <Pagination
+            current={currentPage}
+            total={totalProjects}
+            pageSize={10}
+            onChange={(page) => setCurrentPage(page)}
+            showSizeChanger={false}
+            showTotal={(total, range) => `${range[0]}-${range[1]} / 전체 ${total}개`}
+            className="mt-4"
+          />
+        </div>
       )}
     </div>
   )
