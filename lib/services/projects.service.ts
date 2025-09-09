@@ -64,10 +64,12 @@ export class ProjectService {
               .select('project_id')
               .eq('user_id', user.id);
             
-            if (favorites && favorites.length > 0) {
-              const projectIds = favorites.map(f => f.project_id);
-              query = query.in('id', projectIds);
-            }
+            // 즐겨찾기가 있든 없든 필터 적용
+            const projectIds = favorites?.map(f => f.project_id) || [];
+            query = query.in('id', projectIds);
+          } else {
+            // 사용자가 없으면 빈 결과 반환
+            query = query.in('id', []);
           }
         }
       }
