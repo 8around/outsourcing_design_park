@@ -116,6 +116,9 @@ export default function ProcessStageManager({
                   {/* 공정명 */}
                   <h3 className="font-medium text-gray-900">
                     {STAGE_LABELS[stage.stage_name]}
+                    {(stage.stage_name === 'contract' || stage.stage_name === 'completion') && (
+                      <span className="ml-2 text-xs text-red-600 font-normal">(날짜 필수)</span>
+                    )}
                   </h3>
                   
                   {/* 현재 공정 표시 */}
@@ -216,27 +219,49 @@ export default function ProcessStageManager({
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        시작일
+                        시작일 
+                        {(stage.stage_name === 'contract' || stage.stage_name === 'completion') && (
+                          <span className="text-red-500 ml-1">*</span>
+                        )}
                       </label>
                       <input
                         type="date"
                         value={stage.start_date || ''}
                         onChange={(e) => updateStage(stage.stage_name, { start_date: e.target.value })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                          (stage.stage_name === 'contract' || stage.stage_name === 'completion') && !stage.start_date
+                            ? 'border-red-300 bg-red-50'
+                            : 'border-gray-300'
+                        }`}
+                        required={stage.stage_name === 'contract' || stage.stage_name === 'completion'}
                       />
+                      {(stage.stage_name === 'contract' || stage.stage_name === 'completion') && !stage.start_date && (
+                        <p className="mt-1 text-xs text-red-600">이 공정의 시작일은 필수입니다</p>
+                      )}
                     </div>
                     
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         종료일
+                        {(stage.stage_name === 'contract' || stage.stage_name === 'completion') && (
+                          <span className="text-red-500 ml-1">*</span>
+                        )}
                       </label>
                       <input
                         type="date"
                         value={stage.end_date || ''}
                         onChange={(e) => updateStage(stage.stage_name, { end_date: e.target.value })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                          (stage.stage_name === 'contract' || stage.stage_name === 'completion') && !stage.end_date
+                            ? 'border-red-300 bg-red-50'
+                            : 'border-gray-300'
+                        }`}
                         min={stage.start_date}
+                        required={stage.stage_name === 'contract' || stage.stage_name === 'completion'}
                       />
+                      {(stage.stage_name === 'contract' || stage.stage_name === 'completion') && !stage.end_date && (
+                        <p className="mt-1 text-xs text-red-600">이 공정의 종료일은 필수입니다</p>
+                      )}
                     </div>
                   </div>
 
@@ -285,6 +310,9 @@ export default function ProcessStageManager({
             <p className="text-sm text-blue-700">
               각 공정을 클릭하여 상태, 일정, 지연 사유 등을 설정할 수 있습니다.
               최소 하나 이상의 공정이 '진행중' 또는 '완료' 상태여야 합니다.
+            </p>
+            <p className="text-sm text-blue-700 mt-1 font-semibold">
+              ⚠️ 계약과 준공일 단계의 시작일/종료일은 반드시 입력해야 합니다.
             </p>
           </div>
         </div>

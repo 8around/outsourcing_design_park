@@ -212,6 +212,20 @@ export default function EditProjectPage() {
       return
     }
 
+    // 계약 및 준공일 단계의 날짜 필수 검증
+    const contractStage = processStages.find(stage => stage.stage_name === 'contract')
+    const completionStage = processStages.find(stage => stage.stage_name === 'completion')
+
+    if (!contractStage?.start_date || !contractStage?.end_date) {
+      toast.error('계약 단계의 시작일과 종료일은 필수 입력 항목입니다.')
+      return
+    }
+
+    if (!completionStage?.start_date || !completionStage?.end_date) {
+      toast.error('준공일 단계의 시작일과 종료일은 필수 입력 항목입니다.')
+      return
+    }
+
     setSaving(true)
 
     try {

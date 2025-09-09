@@ -1,9 +1,21 @@
 'use client'
 
-import React, { useMemo } from 'react'
+import React, { useMemo, useEffect, useState } from 'react'
 import { Gantt, Task, ViewMode } from 'gantt-task-react'
 import 'gantt-task-react/dist/index.css'
-import { Card } from 'antd'
+import { Card, Spin, Alert, Pagination, Select, Space, Typography, Button } from 'antd'
+import { 
+  DownOutlined, 
+  RightOutlined,
+  ExpandOutlined,
+  CompressOutlined
+} from '@ant-design/icons'
+import { projectService } from '@/lib/services/projects.service'
+import type { Project, ProcessStage } from '@/types/project'
+import { CustomTaskListHeader, CustomTaskListTable } from './CustomTaskList'
+
+const { Text } = Typography
+const { Option } = Select
 
 interface GanttChartProps {
   viewMode?: ViewMode
@@ -22,237 +34,197 @@ export function GanttChart({
   onProgressChange,
   locale = 'ko-KR'
 }: GanttChartProps) {
-  // 테스트 데이터 생성
-  const tasks: Task[] = useMemo(() => {
-    const currentDate = new Date()
-    const getDate = (days: number) => {
-      const date = new Date(currentDate)
-      date.setDate(date.getDate() + days)
-      return date
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [projects, setProjects] = useState<Project[]>([])
+  const [currentPage, setCurrentPage] = useState(1)
+  const [pageSize, setPageSize] = useState(10)
+  const [total, setTotal] = useState(0)
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null)
+  const [expandedProjects, setExpandedProjects] = useState<Set<string>>(new Set())
+  const [isAllExpanded, setIsAllExpanded] = useState(true)
+
+  // 프로젝트 데이터 조회
+  useEffect(() => {
+    fetchProjects()
+  }, [currentPage, pageSize])
+
+  const fetchProjects = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+      
+      const response = await projectService.getProjects(
+        {},
+        { sortBy: 'created_at', order: 'desc' },
+        { page: currentPage, limit: pageSize }
+      )
+      
+      setProjects(response.data)
+      setTotal(response.total)
+      
+      // Initialize all projects as expanded
+      const allProjectIds = new Set(response.data.map(p => `project-${p.id}`))
+      setExpandedProjects(allProjectIds)
+      setIsAllExpanded(true)
+    } catch (err) {
+      setError('프로젝트 데이터를 불러오는데 실패했습니다.')
+      console.error('프로젝트 조회 실패:', err)
+    } finally {
+      setLoading(false)
     }
+  }
 
-    return [
-      // ABC 제조공장 프로젝트
-      {
-        start: getDate(-60),
-        end: getDate(-30),
-        name: '계약 및 기본 설계',
-        id: 'Task-1',
-        type: 'task',
-        progress: 100,
-        project: 'project-1',
-        styles: { 
-          backgroundColor: '#52c41a',
-          progressColor: '#237804',
-          progressSelectedColor: '#092b00'
-        }
-      },
-      {
-        start: getDate(-35),
-        end: getDate(-10),
-        name: '상세 도면 작성',
-        id: 'Task-2',
-        type: 'task',
-        progress: 100,
-        dependencies: ['Task-1'],
-        project: 'project-1',
-        styles: { 
-          backgroundColor: '#52c41a',
-          progressColor: '#237804',
-          progressSelectedColor: '#092b00'
-        }
-      },
-      {
-        start: getDate(-15),
-        end: getDate(0),
-        name: '자재 발주',
-        id: 'Task-3',
-        type: 'task',
-        progress: 90,
-        dependencies: ['Task-2'],
-        project: 'project-1',
-        styles: { 
-          backgroundColor: '#1890ff',
-          progressColor: '#0050b3',
-          progressSelectedColor: '#002766'
-        }
-      },
-      {
-        start: getDate(-5),
-        end: getDate(20),
-        name: '레이저 가공',
-        id: 'Task-4',
-        type: 'task',
-        progress: 75,
-        dependencies: ['Task-3'],
-        project: 'project-1',
-        styles: { 
-          backgroundColor: '#1890ff',
-          progressColor: '#0050b3',
-          progressSelectedColor: '#002766'
-        }
-      },
-      {
-        start: getDate(15),
-        end: getDate(40),
-        name: '용접 작업',
-        id: 'Task-5',
-        type: 'task',
-        progress: 30,
-        dependencies: ['Task-4'],
-        project: 'project-1',
-        styles: { 
-          backgroundColor: '#1890ff',
-          progressColor: '#0050b3',
-          progressSelectedColor: '#002766'
-        }
-      },
-      {
-        start: getDate(35),
-        end: getDate(50),
-        name: '도장 작업',
-        id: 'Task-6',
-        type: 'task',
-        progress: 0,
-        dependencies: ['Task-5'],
-        project: 'project-1',
-        styles: { 
-          backgroundColor: '#faad14',
-          progressColor: '#d48806',
-          progressSelectedColor: '#873800'
-        }
-      },
-      {
-        start: getDate(45),
-        end: getDate(70),
-        name: '현장 설치',
-        id: 'Task-7',
-        type: 'task',
-        progress: 0,
-        dependencies: ['Task-6'],
-        project: 'project-1',
-        styles: { 
-          backgroundColor: '#faad14',
-          progressColor: '#d48806',
-          progressSelectedColor: '#873800'
-        }
-      },
-      {
-        start: getDate(70),
-        end: getDate(75),
-        name: '프로젝트 완료',
-        id: 'Task-8',
-        type: 'milestone',
-        progress: 0,
-        dependencies: ['Task-7'],
-        project: 'project-1'
-      },
-      // 프로젝트 그룹
-      {
-        start: getDate(-60),
-        end: getDate(75),
-        name: 'ABC 제조공장 설비 구축',
-        id: 'project-1',
-        type: 'project',
-        progress: 55,
-        hideChildren: false,
-        styles: { 
-          backgroundColor: '#722ed1',
-          progressColor: '#391085',
-          progressSelectedColor: '#120338'
-        }
-      },
+  // 프로젝트 전체 진행률 계산
+  const calculateProjectProgress = (stages: ProcessStage[]): number => {
+    if (!stages.length) return 0
+    const completedStages = stages.filter(s => s.status === 'completed').length
+    return Math.round((completedStages / stages.length) * 100)
+  }
 
-      // XYZ 물류센터 프로젝트
-      {
-        start: getDate(-45),
-        end: getDate(-25),
-        name: '부지 조사',
-        id: 'Task-9',
-        type: 'task',
-        progress: 100,
-        project: 'project-2',
-        styles: { 
-          backgroundColor: '#52c41a',
-          progressColor: '#237804',
-          progressSelectedColor: '#092b00'
-        }
-      },
-      {
-        start: getDate(-30),
-        end: getDate(5),
-        name: '구조 설계',
-        id: 'Task-10',
-        type: 'task',
-        progress: 85,
-        dependencies: ['Task-9'],
-        project: 'project-2',
-        styles: { 
-          backgroundColor: '#1890ff',
-          progressColor: '#0050b3',
-          progressSelectedColor: '#002766'
-        }
-      },
-      {
-        start: getDate(0),
-        end: getDate(30),
-        name: '기초 공사',
-        id: 'Task-11',
-        type: 'task',
-        progress: 20,
-        dependencies: ['Task-10'],
-        project: 'project-2',
-        styles: { 
-          backgroundColor: '#1890ff',
-          progressColor: '#0050b3',
-          progressSelectedColor: '#002766'
-        }
-      },
-      {
-        start: getDate(25),
-        end: getDate(60),
-        name: '골조 공사',
-        id: 'Task-12',
-        type: 'task',
-        progress: 0,
-        dependencies: ['Task-11'],
-        project: 'project-2',
-        styles: { 
-          backgroundColor: '#faad14',
-          progressColor: '#d48806',
-          progressSelectedColor: '#873800'
-        }
-      },
-      {
-        start: getDate(60),
-        end: getDate(65),
-        name: '프로젝트 완료',
-        id: 'Task-13',
-        type: 'milestone',
-        progress: 0,
-        dependencies: ['Task-12'],
-        project: 'project-2'
-      },
-      // 프로젝트 그룹
-      {
-        start: getDate(-45),
-        end: getDate(65),
-        name: 'XYZ 물류센터 건설',
-        id: 'project-2',
+  // 공정 상태에 따른 진행률
+  const getStageProgress = (status: string): number => {
+    switch (status) {
+      case 'completed': return 100
+      case 'in_progress': return 50
+      case 'delayed': return 30
+      case 'waiting': return 0
+      default: return 0
+    }
+  }
+
+  // 공정 상태에 따른 색상
+  const getStageColor = (status: string) => {
+    switch (status) {
+      case 'completed':
+        return { backgroundColor: '#52c41a', progressColor: '#237804', progressSelectedColor: '#092b00' }
+      case 'in_progress':
+        return { backgroundColor: '#1890ff', progressColor: '#0050b3', progressSelectedColor: '#002766' }
+      case 'delayed':
+        return { backgroundColor: '#ff4d4f', progressColor: '#a8071a', progressSelectedColor: '#5c0011' }
+      case 'waiting':
+        return { backgroundColor: '#faad14', progressColor: '#d48806', progressSelectedColor: '#873800' }
+      default:
+        return { backgroundColor: '#d9d9d9', progressColor: '#8c8c8c', progressSelectedColor: '#595959' }
+    }
+  }
+
+  // 날짜 계산 헬퍼
+  const addDaysToDate = (date: Date, days: number): Date => {
+    const newDate = new Date(date)
+    newDate.setDate(newDate.getDate() + days)
+    return newDate
+  }
+
+  // 공정 단계 이름 매핑
+  const PROCESS_STAGE_NAMES: Record<string, string> = {
+    contract: '계약',
+    design: '도면설계',
+    order: '발주',
+    laser: '레이저',
+    welding: '용접',
+    plating: '도금',
+    painting: '도장',
+    panel: '판넬',
+    assembly: '조립',
+    shipping: '출하',
+    installation: '설치',
+    certification: '인증기간',
+    closing: '마감',
+    completion: '준공일'
+  }
+
+  // 프로젝트 데이터를 간트차트 Task 형식으로 변환
+  const tasks: Task[] = useMemo(() => {
+    if (!projects.length) return []
+
+    const ganttTasks: Task[] = []
+    
+    projects.forEach((project, projectIndex) => {
+      // 긴급 프로젝트 색상 설정
+      const projectColor = project.is_urgent 
+        ? { backgroundColor: '#ff4d4f', progressColor: '#a8071a', progressSelectedColor: '#5c0011' }
+        : { backgroundColor: '#722ed1', progressColor: '#391085', progressSelectedColor: '#120338' }
+
+      // 프로젝트 그룹 태스크
+      const projectId = `project-${project.id}`
+      const hasChildTasks = !!(project.process_stages && project.process_stages.length > 0)
+      const projectTask: Task & { hasChildren?: boolean } = {
+        id: projectId,
+        name: project.site_name + (project.is_urgent ? ' [긴급]' : ''),
+        start: new Date(project.order_date),
+        end: new Date(project.expected_completion_date),
         type: 'project',
-        progress: 45,
-        hideChildren: false,
-        styles: { 
-          backgroundColor: '#fa541c',
-          progressColor: '#ad2102',
-          progressSelectedColor: '#5c0011'
-        }
+        progress: calculateProjectProgress(project.process_stages || []),
+        hideChildren: !expandedProjects.has(projectId),
+        styles: projectColor,
+        hasChildren: hasChildTasks
       }
-    ]
-  }, [])
+      ganttTasks.push(projectTask)
+
+      // 각 공정 단계를 태스크로 추가
+      if (project.process_stages && project.process_stages.length > 0) {
+        const sortedStages = [...project.process_stages].sort((a, b) => a.stage_order - b.stage_order)
+        
+        // 이전 단계의 종료일을 추적하기 위한 변수
+        let previousEndDate = new Date(project.order_date)
+        
+        sortedStages.forEach((stage, stageIndex) => {
+          const stageProgress = getStageProgress(stage.status)
+          const stageColor = getStageColor(stage.status)
+          
+          // 시작일 계산 - 날짜 데이터가 없으면 이전 단계의 종료일 사용
+          let startDate: Date
+          if (stage.start_date) {
+            startDate = new Date(stage.start_date)
+          } else if (stage.actual_start_date) {
+            startDate = new Date(stage.actual_start_date)
+          } else {
+            // 날짜가 없으면 이전 단계의 종료일을 시작일로 사용
+            startDate = new Date(previousEndDate)
+          }
+          
+          // 종료일 계산 - 날짜 데이터가 없으면 시작일과 동일하게 설정
+          let endDate: Date
+          if (stage.end_date) {
+            endDate = new Date(stage.end_date)
+          } else if (stage.actual_end_date) {
+            endDate = new Date(stage.actual_end_date)
+          } else {
+            // 날짜가 없으면 시작일과 동일하게 설정 (같은 날짜로 표시)
+            endDate = new Date(startDate)
+          }
+          
+          // 다음 단계를 위해 현재 단계의 종료일 저장
+          previousEndDate = new Date(endDate)
+
+          // 날짜 설정 여부 확인
+          const hasDateData = !!(stage.start_date || stage.actual_start_date || stage.end_date || stage.actual_end_date)
+          
+          const stageTask: Task & { hasDateData?: boolean } = {
+            id: `stage-${project.id}-${stage.id}`,
+            name: PROCESS_STAGE_NAMES[stage.stage_name] || stage.stage_name,
+            start: startDate,
+            end: endDate,
+            type: 'task',
+            progress: stageProgress,
+            project: `project-${project.id}`,
+            dependencies: stageIndex > 0 ? [`stage-${project.id}-${sortedStages[stageIndex - 1].id}`] : [],
+            styles: stageColor,
+            hasDateData: hasDateData
+          }
+          
+          ganttTasks.push(stageTask)
+        })
+      }
+    })
+
+    return ganttTasks
+  }, [projects, expandedProjects])
 
   const handleTaskClick = (task: Task) => {
     console.log('Task clicked:', task)
+    setSelectedTask(task)
     onTaskClick?.(task)
   }
 
@@ -272,19 +244,86 @@ export function GanttChart({
   }
 
   const handleExpanderClick = (task: Task) => {
-    const updatedTasks = tasks.map(t => {
-      if (t.id === task.id) {
-        return { ...t, hideChildren: !t.hideChildren }
+    // 프로젝트 접기/펼치기 상태 관리
+    setExpandedProjects(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(task.id)) {
+        newSet.delete(task.id)
+      } else {
+        newSet.add(task.id)
       }
-      return t
+      
+      // Check if all are expanded to update toggle all button state
+      const allProjectIds = projects.map(p => `project-${p.id}`)
+      setIsAllExpanded(allProjectIds.every(id => newSet.has(id)))
+      
+      return newSet
     })
-    console.log('Expander clicked:', task)
+  }
+  
+  // 전체 펼치기/접기 함수
+  const handleToggleAll = () => {
+    if (isAllExpanded) {
+      // Collapse all
+      setExpandedProjects(new Set())
+      setIsAllExpanded(false)
+    } else {
+      // Expand all
+      const allProjectIds = new Set(projects.map(p => `project-${p.id}`))
+      setExpandedProjects(allProjectIds)
+      setIsAllExpanded(true)
+    }
+  }
+
+  // 로딩 상태
+  if (loading) {
+    return (
+      <Card className="gantt-chart-container">
+        <div style={{ textAlign: 'center', padding: '50px' }}>
+          <Spin size="large" tip="프로젝트 데이터를 불러오는 중..." />
+        </div>
+      </Card>
+    )
+  }
+
+  // 에러 상태
+  if (error) {
+    return (
+      <Card className="gantt-chart-container">
+        <Alert message="오류" description={error} type="error" showIcon />
+      </Card>
+    )
+  }
+
+  // 데이터 없음
+  if (!projects.length) {
+    return (
+      <Card className="gantt-chart-container">
+        <Alert 
+          message="프로젝트 없음" 
+          description="표시할 프로젝트가 없습니다. 새 프로젝트를 생성해주세요." 
+          type="info" 
+          showIcon 
+        />
+      </Card>
+    )
   }
 
   return (
-    <Card className="gantt-chart-container">
-      <div className="gantt-wrapper">
-        <Gantt
+    <div>
+      <Card className="gantt-chart-container">
+        {/* 전체 펼치기/접기 버튼 */}
+        <div style={{ padding: '16px', borderBottom: '1px solid #f0f0f0' }}>
+          <Button
+            onClick={handleToggleAll}
+            icon={isAllExpanded ? <CompressOutlined /> : <ExpandOutlined />}
+            type="default"
+          >
+            {isAllExpanded ? '모두 접기' : '모두 펼치기'}
+          </Button>
+        </div>
+        <div className="gantt-wrapper">
+          <Gantt
           tasks={tasks}
           viewMode={viewMode}
           onClick={handleTaskClick}
@@ -296,14 +335,54 @@ export function GanttChart({
           barCornerRadius={3}
           barFill={60}
           columnWidth={viewMode === ViewMode.Month ? 300 : viewMode === ViewMode.Week ? 250 : 65}
-          listCellWidth="200px"
+          listCellWidth="550px"
           rowHeight={40}
           fontSize="14px"
           fontFamily="'Segoe UI', 'Noto Sans KR', sans-serif"
           todayColor="rgba(252, 248, 227, 0.5)"
           arrowColor="#1890ff"
           arrowIndent={20}
+          TaskListHeader={CustomTaskListHeader}
+          TaskListTable={(props) => (
+            <CustomTaskListTable
+              {...props}
+              selectedTask={selectedTask}
+              onExpanderClick={handleExpanderClick}
+              onClick={handleTaskClick}
+            />
+          )}
         />
+        </div>
+      </Card>
+      
+      {/* 페이지네이션 및 페이지 크기 선택 */}
+      <div style={{ marginTop: '20px', padding: '0 24px' }}>
+        <Space size="middle" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap' }}>
+          <Space>
+            <Text>페이지 크기:</Text>
+            <Select value={pageSize} onChange={(value) => {
+              setPageSize(value)
+              setCurrentPage(1) // 페이지 크기 변경 시 첫 페이지로
+            }}>
+              <Option value={10}>10개</Option>
+              <Option value={20}>20개</Option>
+              <Option value={50}>50개</Option>
+              <Option value={100}>100개</Option>
+            </Select>
+            <Text type="secondary">
+              전체 {total}개 프로젝트 중 {(currentPage - 1) * pageSize + 1}-{Math.min(currentPage * pageSize, total)}개 표시
+            </Text>
+          </Space>
+          
+          <Pagination
+            current={currentPage}
+            total={total}
+            pageSize={pageSize}
+            onChange={(page) => setCurrentPage(page)}
+            showSizeChanger={false}
+            showTotal={(total, range) => `${range[0]}-${range[1]} / ${total}개`}
+          />
+        </Space>
       </div>
 
       <style jsx>{`
@@ -321,15 +400,76 @@ export function GanttChart({
           padding: 0;
         }
 
-        :global(.gantt .gantt-task-list-header) {
+        /* 커스텀 TaskList 스타일 */
+        :global(.gantt-task-list-header) {
           background: #fafafa;
           font-weight: 600;
+          border-bottom: 2px solid #e8e8e8;
+          display: flex;
+          align-items: center;
+        }
+        
+        :global(.gantt-task-list-header-row) {
+          display: flex;
+          width: 100%;
+          height: 40px;
+          align-items: center;
+        }
+        
+        :global(.gantt-task-list-header-cell) {
+          padding: 0 16px;
+          border-right: 1px solid #e8e8e8;
+          display: flex;
+          align-items: center;
+          height: 100%;
         }
 
-        :global(.gantt .gantt-task-list-cell) {
+        :global(.gantt-task-list-table) {
+          background: white;
+        }
+
+        :global(.gantt-task-list-row) {
+          display: flex;
+          width: 100%;
+          height: 40px;
+          align-items: center;
+          border-bottom: 1px solid #f0f0f0;
+          cursor: pointer;
+          transition: background 0.2s;
+        }
+
+        :global(.gantt-task-list-row:hover) {
+          background: #e6f7ff !important;
+        }
+
+        :global(.gantt-task-list-row-selected) {
+          background: #bae7ff !important;
+        }
+        
+        :global(.gantt-task-list-row-even) {
+          background: #fafafa;
+        }
+        
+        :global(.gantt-task-list-row-odd) {
+          background: white;
+        }
+
+        :global(.gantt-task-list-cell) {
+          padding: 0 16px;
           border-right: 1px solid #f0f0f0;
+          height: 100%;
+          display: flex;
+          align-items: center;
         }
 
+        :global(.gantt-task-list-expander) {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          transition: transform 0.2s;
+        }
+
+        /* 간트차트 바 스타일 */
         :global(.gantt .gantt-task) {
           cursor: pointer;
           transition: all 0.2s;
@@ -358,7 +498,16 @@ export function GanttChart({
         :global(.gantt .gantt-grid-row-odd) {
           background: white;
         }
+
+        /* 기본 TaskList 컬럼 숨기기 */
+        :global(.gantt ._3T42e) {
+          display: none !important;
+        }
+        
+        :global(.gantt ._3zRFW) {
+          display: none !important;
+        }
       `}</style>
-    </Card>
+    </div>
   )
 }

@@ -163,7 +163,7 @@ export default function GanttPage() {
         </Space>
       </div>
 
-      {/* 간트차트 라이브러리 컴포넌트 */}
+      {/* 간트차트 컴포넌트 - DB 연동 및 페이지네이션 포함 */}
       <GanttChart
         viewMode={viewMode}
         onTaskClick={handleTaskClick}
