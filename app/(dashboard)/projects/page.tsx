@@ -55,8 +55,8 @@ export default function ProjectsPage() {
       const appliedFilters: ProjectFilters = {
         search: searchTerm || undefined,
         current_process_stage: selectedStage,
-        is_urgent: showUrgentOnly || undefined,
-        favorites_only: showFavoritesOnly || undefined
+        is_urgent: showUrgentOnly ? true : undefined,
+        favorites_only: showFavoritesOnly ? true : undefined
       }
 
       const response = await projectService.getProjects(
