@@ -20,6 +20,8 @@
     "@fullcalendar/list": "^6.1.19",
     "@fullcalendar/react": "^6.1.19",
     "@fullcalendar/timegrid": "^6.1.19",
+    "@headlessui/react": "^2.2.7",
+    "@heroicons/react": "^2.2.0",
     "@react-email/render": "^1.2.2",
     "@supabase/ssr": "^0.7.0",
     "@supabase/supabase-js": "^2.57.2",

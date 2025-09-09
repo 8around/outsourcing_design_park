@@ -5,10 +5,13 @@ import { useRouter, useParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/lib/hooks/useAuth'
 import { projectService } from '@/lib/services/projects.service'
+import { logService } from '@/lib/services/logs.service'
 import ImageUploader from '@/components/projects/ImageUploader'
 import ProcessStageManager from '@/components/projects/ProcessStageManager'
 import UserSelector from '@/components/projects/UserSelector'
+import LogModal from '@/components/logs/LogModal'
 import { toast } from 'react-hot-toast'
+import { PlusIcon } from '@heroicons/react/24/outline'
 import type { ProcessStageName } from '@/types/project'
 
 // 공정 단계 정의
@@ -55,6 +58,7 @@ export default function EditProjectPage() {
   const [users, setUsers] = useState<any[]>([])
   const [existingImages, setExistingImages] = useState<ProjectImage[]>([])
   const [deletedImageIds, setDeletedImageIds] = useState<string[]>([])
+  const [showLogModal, setShowLogModal] = useState(false)
   
   // 폼 데이터
   const [formData, setFormData] = useState({
@@ -495,6 +499,27 @@ export default function EditProjectPage() {
           />
         </div>
 
+        {/* 히스토리 로그 섹션 */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div className="flex justify-between items-center mb-4">
+            <div>
+              <h2 className="text-xl font-semibold">히스토리 로그</h2>
+              <p className="text-sm text-gray-600 mt-1">프로젝트 수정과 함께 로그를 작성할 수 있습니다</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowLogModal(true)}
+              className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            >
+              <PlusIcon className="h-4 w-4 mr-1" />
+              로그 추가
+            </button>
+          </div>
+          <p className="text-sm text-gray-500">
+            프로젝트 수정 내용과 별도로 히스토리 로그를 작성하여 프로젝트 진행 상황을 기록할 수 있습니다.
+          </p>
+        </div>
+
         {/* 이미지 갤러리 섹션 */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <h2 className="text-xl font-semibold mb-4">이미지 갤러리</h2>
@@ -577,6 +602,18 @@ export default function EditProjectPage() {
           </button>
         </div>
       </form>
+
+      {/* 로그 생성 모달 */}
+      {params.id && (
+        <LogModal
+          isOpen={showLogModal}
+          onClose={() => setShowLogModal(false)}
+          projectId={params.id as string}
+          onSuccess={() => {
+            toast.success('로그가 성공적으로 생성되었습니다.')
+          }}
+        />
+      )}
     </div>
   )
 }
