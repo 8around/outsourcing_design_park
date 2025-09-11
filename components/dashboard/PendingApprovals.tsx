@@ -10,6 +10,7 @@ import {
   FileTextOutlined,
   ExclamationCircleOutlined,
   EyeOutlined,
+  ReloadOutlined,
 } from '@ant-design/icons'
 import { formatDistanceToNow } from 'date-fns'
 import { ko } from 'date-fns/locale'
@@ -78,6 +79,7 @@ export default function PendingApprovals({
   const { user, userData } = useAuth()
   const [approvals, setApprovals] = useState<ApprovalItem[]>([])
   const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
   const [processing, setProcessing] = useState<string | null>(null)
 
   // 승인 대기 목록 로드
@@ -126,6 +128,22 @@ export default function PendingApprovals({
   useEffect(() => {
     loadApprovals()
   }, [limit, user])
+
+  // 새로고침 핸들러
+  const handleRefresh = async () => {
+    if (refreshing || loading) return
+    
+    setRefreshing(true)
+    try {
+      await loadApprovals()
+      message.success('새로고침 완료')
+    } catch (error) {
+      console.error('새로고침 실패:', error)
+      message.error('새로고침에 실패했습니다.')
+    } finally {
+      setRefreshing(false)
+    }
+  }
 
   // 승인 처리
   const handleApprove = async (id: string) => {
@@ -375,13 +393,17 @@ export default function PendingApprovals({
               <Badge count={approvals.length} />
             )}
           </Space>
-          <Button
-            type="link"
-            size="small"
-            onClick={() => router.push('/admin/users')}
-          >
-            전체 보기
-          </Button>
+          <Tooltip title="새로고침">
+            <Button
+              type="text"
+              icon={<ReloadOutlined spin={refreshing} />}
+              onClick={handleRefresh}
+              loading={refreshing}
+              disabled={loading}
+            >
+              새로고침
+            </Button>
+          </Tooltip>
         </div>
       }
       className="pending-approvals"
