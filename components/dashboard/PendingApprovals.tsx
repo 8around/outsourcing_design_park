@@ -288,6 +288,8 @@ export default function PendingApprovals({
 
   // 승인 항목 삭제 (관리자만)
   const handleDelete = async (id: string, type: ApprovalType) => {
+    console.log('handleDelete called:', { id, type, userData });
+    
     if (!user || userData?.role !== 'admin') {
       message.error('관리자만 삭제할 수 있습니다.')
       return
@@ -298,18 +300,25 @@ export default function PendingApprovals({
       let success = false
       
       if (type === 'user') {
+        console.log('Deleting user approval:', id);
         // 사용자 승인 요청 삭제 - users 테이블에서 해당 사용자 삭제
         success = await approvalService.deleteUser(id, user.id)
       } else if (type === 'project') {
+        console.log('Deleting project approval:', id);
         // 프로젝트 승인 요청 삭제
         success = await approvalService.deleteApprovalRequest(id, user.id)
       }
+
+      console.log('Delete result:', success);
 
       if (success) {
         message.success('삭제가 완료되었습니다.')
         // 전체 목록과 현재 페이지 목록에서 제거
         setAllApprovals(prev => prev.filter(item => item.id !== id))
         setApprovals(prev => prev.filter(item => item.id !== id))
+        
+        // 새로고침하여 전체 활동 로그도 업데이트
+        await loadApprovals()
       } else {
         message.error('삭제 처리에 실패했습니다.')
       }

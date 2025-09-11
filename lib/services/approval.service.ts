@@ -418,6 +418,8 @@ export class ApprovalService {
    */
   async deleteApprovalRequest(requestId: string, adminId: string): Promise<boolean> {
     try {
+      console.log('deleteApprovalRequest called:', { requestId, adminId });
+      
       // 승인 요청 정보 조회
       const { data: requestData, error: fetchError } = await this.supabase
         .from('approval_requests')
@@ -425,12 +427,57 @@ export class ApprovalService {
         .eq('id', requestId)
         .single();
 
+      console.log('Approval request data:', requestData);
+      console.log('Fetch error:', fetchError);
+
       if (fetchError || !requestData) {
         console.error('Error fetching approval request:', fetchError);
         throw fetchError || new Error('Approval request not found');
       }
 
-      // 승인 요청 삭제 (실제 삭제)
+      // 1. 먼저 관련된 history_logs 삭제 (소프트 삭제)
+      // 승인 요청과 관련된 로그는 project_id, requester_id, approver_id로 찾을 수 있음
+      const { error: logsDeleteError } = await this.supabase
+        .from('history_logs')
+        .update({ 
+          is_deleted: true,
+          deleted_by: adminId,
+          deleted_at: new Date().toISOString()
+        })
+        .match({
+          project_id: requestData.project_id,
+          author_id: requestData.requester_id,
+          target_user_id: requestData.approver_id,
+          log_type: 'approval_request'
+        });
+
+      if (logsDeleteError) {
+        console.error('Error deleting related logs:', logsDeleteError);
+        // 로그 삭제 실패해도 계속 진행
+      }
+
+      // 승인 응답 로그도 삭제 (있는 경우)
+      if (requestData.status !== 'pending') {
+        const { error: responseLogDeleteError } = await this.supabase
+          .from('history_logs')
+          .update({ 
+            is_deleted: true,
+            deleted_by: adminId,
+            deleted_at: new Date().toISOString()
+          })
+          .match({
+            project_id: requestData.project_id,
+            author_id: requestData.approver_id,
+            target_user_id: requestData.requester_id,
+            log_type: 'approval_response'
+          });
+
+        if (responseLogDeleteError) {
+          console.error('Error deleting response logs:', responseLogDeleteError);
+        }
+      }
+
+      // 2. 승인 요청 삭제 (실제 삭제)
       const { error: deleteError } = await this.supabase
         .from('approval_requests')
         .delete()
@@ -440,9 +487,6 @@ export class ApprovalService {
         console.error('Error deleting approval request:', deleteError);
         throw deleteError;
       }
-
-      // 관련 로그도 삭제할 필요가 있을 경우 추가
-      // 여기서는 approval_requests 삭제 시 CASCADE로 관련 로그도 삭제되도록 설정되어 있다고 가정
 
       return true;
     } catch (error) {
