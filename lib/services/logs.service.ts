@@ -381,20 +381,18 @@ class LogService {
     }
     
     // 5. 로그 완전 삭제 (소프트 삭제 대신 완전 삭제)
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from('history_logs')
       .delete()
       .eq('id', logId)
-      .select()
-      .single()
 
     if (error) {
       console.error('로그 삭제 실패:', error)
       throw new Error('로그 삭제에 실패했습니다.')
     }
 
-    console.log('Log deleted successfully:', data);
-    return data
+    console.log('Log deleted successfully');
+    return { id: logId }
   }
 
   /**

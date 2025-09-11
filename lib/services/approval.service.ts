@@ -467,7 +467,7 @@ export class ApprovalService {
           .eq('id', requestData.history_log_id);
 
         if (logDeleteError) {
-          console.error('Error soft-deleting related log:', logDeleteError);
+          console.error('Error deleting related log:', logDeleteError);
           // 로그 삭제 실패해도 계속 진행
         }
       }
