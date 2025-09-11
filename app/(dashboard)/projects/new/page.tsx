@@ -380,89 +380,6 @@ export default function NewProjectPage() {
           />
         </div>
 
-        {/* 히스토리 로그 섹션 */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div className="flex justify-between items-center mb-4">
-            <div>
-              <h2 className="text-xl font-semibold">초기 히스토리 로그</h2>
-              <p className="text-sm text-gray-600 mt-1">프로젝트 생성과 함께 초기 로그를 작성할 수 있습니다 (선택사항)</p>
-            </div>
-            {!showLogForm && pendingLogs.length === 0 && (
-              <button
-                type="button"
-                onClick={() => setShowLogForm(true)}
-                className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-              >
-                <PlusIcon className="h-4 w-4 mr-1" />
-                로그 추가
-              </button>
-            )}
-          </div>
-
-          {/* 대기 중인 로그 목록 */}
-          {pendingLogs.length > 0 && (
-            <div className="mb-4 space-y-2">
-              <p className="text-sm font-medium text-gray-700">저장 예정 로그 ({pendingLogs.length}개)</p>
-              {pendingLogs.map((log, index) => (
-                <div key={index} className="bg-gray-50 rounded-md p-3 flex justify-between items-start">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="inline-block px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded">
-                        {log.category}
-                      </span>
-                      {log.approvalRequestTo && (
-                        <span className="inline-block px-2 py-1 text-xs font-medium bg-purple-100 text-purple-800 rounded">
-                          승인 요청: {log.approvalRequestTo.name}
-                        </span>
-                      )}
-                      {log.attachments && log.attachments.length > 0 && (
-                        <span className="inline-block px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded">
-                          첨부파일 {log.attachments.length}개
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-sm text-gray-700">{log.content}</p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setPendingLogs(pendingLogs.filter((_, i) => i !== index))
-                    }}
-                    className="ml-2 text-red-600 hover:text-red-800"
-                  >
-                    <XMarkIcon className="h-4 w-4" />
-                  </button>
-                </div>
-              ))}
-              {!showLogForm && (
-                <button
-                  type="button"
-                  onClick={() => setShowLogForm(true)}
-                  className="mt-2 text-sm text-blue-600 hover:text-blue-800"
-                >
-                  + 추가 로그 작성
-                </button>
-              )}
-            </div>
-          )}
-
-          {/* 로그 작성 폼 */}
-          {showLogForm && (
-            <div className="border-t pt-4">
-              <LogFormSimple
-                onSubmit={(data) => {
-                  setPendingLogs([...pendingLogs, data])
-                  setShowLogForm(false)
-                  toast.success('로그가 추가되었습니다. 프로젝트 생성 시 함께 저장됩니다.')
-                }}
-                onCancel={() => setShowLogForm(false)}
-                showAttachments={true}  // 첨부파일 기능 활성화
-                users={users}  // 사용자 목록 전달
-              />
-            </div>
-          )}
-        </div>
-
         {/* 이미지 갤러리 섹션 */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <h2 className="text-xl font-semibold mb-4">이미지 갤러리</h2>
@@ -493,6 +410,89 @@ export default function NewProjectPage() {
           </button>
         </div>
       </form>
+
+      {/* 히스토리 로그 섹션 - form 외부에 위치 */}
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mt-8">
+        <div className="flex justify-between items-center mb-4">
+          <div>
+            <h2 className="text-xl font-semibold">초기 히스토리 로그</h2>
+            <p className="text-sm text-gray-600 mt-1">프로젝트 생성과 함께 초기 로그를 작성할 수 있습니다 (선택사항)</p>
+          </div>
+          {!showLogForm && pendingLogs.length === 0 && (
+            <button
+              type="button"
+              onClick={() => setShowLogForm(true)}
+              className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            >
+              <PlusIcon className="h-4 w-4 mr-1" />
+              로그 추가
+            </button>
+          )}
+        </div>
+
+        {/* 대기 중인 로그 목록 */}
+        {pendingLogs.length > 0 && (
+          <div className="mb-4 space-y-2">
+            <p className="text-sm font-medium text-gray-700">저장 예정 로그 ({pendingLogs.length}개)</p>
+            {pendingLogs.map((log, index) => (
+              <div key={index} className="bg-gray-50 rounded-md p-3 flex justify-between items-start">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="inline-block px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded">
+                      {log.category}
+                    </span>
+                    {log.approvalRequestTo && (
+                      <span className="inline-block px-2 py-1 text-xs font-medium bg-purple-100 text-purple-800 rounded">
+                        승인 요청: {log.approvalRequestTo.name}
+                      </span>
+                    )}
+                    {log.attachments && log.attachments.length > 0 && (
+                      <span className="inline-block px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded">
+                        첨부파일 {log.attachments.length}개
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-sm text-gray-700">{log.content}</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPendingLogs(pendingLogs.filter((_, i) => i !== index))
+                  }}
+                  className="ml-2 text-red-600 hover:text-red-800"
+                >
+                  <XMarkIcon className="h-4 w-4" />
+                </button>
+              </div>
+            ))}
+            {!showLogForm && (
+              <button
+                type="button"
+                onClick={() => setShowLogForm(true)}
+                className="mt-2 text-sm text-blue-600 hover:text-blue-800"
+              >
+                + 추가 로그 작성
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* 로그 작성 폼 */}
+        {showLogForm && (
+          <div className="border-t pt-4">
+            <LogFormSimple
+              onSubmit={(data) => {
+                setPendingLogs([...pendingLogs, data])
+                setShowLogForm(false)
+                toast.success('로그가 추가되었습니다. 프로젝트 생성 시 함께 저장됩니다.')
+              }}
+              onCancel={() => setShowLogForm(false)}
+              showAttachments={true}  // 첨부파일 기능 활성화
+              users={users}  // 사용자 목록 전달
+            />
+          </div>
+        )}
+      </div>
     </div>
   )
 }
