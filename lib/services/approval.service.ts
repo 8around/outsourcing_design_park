@@ -369,21 +369,10 @@ export class ApprovalService {
         throw updateError;
       }
 
-      // 3. 승인 응답 로그 생성
-      try {
-        await logService.createApprovalResponseLog({
-          project_id: requestData.project_id,
-          approver_id: approverId,
-          approver_name: approverName,
-          requester_id: requestData.requester_id,
-          requester_name: requestData.requester_name,
-          response_memo: responseMemo,
-          approval_status: status
-        });
-      } catch (logError) {
-        console.error('Error creating approval response log:', logError);
-        // 로그 생성 실패는 승인 응답 처리를 막지 않음
-      }
+      // 3. 승인 응답 로그 생성 - 제거됨
+      // 데이터베이스 트리거가 자동으로 history_logs에 로그를 생성하므로
+      // 수동으로 로그를 생성하면 중복이 발생합니다.
+      // 트리거가 approval_requests 테이블 업데이트 시 자동으로 처리합니다.
 
       // 4. 알림 생성 (요청자에게)
       const statusText = status === 'approved' ? '승인' : '반려';

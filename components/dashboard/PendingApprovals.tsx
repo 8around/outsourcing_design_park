@@ -313,18 +313,6 @@ export default function PendingApprovals({
         actions={actions}
       >
         <List.Item.Meta
-          avatar={
-            <Badge 
-              dot 
-              color={priorityColors[approval.priority]}
-              offset={[-5, 5]}
-            >
-              <Avatar 
-                icon={config.icon}
-                style={{ backgroundColor: `var(--ant-color-${config.color})` }}
-              />
-            </Badge>
-          }
           title={
             <Space>
               <Text strong>{approval.title}</Text>
@@ -389,9 +377,6 @@ export default function PendingApprovals({
         <div className="flex items-center justify-between">
           <Space>
             <Title level={4} className="mb-0">승인 대기 목록</Title>
-            {!loading && approvals.length > 0 && (
-              <Badge count={approvals.length} />
-            )}
           </Space>
           <Tooltip title="새로고침">
             <Button
