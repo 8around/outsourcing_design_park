@@ -5,8 +5,13 @@ import { useRouter, useParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/lib/hooks/useAuth'
 import { projectService } from '@/lib/services/projects.service'
+import { logService } from '@/lib/services/logs.service'
 import { toast } from 'react-hot-toast'
 import Link from 'next/link'
+import LogFormSimple from '@/components/logs/LogFormSimple'
+import LogList from '@/components/logs/LogList'
+import type { AttachmentFile, LogCategory } from '@/types/log'
+import type { User } from '@/types/user'
 
 // 공정 단계 정의
 const PROCESS_STAGES = [
@@ -55,17 +60,21 @@ interface ProjectData {
 export default function ProjectDetailPage() {
   const router = useRouter()
   const params = useParams()
-  const { user } = useAuth()
+  const { user, userData } = useAuth()
   const [loading, setLoading] = useState(true)
   const [project, setProject] = useState<ProjectData | null>(null)
   const [salesManager, setSalesManager] = useState<any>(null)
   const [siteManager, setSiteManager] = useState<any>(null)
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
+  const [showLogForm, setShowLogForm] = useState(false)
+  const [users, setUsers] = useState<User[]>([])
+  const [refreshLogs, setRefreshLogs] = useState(0)
 
   // 프로젝트 정보 가져오기
   useEffect(() => {
     if (params.id) {
       fetchProjectDetail()
+      fetchUsers()
     }
   }, [params.id])
 
@@ -110,6 +119,63 @@ export default function ProjectDetailPage() {
       toast.error('프로젝트 정보를 불러올 수 없습니다.')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const fetchUsers = async () => {
+    try {
+      const supabase = createClient()
+      const { data, error } = await supabase
+        .from('users')
+        .select('id, name, email')
+        .order('name')
+
+      if (error) throw error
+      setUsers(data || [])
+    } catch (error) {
+      console.error('사용자 목록 조회 실패:', error)
+    }
+  }
+
+  const handleLogSubmit = async (data: {
+    category: string
+    content: string
+    attachments?: AttachmentFile[]
+    approvalRequestTo?: { id: string; name: string }
+  }) => {
+    if (!user || !project) return
+
+    try {
+      if (data.approvalRequestTo) {
+        // 승인 요청 로그 생성
+        await logService.createApprovalRequestLog({
+          project_id: project.id,
+          memo: data.content,
+          requester_id: user.id,
+          requester_name: userData?.name || user.email || 'Unknown',
+          approver_id: data.approvalRequestTo.id,
+          approver_name: data.approvalRequestTo.name,
+          attachments: data.attachments
+        })
+        toast.success('승인 요청이 생성되었습니다.')
+      } else {
+        // 일반 로그 생성
+        await logService.createManualLog({
+          project_id: project.id,
+          category: data.category as LogCategory,
+          content: data.content,
+          author_id: user.id,
+          author_name: userData?.name || user.email || 'Unknown',
+          attachments: data.attachments
+        })
+        toast.success('히스토리 로그가 생성되었습니다.')
+      }
+
+      setShowLogForm(false)
+      setRefreshLogs(prev => prev + 1) // 로그 목록 새로고침
+    } catch (error) {
+      console.error('로그 생성 실패:', error)
+      toast.error('로그 생성에 실패했습니다.')
     }
   }
 
@@ -449,6 +515,38 @@ export default function ProjectDetailPage() {
             )}
           </div>
         )}
+
+        {/* 히스토리 로그 섹션 */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-semibold">히스토리 로그</h2>
+            <button
+              onClick={() => setShowLogForm(!showLogForm)}
+              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 font-medium"
+            >
+              {showLogForm ? '취소' : '로그 작성'}
+            </button>
+          </div>
+
+          {/* 로그 작성 폼 */}
+          {showLogForm && (
+            <div className="mb-6 p-4 border border-gray-200 rounded-lg bg-gray-50">
+              <LogFormSimple
+                onSubmit={handleLogSubmit}
+                onCancel={() => setShowLogForm(false)}
+                showAttachments={true}
+                users={users.map(u => ({ ...u, name: u.name || u.email, role: u.role || 'user' }))}
+              />
+            </div>
+          )}
+
+          {/* 로그 목록 */}
+          <LogList 
+            projectId={project.id} 
+            refreshTrigger={refreshLogs}
+            onRefresh={() => setRefreshLogs(prev => prev + 1)}
+          />
+        </div>
       </div>
     </div>
   )

@@ -4,18 +4,33 @@ import type {
   CreateApprovalRequestLog, 
   CreateApprovalResponseLog,
   HistoryLog,
+  HistoryLogWithAttachments,
+  AttachmentFile,
   LogFilter,
   LogListResponse 
 } from '@/types/log'
 
 class LogService {
   /**
-   * 직접 로그 생성 (수동 입력)
+   * 직접 로그 생성 (수동 입력) - 첨부파일 포함
    */
-  async createManualLog(data: Omit<CreateLogRequest, 'log_type'>) {
+  async createManualLog(data: Omit<CreateLogRequest, 'log_type'>): Promise<HistoryLogWithAttachments> {
     const supabase = createClient()
     
-    const { data: log, error } = await supabase
+    console.log('createManualLog 호출:', {
+      hasAttachments: !!(data.attachments && data.attachments.length > 0),
+      attachmentCount: data.attachments?.length || 0,
+      attachments: data.attachments?.map(a => ({
+        fileName: a.file_name,
+        fileSize: a.file_size,
+        mimeType: a.mime_type,
+        hasFile: !!a.file,
+        fileType: a.file?.constructor?.name
+      }))
+    })
+    
+    // 로그 생성
+    const { data: log, error: logError } = await supabase
       .from('history_logs')
       .insert({
         project_id: data.project_id,
@@ -23,24 +38,38 @@ class LogService {
         content: data.content,
         author_id: data.author_id,
         author_name: data.author_name,
-        log_type: 'manual',
-        attachment_urls: data.attachment_urls || null
+        log_type: 'manual'
       })
       .select()
       .single()
 
-    if (error) {
-      console.error('로그 생성 실패:', error)
+    if (logError) {
+      console.error('로그 생성 실패:', logError)
       throw new Error('로그 생성에 실패했습니다.')
     }
 
-    return log
+    console.log('로그 생성 성공:', log.id)
+
+    // 첨부파일이 있으면 업로드
+    let attachments = []
+    if (data.attachments && data.attachments.length > 0) {
+      console.log('첨부파일 업로드 시작...')
+      try {
+        attachments = await this.uploadAttachments(log.id, data.attachments, data.author_id)
+        console.log('첨부파일 업로드 완료:', attachments.length)
+      } catch (error) {
+        console.error('첨부파일 업로드 중 오류:', error)
+        // 첨부파일 업로드 실패해도 로그는 생성되도록 처리
+      }
+    }
+
+    return { ...log, attachments }
   }
 
   /**
    * 승인 요청 로그 생성
    */
-  async createApprovalRequestLog(data: CreateApprovalRequestLog) {
+  async createApprovalRequestLog(data: CreateApprovalRequestLog & { attachments?: AttachmentFile[] }) {
     const supabase = createClient()
     
     const { data: log, error } = await supabase
@@ -61,6 +90,11 @@ class LogService {
     if (error) {
       console.error('승인 요청 로그 생성 실패:', error)
       throw new Error('승인 요청 로그 생성에 실패했습니다.')
+    }
+
+    // 첨부파일 업로드
+    if (data.attachments && data.attachments.length > 0) {
+      await this.uploadAttachments(log.id, data.attachments, data.requester_id)
     }
 
     return log
@@ -97,9 +131,9 @@ class LogService {
   }
 
   /**
-   * 프로젝트별 로그 목록 조회
+   * 프로젝트별 로그 목록 조회 (첨부파일 포함)
    */
-  async getProjectLogs(projectId: string, page = 1, pageSize = 20): Promise<LogListResponse> {
+  async getProjectLogs(projectId: string, page = 1, pageSize = 20): Promise<{ logs: HistoryLogWithAttachments[], total: number, page: number, page_size: number }> {
     const supabase = createClient()
     const start = (page - 1) * pageSize
     const end = start + pageSize - 1
@@ -111,10 +145,13 @@ class LogService {
       .eq('project_id', projectId)
       .eq('is_deleted', false)
 
-    // 데이터 조회
+    // 데이터 조회 (첨부파일 포함)
     const { data: logs, error } = await supabase
       .from('history_logs')
-      .select('*')
+      .select(`
+        *,
+        attachments:history_log_attachments(*)
+      `)
       .eq('project_id', projectId)
       .eq('is_deleted', false)
       .order('created_at', { ascending: false })
@@ -290,6 +327,208 @@ class LogService {
     if (error) {
       console.error('로그 수정 실패:', error)
       throw new Error('로그 수정에 실패했습니다.')
+    }
+
+    return data
+  }
+
+  /**
+   * 첨부파일 업로드
+   */
+  private async uploadAttachments(
+    logId: string, 
+    attachments: AttachmentFile[], 
+    userId: string
+  ) {
+    const supabase = createClient()
+    const uploadedAttachments = []
+
+    console.log('uploadAttachments 시작:', {
+      logId,
+      attachmentCount: attachments.length,
+      userId
+    })
+
+    for (const attachment of attachments) {
+      try {
+        // File 객체 확인
+        if (!attachment.file) {
+          console.error('File 객체가 없습니다:', attachment)
+          continue
+        }
+
+        // 파일명 안전하게 처리 (특수문자 제거, 공백을 _로 변경)
+        const safeFileName = attachment.file_name.replace(/[^a-zA-Z0-9.-]/g, '_')
+        const uniqueFileName = `${logId}/${Date.now()}_${safeFileName}`
+        
+        console.log('파일 업로드 시작:', {
+          originalName: attachment.file_name,
+          safeFileName: uniqueFileName,
+          fileSize: attachment.file_size,
+          mimeType: attachment.mime_type,
+          fileType: attachment.file.constructor.name,
+          fileInstance: attachment.file instanceof File,
+          fileProperties: {
+            name: attachment.file.name,
+            size: attachment.file.size,
+            type: attachment.file.type
+          }
+        })
+
+        // File 객체를 Blob으로 변환 (브라우저 호환성 향상)
+        const fileBlob = new Blob([attachment.file], { type: attachment.mime_type })
+
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('log-attachments')
+          .upload(uniqueFileName, fileBlob, {
+            contentType: attachment.mime_type || 'application/octet-stream',
+            upsert: false,
+            cacheControl: '3600'
+          })
+
+        if (uploadError) {
+          console.error('파일 업로드 실패:', uploadError)
+          // 더 자세한 에러 정보 로깅
+          if (uploadError.message) {
+            console.error('에러 메시지:', uploadError.message)
+          }
+          if ((uploadError as any).statusCode) {
+            console.error('상태 코드:', (uploadError as any).statusCode)
+          }
+          throw uploadError
+        }
+
+        console.log('파일 업로드 성공:', uploadData)
+
+        // DB에 첨부파일 정보 저장
+        const { data: attachmentRecord, error: dbError } = await supabase
+          .from('history_log_attachments')
+          .insert({
+            history_log_id: logId,
+            file_path: uniqueFileName,
+            file_name: attachment.file_name, // 원본 파일명 유지
+            file_size: attachment.file_size,
+            mime_type: attachment.mime_type || 'application/octet-stream',
+            uploaded_by: userId
+          })
+          .select()
+          .single()
+
+        if (dbError) {
+          console.error('DB 저장 실패:', dbError)
+          // 업로드된 파일 삭제
+          await supabase.storage
+            .from('log-attachments')
+            .remove([uniqueFileName])
+          throw dbError
+        }
+
+        // 저장 성공한 레코드 추가
+        if (attachmentRecord) {
+          uploadedAttachments.push(attachmentRecord)
+        }
+      } catch (error) {
+        console.error('첨부파일 처리 중 오류:', error)
+        // 개별 파일 업로드 실패를 사용자에게 알리기 위해 에러 정보 추가
+        console.error('실패한 파일:', attachment.file_name)
+        // 에러가 발생해도 다음 파일 처리 계속
+      }
+    }
+
+    console.log('첨부파일 업로드 완료:', {
+      총_파일수: attachments.length,
+      성공한_파일수: uploadedAttachments.length,
+      실패한_파일수: attachments.length - uploadedAttachments.length
+    })
+
+    return uploadedAttachments
+  }
+
+  /**
+   * 첨부파일 삭제
+   */
+  async deleteAttachment(attachmentId: string) {
+    const supabase = createClient()
+
+    // 첨부파일 정보 조회
+    const { data: attachment, error: fetchError } = await supabase
+      .from('history_log_attachments')
+      .select('file_path')
+      .eq('id', attachmentId)
+      .single()
+
+    if (fetchError || !attachment) {
+      throw new Error('첨부파일 정보를 찾을 수 없습니다.')
+    }
+
+    // Storage에서 파일 삭제
+    const { error: storageError } = await supabase.storage
+      .from('log-attachments')
+      .remove([attachment.file_path])
+
+    if (storageError) {
+      console.error('파일 삭제 실패:', storageError)
+    }
+
+    // DB에서 레코드 삭제
+    const { error: dbError } = await supabase
+      .from('history_log_attachments')
+      .delete()
+      .eq('id', attachmentId)
+
+    if (dbError) {
+      throw new Error('첨부파일 삭제에 실패했습니다.')
+    }
+
+    return true
+  }
+
+  /**
+   * 첨부파일 다운로드 URL 생성
+   */
+  async getAttachmentUrl(filePath: string): Promise<string> {
+    const supabase = createClient()
+    
+    // Public URL 생성
+    const { data } = supabase.storage
+      .from('log-attachments')
+      .getPublicUrl(filePath)
+
+    return data?.publicUrl || ''
+  }
+
+  /**
+   * 첨부파일 다운로드 (Private URL)
+   */
+  async getAttachmentDownloadUrl(filePath: string): Promise<string | null> {
+    const supabase = createClient()
+    
+    // 1시간 유효한 signed URL 생성
+    const { data, error } = await supabase.storage
+      .from('log-attachments')
+      .createSignedUrl(filePath, 3600)
+
+    if (error) {
+      console.error('Signed URL 생성 실패:', error)
+      return null
+    }
+
+    return data?.signedUrl || null
+  }
+
+  /**
+   * 첨부파일 직접 다운로드
+   */
+  async downloadAttachment(filePath: string): Promise<Blob | null> {
+    const supabase = createClient()
+    
+    const { data, error } = await supabase.storage
+      .from('log-attachments')
+      .download(filePath)
+
+    if (error) {
+      console.error('파일 다운로드 실패:', error)
+      return null
     }
 
     return data

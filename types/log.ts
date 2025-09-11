@@ -23,6 +23,18 @@ export type HistoryLog = Database['public']['Tables']['history_logs']['Row']
 export type HistoryLogInsert = Database['public']['Tables']['history_logs']['Insert']
 export type HistoryLogUpdate = Database['public']['Tables']['history_logs']['Update']
 
+// 히스토리 로그 첨부파일 타입
+export type HistoryLogAttachment = Database['public']['Tables']['history_log_attachments']['Row']
+export type HistoryLogAttachmentInsert = Database['public']['Tables']['history_log_attachments']['Insert']
+
+// 첨부파일 정보 타입
+export interface AttachmentFile {
+  file: File
+  file_name: string
+  file_size: number
+  mime_type: string
+}
+
 // 로그 생성 요청 타입
 export interface CreateLogRequest {
   project_id: string
@@ -34,7 +46,12 @@ export interface CreateLogRequest {
   target_user_name?: string | null
   log_type: LogType
   approval_status?: ApprovalStatus | null
-  attachment_urls?: string[] | null
+  attachments?: AttachmentFile[]
+}
+
+// 로그와 첨부파일을 함께 반환하는 타입
+export interface HistoryLogWithAttachments extends HistoryLog {
+  attachments?: HistoryLogAttachment[]
 }
 
 // 승인 요청 로그 생성 타입

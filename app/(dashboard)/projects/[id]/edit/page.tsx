@@ -9,7 +9,10 @@ import { logService } from '@/lib/services/logs.service'
 import ImageUploader from '@/components/projects/ImageUploader'
 import ProcessStageManager from '@/components/projects/ProcessStageManager'
 import UserSelector from '@/components/projects/UserSelector'
-import LogModal from '@/components/logs/LogModal'
+import LogFormSimple from '@/components/logs/LogFormSimple'
+import LogList from '@/components/logs/LogList'
+import type { AttachmentFile, LogCategory } from '@/types/log'
+import type { User } from '@/types/user'
 import { toast } from 'react-hot-toast'
 import { PlusIcon } from '@heroicons/react/24/outline'
 import type { ProcessStageName } from '@/types/project'
@@ -52,13 +55,14 @@ interface ProjectImage {
 export default function EditProjectPage() {
   const router = useRouter()
   const params = useParams()
-  const { user } = useAuth()
+  const { user, userData } = useAuth()
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [users, setUsers] = useState<any[]>([])
   const [existingImages, setExistingImages] = useState<ProjectImage[]>([])
   const [deletedImageIds, setDeletedImageIds] = useState<string[]>([])
-  const [showLogModal, setShowLogModal] = useState(false)
+  const [showLogForm, setShowLogForm] = useState(false)
+  const [refreshLogs, setRefreshLogs] = useState(0)
   
   // 폼 데이터
   const [formData, setFormData] = useState({
@@ -191,6 +195,49 @@ export default function EditProjectPage() {
       setDeletedImageIds(deletedImageIds.filter(id => id !== imageId))
     } else {
       setDeletedImageIds([...deletedImageIds, imageId])
+    }
+  }
+
+  // 로그 생성 핸들러
+  const handleLogSubmit = async (data: {
+    category: string
+    content: string
+    attachments?: AttachmentFile[]
+    approvalRequestTo?: { id: string; name: string }
+  }) => {
+    if (!user || !params.id) return
+
+    try {
+      if (data.approvalRequestTo) {
+        // 승인 요청 로그 생성
+        await logService.createApprovalRequestLog({
+          project_id: params.id as string,
+          memo: data.content,
+          requester_id: user.id,
+          requester_name: userData?.name || user.email || 'Unknown',
+          approver_id: data.approvalRequestTo.id,
+          approver_name: data.approvalRequestTo.name,
+          attachments: data.attachments
+        })
+        toast.success('승인 요청이 생성되었습니다.')
+      } else {
+        // 일반 로그 생성
+        await logService.createManualLog({
+          project_id: params.id as string,
+          category: data.category as LogCategory,
+          content: data.content,
+          author_id: user.id,
+          author_name: userData?.name || user.email || 'Unknown',
+          attachments: data.attachments
+        })
+        toast.success('히스토리 로그가 생성되었습니다.')
+      }
+
+      setShowLogForm(false)
+      setRefreshLogs(prev => prev + 1) // 로그 목록 새로고침
+    } catch (error) {
+      console.error('로그 생성 실패:', error)
+      toast.error('로그 생성에 실패했습니다.')
     }
   }
 
@@ -502,22 +549,36 @@ export default function EditProjectPage() {
         {/* 히스토리 로그 섹션 */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <div className="flex justify-between items-center mb-4">
-            <div>
-              <h2 className="text-xl font-semibold">히스토리 로그</h2>
-              <p className="text-sm text-gray-600 mt-1">프로젝트 수정과 함께 로그를 작성할 수 있습니다</p>
-            </div>
+            <h2 className="text-xl font-semibold">히스토리 로그</h2>
             <button
               type="button"
-              onClick={() => setShowLogModal(true)}
-              className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              onClick={() => setShowLogForm(!showLogForm)}
+              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 font-medium"
             >
-              <PlusIcon className="h-4 w-4 mr-1" />
-              로그 추가
+              {showLogForm ? '취소' : '로그 작성'}
             </button>
           </div>
-          <p className="text-sm text-gray-500">
-            프로젝트 수정 내용과 별도로 히스토리 로그를 작성하여 프로젝트 진행 상황을 기록할 수 있습니다.
-          </p>
+
+          {/* 로그 작성 폼 */}
+          {showLogForm && (
+            <div className="mb-6 p-4 border border-gray-200 rounded-lg bg-gray-50">
+              <LogFormSimple
+                onSubmit={handleLogSubmit}
+                onCancel={() => setShowLogForm(false)}
+                showAttachments={true}
+                users={users.map(u => ({ ...u, name: u.name || u.email, role: u.role || 'user' }))}
+              />
+            </div>
+          )}
+
+          {/* 로그 목록 */}
+          {params.id && (
+            <LogList 
+              projectId={params.id as string} 
+              onRefresh={() => setRefreshLogs(prev => prev + 1)}
+              key={refreshLogs}
+            />
+          )}
         </div>
 
         {/* 이미지 갤러리 섹션 */}
@@ -602,18 +663,6 @@ export default function EditProjectPage() {
           </button>
         </div>
       </form>
-
-      {/* 로그 생성 모달 */}
-      {params.id && (
-        <LogModal
-          isOpen={showLogModal}
-          onClose={() => setShowLogModal(false)}
-          projectId={params.id as string}
-          onSuccess={() => {
-            toast.success('로그가 성공적으로 생성되었습니다.')
-          }}
-        />
-      )}
     </div>
   )
 }

@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/client';
 import { generateUniqueFileName } from '@/lib/utils/file';
+import { logService } from './logs.service';
 import type { 
   Project, 
   ProcessStage,
@@ -13,6 +14,7 @@ import type {
   ProcessStageName,
   ProcessStatus
 } from '@/types/project';
+import type { LogCategory } from '@/types/log';
 
 export class ProjectService {
   private supabase = createClient();
@@ -139,11 +141,20 @@ export class ProjectService {
       start_date?: string;
       end_date?: string;
     }>,
-    currentStage?: string
+    currentStage?: string,
+    logContent?: string,
+    logCategory?: LogCategory
   ): Promise<Project> {
     try {
       const { data: { user } } = await this.supabase.auth.getUser();
       if (!user) throw new Error('인증되지 않은 사용자');
+
+      // 사용자 정보 조회
+      const { data: userData } = await this.supabase
+        .from('users')
+        .select('name')
+        .eq('id', user.id)
+        .single();
 
       // 1. 프로젝트 생성
       const { data: project, error: projectError } = await this.supabase
@@ -192,7 +203,18 @@ export class ProjectService {
 
       if (stagesError) throw stagesError;
 
-      // 4. 생성된 프로젝트 전체 정보 조회
+      // 4. 히스토리 로그 생성 (생략 가능)
+      if (logContent && logCategory) {
+        await logService.createManualLog({
+          project_id: project.id,
+          category: logCategory,
+          content: logContent,
+          author_id: user.id,
+          author_name: userData?.name || user.email || '사용자'
+        });
+      }
+
+      // 5. 생성된 프로젝트 전체 정보 조회
       const createdProject = await this.getProject(project.id);
       if (!createdProject) throw new Error('프로젝트 생성 후 조회 실패');
 
@@ -254,8 +276,23 @@ export class ProjectService {
   }
 
   // 프로젝트 수정
-  async updateProject(projectId: string, dto: UpdateProjectDTO): Promise<Project> {
+  async updateProject(
+    projectId: string, 
+    dto: UpdateProjectDTO,
+    logContent?: string,
+    logCategory?: LogCategory
+  ): Promise<Project> {
     try {
+      const { data: { user } } = await this.supabase.auth.getUser();
+      if (!user) throw new Error('인증되지 않은 사용자');
+
+      // 사용자 정보 조회
+      const { data: userData } = await this.supabase
+        .from('users')
+        .select('name')
+        .eq('id', user.id)
+        .single();
+
       const { data, error } = await this.supabase
         .from('projects')
         .update({
@@ -268,6 +305,17 @@ export class ProjectService {
         .single();
 
       if (error) throw error;
+
+      // 히스토리 로그 생성 (생략 가능)
+      if (logContent && logCategory) {
+        await logService.createManualLog({
+          project_id: projectId,
+          category: logCategory,
+          content: logContent,
+          author_id: user.id,
+          author_name: userData?.name || user.email || '사용자'
+        });
+      }
 
       const updatedProject = await this.getProject(projectId);
       if (!updatedProject) throw new Error('프로젝트 수정 후 조회 실패');

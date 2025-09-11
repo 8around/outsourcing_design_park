@@ -78,10 +78,57 @@ export type Database = {
           },
         ]
       }
+      history_log_attachments: {
+        Row: {
+          created_at: string | null
+          file_name: string
+          file_path: string
+          file_size: number
+          history_log_id: string
+          id: string
+          mime_type: string | null
+          uploaded_by: string
+        }
+        Insert: {
+          created_at?: string | null
+          file_name: string
+          file_path: string
+          file_size: number
+          history_log_id: string
+          id?: string
+          mime_type?: string | null
+          uploaded_by: string
+        }
+        Update: {
+          created_at?: string | null
+          file_name?: string
+          file_path?: string
+          file_size?: number
+          history_log_id?: string
+          id?: string
+          mime_type?: string | null
+          uploaded_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "history_log_attachments_history_log_id_fkey"
+            columns: ["history_log_id"]
+            isOneToOne: false
+            referencedRelation: "history_logs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "history_log_attachments_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       history_logs: {
         Row: {
           approval_status: string | null
-          attachment_urls: string[] | null
           author_id: string
           author_name: string
           category: string
@@ -98,7 +145,6 @@ export type Database = {
         }
         Insert: {
           approval_status?: string | null
-          attachment_urls?: string[] | null
           author_id: string
           author_name: string
           category: string
@@ -115,7 +161,6 @@ export type Database = {
         }
         Update: {
           approval_status?: string | null
-          attachment_urls?: string[] | null
           author_id?: string
           author_name?: string
           category?: string
@@ -424,14 +469,14 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "projects_sales_manager_fkey"
+            foreignKeyName: "projects_sales_manager_id_fkey"
             columns: ["sales_manager"]
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "projects_site_manager_fkey"
+            foreignKeyName: "projects_site_manager_id_fkey"
             columns: ["site_manager"]
             isOneToOne: false
             referencedRelation: "users"

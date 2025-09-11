@@ -46,7 +46,12 @@ export default function NewProjectPage() {
   const [loading, setLoading] = useState(false)
   const [users, setUsers] = useState<any[]>([])
   const [showLogForm, setShowLogForm] = useState(false)
-  const [pendingLogs, setPendingLogs] = useState<Array<{ category: string; content: string }>>([])
+  const [pendingLogs, setPendingLogs] = useState<Array<{ 
+    category: string; 
+    content: string;
+    attachments?: any[];
+    approvalRequestTo?: { id: string; name: string };
+  }>>([])
   const [tempProjectId, setTempProjectId] = useState<string | null>(null)
   
   // 폼 데이터
@@ -165,13 +170,28 @@ export default function NewProjectPage() {
       if (pendingLogs.length > 0 && user) {
         for (const log of pendingLogs) {
           try {
-            await logService.createManualLog({
-              project_id: project.id,
-              category: log.category as any,
-              content: log.content,
-              author_id: user.id,
-              author_name: (user as any).name || user.email || '알 수 없음'
-            })
+            // 승인 요청이 있는 경우
+            if (log.approvalRequestTo) {
+              await logService.createApprovalRequestLog({
+                project_id: project.id,
+                requester_id: user.id,
+                requester_name: (user as any).name || user.email || '알 수 없음',
+                approver_id: log.approvalRequestTo.id,
+                approver_name: log.approvalRequestTo.name,
+                memo: log.content,
+                attachments: log.attachments
+              })
+            } else {
+              // 일반 로그
+              await logService.createManualLog({
+                project_id: project.id,
+                category: log.category as any,
+                content: log.content,
+                author_id: user.id,
+                author_name: (user as any).name || user.email || '알 수 없음',
+                attachments: log.attachments
+              })
+            }
           } catch (error) {
             console.error('로그 생성 실패:', error)
           }
@@ -386,9 +406,21 @@ export default function NewProjectPage() {
               {pendingLogs.map((log, index) => (
                 <div key={index} className="bg-gray-50 rounded-md p-3 flex justify-between items-start">
                   <div className="flex-1">
-                    <span className="inline-block px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded mb-1">
-                      {log.category}
-                    </span>
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="inline-block px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded">
+                        {log.category}
+                      </span>
+                      {log.approvalRequestTo && (
+                        <span className="inline-block px-2 py-1 text-xs font-medium bg-purple-100 text-purple-800 rounded">
+                          승인 요청: {log.approvalRequestTo.name}
+                        </span>
+                      )}
+                      {log.attachments && log.attachments.length > 0 && (
+                        <span className="inline-block px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded">
+                          첨부파일 {log.attachments.length}개
+                        </span>
+                      )}
+                    </div>
                     <p className="text-sm text-gray-700">{log.content}</p>
                   </div>
                   <button
@@ -424,6 +456,8 @@ export default function NewProjectPage() {
                   toast.success('로그가 추가되었습니다. 프로젝트 생성 시 함께 저장됩니다.')
                 }}
                 onCancel={() => setShowLogForm(false)}
+                showAttachments={true}  // 첨부파일 기능 활성화
+                users={users}  // 사용자 목록 전달
               />
             </div>
           )}

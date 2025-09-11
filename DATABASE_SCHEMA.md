@@ -6,12 +6,12 @@
 
 ## Schema Overview
 
-- **Tables**: 10개 핵심 테이블 (user_activity_logs 제거로 단순화)
+- **Tables**: 11개 핵심 테이블 (첨부파일 분리: history_log_attachments 추가, user_activity_logs 제거)
 - **Relationships**: 외래키 기반 정규화된 관계
 - **Security**: RLS 정책으로 데이터 접근 제어
 - **Performance**: 인덱스 최적화 및 쿼리 성능 고려
 - **Manual Refresh**: 새로고침 버튼을 통한 수동 데이터 갱신
-- **Activity Tracking**: history_logs 테이블을 통한 통합 활동 추적
+- **Activity Tracking**: history_logs + history_log_attachments를 통한 통합 활동·첨부 추적
 
 ---
 
@@ -222,7 +222,6 @@ CREATE TABLE history_logs (
   log_type TEXT NOT NULL DEFAULT 'manual' 
     CHECK (log_type IN ('manual', 'approval_request', 'approval_response')),
   approval_status TEXT CHECK (approval_status IN ('approved', 'rejected')),
-  attachment_urls TEXT[],
   is_deleted BOOLEAN DEFAULT FALSE,
   deleted_by UUID REFERENCES users(id),
   deleted_at TIMESTAMP WITH TIME ZONE,
@@ -249,11 +248,12 @@ CREATE INDEX idx_history_logs_approval_flow ON history_logs(target_user_id, log_
 - `target_user_name`: 대상 사용자명, 표시용 (사용자명 변경 대응)
 - `log_type`: 로그 유형, 직접입력/승인요청/승인처리 구분
 - `approval_status`: 승인 상태, 승인/반려 결과 (승인처리시만)
-- `attachment_urls`: 첨부파일 URL 배열, 관련 문서/이미지 저장
 - `is_deleted`: 삭제 여부, 관리자 삭제 기능용 (논리 삭제)
 - `deleted_by`: 삭제자 ID, 삭제 책임자 추적
 - `deleted_at`: 삭제 시각, 삭제 시점 기록
 - `created_at`: 생성 시각, **불변 타임스탬프 - 수정 불가능**
+
+첨부파일은 별도 테이블 `history_log_attachments`에 저장합니다. (아래 11번 테이블 참고)
 
 **활동 추적 전략:**
 
@@ -520,6 +520,39 @@ CREATE INDEX idx_weekly_report_date ON weekly_report_history(created_at DESC);
 
 ---
 
+### 11. History Log Attachments (히스토리 로그 첨부파일)
+
+히스토리 로그에 업로드되는 첨부파일(이미지/문서 등)을 관리하는 테이블. Supabase Storage 경로를 저장하며, 로그 단위로 다건 첨부를 지원합니다.
+
+```sql
+CREATE TABLE history_log_attachments (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  history_log_id UUID NOT NULL REFERENCES history_logs(id) ON DELETE CASCADE,
+  file_path TEXT NOT NULL,           -- Supabase Storage 경로 (예: bucket/path/filename.ext)
+  file_name TEXT NOT NULL,           -- 원본 파일명
+  file_size INTEGER NOT NULL,        -- 바이트 단위
+  mime_type TEXT,                    -- 예: image/png, application/pdf
+  uploaded_by UUID NOT NULL REFERENCES users(id),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Indexes
+CREATE INDEX idx_hla_log ON history_log_attachments(history_log_id, created_at DESC);
+CREATE INDEX idx_hla_uploader ON history_log_attachments(uploaded_by);
+```
+
+**컬럼 설명:**
+- `id`: UUID 기본키, 첨부파일 고유 식별자
+- `history_log_id`: 연관된 히스토리 로그 ID, 삭제 시 CASCADE로 첨부파일도 함께 삭제
+- `file_path`: Supabase Storage 상의 파일 경로
+- `file_name`: 업로드 당시 파일명
+- `file_size`: 파일 크기(바이트), 제한 검증용
+- `mime_type`: MIME 타입 정보
+- `uploaded_by`: 업로더 사용자 ID, 업로드 책임자 추적
+- `created_at`: 업로드 시각
+
+---
+
 ## Relationships & Foreign Keys
 
 ### 핵심 관계 구조 (단순화됨)
@@ -533,6 +566,7 @@ Projects (1) ←→ (N) History_Logs
 Projects (1) ←→ (N) Project_Images
 Projects (1) ←→ (N) Approval_Requests
 Users (N) ←→ (N) Projects (Favorites - 다대다)
+History_Logs (1) ←→ (N) History_Log_Attachments
 ```
 
 ### 외래키 제약조건
@@ -544,16 +578,16 @@ Users (N) ←→ (N) Projects (Favorites - 다대다)
 
 ## Activity Tracking Implementation
 
-### 단일 테이블 접근법의 장점
+### 단일 로그 테이블 + 별도 첨부파일 테이블 접근법의 장점
 
 #### ✅ 단순성
-- **하나의 쿼리**: 모든 활동을 single query로 조회
-- **복잡성 제거**: 여러 테이블 조인 불필요
-- **유지보수 용이**: 단일 스키마로 관리
+- **핵심 로그 단일화**: 활동 기록은 `history_logs` 한 곳에 집중
+- **첨부파일 분리**: 파일 메타데이터는 `history_log_attachments`로 분리되어 스토리지/용량 이슈와 무관하게 로그 쿼리 성능 유지
+- **유지보수 용이**: 로그/첨부의 책임 분리로 변경 영향 최소화
 
 #### ✅ 성능 최적화
-- **인덱스 최적화**: `author_id`와 `created_at` 복합 인덱스
-- **캐싱 효율성**: 단일 테이블 캐시 전략
+- **인덱스 최적화**: `history_logs(author_id, created_at)`, `history_log_attachments(history_log_id, created_at)` 등 핵심 인덱스
+- **캐싱 효율성**: 로그는 자주 조회, 첨부는 필요 시 지연 조회로 캐시 효율 개선
 - **새로고침 최적화**: 필요한 시점에만 데이터 조회로 리소스 효율성 향상
 
 #### ✅ 기능 완성도
@@ -843,6 +877,48 @@ USING (
 ```
 
 ```sql
+-- History Log Attachments 테이블 RLS
+ALTER TABLE history_log_attachments ENABLE ROW LEVEL SECURITY;
+
+-- 승인된 사용자이며, 접근 가능한 로그의 첨부만 조회 (삭제되지 않은 로그)
+CREATE POLICY "Approved users can view attachments of accessible logs" 
+ON history_log_attachments FOR SELECT 
+USING (
+  EXISTS (
+    SELECT 1 FROM history_logs hl
+    JOIN users u ON u.id = auth.uid()
+    WHERE hl.id = history_log_id 
+      AND hl.is_deleted = false 
+      AND u.is_approved = true
+  )
+);
+
+-- 본인이 업로드하거나 관리자만 수정 가능 (메타데이터 변경 등)
+CREATE POLICY "Uploaders or admins can update attachments" 
+ON history_log_attachments FOR UPDATE 
+USING (
+  uploaded_by = auth.uid() OR 
+  EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role = 'admin')
+);
+
+-- 업로더만 생성 가능 (승인된 사용자)
+CREATE POLICY "Approved users can create attachments" 
+ON history_log_attachments FOR INSERT 
+WITH CHECK (
+  uploaded_by = auth.uid() AND 
+  EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND is_approved = true)
+);
+
+-- 업로더 또는 관리자만 삭제 가능
+CREATE POLICY "Uploaders or admins can delete attachments" 
+ON history_log_attachments FOR DELETE 
+USING (
+  uploaded_by = auth.uid() OR 
+  EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role = 'admin')
+);
+```
+
+```sql
 -- Notifications 테이블 RLS
 ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
 
@@ -1035,6 +1111,10 @@ WHERE is_deleted = FALSE;
 CREATE INDEX idx_history_logs_category_date 
 ON history_logs (category, created_at, is_deleted) 
 WHERE is_deleted = FALSE;
+
+-- 로그 첨부파일 조회 최적화 (로그 상세/리스트 병행)
+CREATE INDEX idx_hla_log_created 
+ON history_log_attachments (history_log_id, created_at DESC);
 ```
 
 ### 기타 성능 최적화
@@ -1213,6 +1293,12 @@ $$ language 'plpgsql';
 CREATE TRIGGER approval_request_log_trigger
   AFTER INSERT OR UPDATE ON approval_requests
   FOR EACH ROW EXECUTE FUNCTION create_approval_log();
+```
+
+```sql
+-- (옵션) 첨부파일 정리 트리거 예시: 로그 삭제 시 관련 파일 정리 로직을 Edge Function으로 위임
+-- 실제 파일 삭제는 보안상 서버(Edge Function/service role)에서 처리 권장
+-- 여기서는 DB 레코드 CASCADE만 담당
 ```
 
 ```sql
