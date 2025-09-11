@@ -18,6 +18,7 @@ import { formatDistanceToNow } from 'date-fns'
 import { ko } from 'date-fns/locale'
 import { logService } from '@/lib/services/logs.service'
 import { projectService } from '@/lib/services/projects.service'
+import { useAuth } from '@/lib/hooks/useAuth'
 import type { HistoryLog } from '@/types/log'
 
 const { Text, Title } = Typography
@@ -80,11 +81,13 @@ export default function GlobalLogFeed({
   refreshInterval = 30
 }: GlobalLogFeedProps) {
   const router = useRouter()
+  const { user, userData } = useAuth()
   const [logs, setLogs] = useState<LogItem[]>([])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
   const [totalCount, setTotalCount] = useState(0)
+  const [deletingLogId, setDeletingLogId] = useState<string | null>(null)
 
   // 로그 데이터 로드
   const loadLogs = async (page = currentPage, isRefresh = false) => {
@@ -195,6 +198,31 @@ export default function GlobalLogFeed({
     return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i]
   }
 
+  // 로그 삭제 핸들러 (관리자만)
+  const handleDeleteLog = async (logId: string, e: React.MouseEvent) => {
+    e.stopPropagation() // 로그 클릭 이벤트 전파 방지
+    
+    if (!user || userData?.role !== 'admin') {
+      message.error('관리자만 삭제할 수 있습니다.')
+      return
+    }
+
+    setDeletingLogId(logId)
+    try {
+      await logService.deleteLog(logId, user.id)
+      message.success('로그가 삭제되었습니다.')
+      
+      // 목록에서 제거
+      setLogs(prev => prev.filter(log => log.id !== logId))
+      setTotalCount(prev => prev - 1)
+    } catch (error) {
+      console.error('로그 삭제 실패:', error)
+      message.error('로그 삭제에 실패했습니다.')
+    } finally {
+      setDeletingLogId(null)
+    }
+  }
+
   // 첨부파일 다운로드 (PendingApprovals와 동일한 방식)
   const handleDownloadAttachment = async (attachment: AttachmentInfo, e: React.MouseEvent) => {
     e.preventDefault()
@@ -228,6 +256,8 @@ export default function GlobalLogFeed({
   // 로그 아이템 렌더링
   const renderLogItem = (log: LogItem) => {
     const config = categoryConfig[log.category] || categoryConfig['기타']
+    const isDeleting = deletingLogId === log.id
+    const isAdmin = userData?.role === 'admin'
     
     // 로그 타입과 승인 상태에 따른 액션 텍스트 생성
     let actionText = ''
@@ -245,12 +275,28 @@ export default function GlobalLogFeed({
       actionText = '사양 변경'
     }
     
+    // 관리자일 경우 삭제 버튼 포함
+    const actions = isAdmin ? [
+      <Button
+        key="delete"
+        danger
+        size="small"
+        icon={<DeleteOutlined />}
+        onClick={(e) => handleDeleteLog(log.id, e)}
+        loading={isDeleting}
+        disabled={isDeleting}
+      >
+        삭제
+      </Button>
+    ] : undefined
+    
     return (
       <List.Item 
         key={log.id}
         onClick={() => handleLogClick(log)}
         style={{ cursor: log.project_id ? 'pointer' : 'default' }}
         className="log-item-clickable"
+        actions={actions}
       >
         <List.Item.Meta
           avatar={

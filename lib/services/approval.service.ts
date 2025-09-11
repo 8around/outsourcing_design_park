@@ -391,6 +391,67 @@ export class ApprovalService {
   }
 
   /**
+   * 사용자 삭제 (관리자 전용 - 미승인 사용자 삭제용)
+   */
+  async deleteUser(userId: string, adminId: string): Promise<boolean> {
+    try {
+      // 사용자 삭제 (users 테이블)
+      const { error } = await this.supabase
+        .from('users')
+        .delete()
+        .eq('id', userId);
+
+      if (error) {
+        console.error('Error deleting user:', error);
+        throw error;
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error in deleteUser:', error);
+      return false;
+    }
+  }
+
+  /**
+   * 승인 요청 삭제 (관리자 전용)
+   */
+  async deleteApprovalRequest(requestId: string, adminId: string): Promise<boolean> {
+    try {
+      // 승인 요청 정보 조회
+      const { data: requestData, error: fetchError } = await this.supabase
+        .from('approval_requests')
+        .select('*')
+        .eq('id', requestId)
+        .single();
+
+      if (fetchError || !requestData) {
+        console.error('Error fetching approval request:', fetchError);
+        throw fetchError || new Error('Approval request not found');
+      }
+
+      // 승인 요청 삭제 (실제 삭제)
+      const { error: deleteError } = await this.supabase
+        .from('approval_requests')
+        .delete()
+        .eq('id', requestId);
+
+      if (deleteError) {
+        console.error('Error deleting approval request:', deleteError);
+        throw deleteError;
+      }
+
+      // 관련 로그도 삭제할 필요가 있을 경우 추가
+      // 여기서는 approval_requests 삭제 시 CASCADE로 관련 로그도 삭제되도록 설정되어 있다고 가정
+
+      return true;
+    } catch (error) {
+      console.error('Error in deleteApprovalRequest:', error);
+      return false;
+    }
+  }
+
+  /**
    * 승인 관련 알림 생성
    */
   private async createApprovalNotification(
