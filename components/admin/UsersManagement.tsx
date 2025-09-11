@@ -309,17 +309,6 @@ export default function UsersManagement() {
                     <div className="w-2 h-2 bg-warning-500 rounded-full animate-pulse"></div>
                     <span className="font-semibold">승인 대기</span>
                   </div>
-                  {stats.pending > 0 && (
-                    <Badge 
-                      count={stats.pending} 
-                      className="!bg-warning-100 !text-warning-700 !border-warning-300"
-                      style={{ 
-                        backgroundColor: '#fef3c7',
-                        color: '#92400e',
-                        border: '1px solid #fde68a'
-                      }}
-                    />
-                  )}
                 </div>
               ),
               children: (
