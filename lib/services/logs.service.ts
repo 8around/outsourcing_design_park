@@ -68,13 +68,34 @@ class LogService {
 
   /**
    * 승인 요청 로그 생성
-   * approval_requests 테이블에 먼저 삽입하고, 트리거가 자동으로 history_logs에 로그를 생성합니다.
-   * history_log_id가 approval_requests에 자동으로 설정됩니다.
+   * 먼저 history_logs를 생성하고, 그 ID를 approval_requests에 저장합니다.
+   * 사용자가 선택한 카테고리가 적용됩니다.
    */
   async createApprovalRequestLog(data: CreateApprovalRequestLog & { attachments?: AttachmentFile[] }) {
     const supabase = createClient()
     
-    // 1. approval_requests 테이블에 승인 요청 생성
+    // 1. 먼저 history_logs에 로그 생성 (사용자가 선택한 카테고리 사용)
+    const { data: historyLog, error: logError } = await supabase
+      .from('history_logs')
+      .insert({
+        project_id: data.project_id,
+        category: data.category || '승인요청',
+        content: data.memo,
+        author_id: data.requester_id,
+        author_name: data.requester_name,
+        target_user_id: data.approver_id,
+        target_user_name: data.approver_name,
+        log_type: 'approval_request'
+      })
+      .select()
+      .single()
+
+    if (logError) {
+      console.error('승인 요청 로그 생성 실패:', logError)
+      throw new Error('승인 요청 로그 생성에 실패했습니다.')
+    }
+
+    // 2. approval_requests 테이블에 승인 요청 생성 (history_log_id 포함)
     const { data: approvalRequest, error: approvalError } = await supabase
       .from('approval_requests')
       .insert({
@@ -84,30 +105,25 @@ class LogService {
         approver_id: data.approver_id,
         approver_name: data.approver_name,
         memo: data.memo,
-        status: 'pending'
+        status: 'pending',
+        history_log_id: historyLog.id  // 생성된 로그의 ID 저장
       })
-      .select('*, history_log_id')
+      .select()
       .single()
 
     if (approvalError) {
       console.error('승인 요청 생성 실패:', approvalError)
+      // 실패 시 생성된 로그도 삭제
+      await supabase
+        .from('history_logs')
+        .delete()
+        .eq('id', historyLog.id)
       throw new Error('승인 요청 생성에 실패했습니다.')
     }
 
-    // 2. history_log_id를 사용하여 카테고리 업데이트 및 첨부파일 업로드
-    if (approvalRequest.history_log_id) {
-      // 카테고리가 제공된 경우 업데이트
-      if (data.category) {
-        await supabase
-          .from('history_logs')
-          .update({ category: data.category })
-          .eq('id', approvalRequest.history_log_id)
-      }
-
-      // 첨부파일 업로드
-      if (data.attachments && data.attachments.length > 0) {
-        await this.uploadAttachments(approvalRequest.history_log_id, data.attachments, data.requester_id)
-      }
+    // 3. 첨부파일 업로드
+    if (data.attachments && data.attachments.length > 0) {
+      await this.uploadAttachments(historyLog.id, data.attachments, data.requester_id)
     }
 
     return approvalRequest
