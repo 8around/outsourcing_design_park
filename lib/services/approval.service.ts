@@ -484,22 +484,40 @@ export class ApprovalService {
       }
 
       // 2. 프로젝트 승인 요청 목록 - 내가 받은 요청
+      // 먼저 approval_requests를 가져온 후 history_logs와 매칭
       const { data: receivedApprovals } = await this.supabase
         .from('approval_requests')
         .select(`
           *,
-          project:projects(site_name, product_name),
-          history_logs!inner(
-            category
-          )
+          project:projects(site_name, product_name)
         `)
         .eq('approver_id', userId)
         .eq('status', 'pending')
-        .eq('history_logs.log_type', 'approval_request')
         .order('created_at', { ascending: false })
         .limit(10);
 
-      const formattedReceivedApprovals = (receivedApprovals || []).map(approval => ({
+      // 각 approval에 대해 history_logs 조회
+      const receivedApprovalsWithCategory = await Promise.all(
+        (receivedApprovals || []).map(async (approval) => {
+          const { data: logData } = await this.supabase
+            .from('history_logs')
+            .select('category')
+            .eq('project_id', approval.project_id)
+            .eq('log_type', 'approval_request')
+            .eq('author_id', approval.requester_id)
+            .eq('target_user_id', approval.approver_id)
+            .gte('created_at', new Date(new Date(approval.created_at).getTime() - 2000).toISOString())
+            .lte('created_at', new Date(new Date(approval.created_at).getTime() + 2000).toISOString())
+            .single();
+          
+          return {
+            ...approval,
+            history_logs: logData ? [logData] : []
+          };
+        })
+      );
+
+      const formattedReceivedApprovals = (receivedApprovalsWithCategory || []).map(approval => ({
         id: approval.id,
         type: 'project' as const,
         title: '프로젝트 승인 요청',
@@ -524,18 +542,35 @@ export class ApprovalService {
         .from('approval_requests')
         .select(`
           *,
-          project:projects(site_name, product_name),
-          history_logs!inner(
-            category
-          )
+          project:projects(site_name, product_name)
         `)
         .eq('requester_id', userId)
         .eq('status', 'pending')
-        .eq('history_logs.log_type', 'approval_request')
         .order('created_at', { ascending: false })
         .limit(10);
 
-      const formattedSentApprovals = (sentApprovals || []).map(approval => ({
+      // 각 approval에 대해 history_logs 조회
+      const sentApprovalsWithCategory = await Promise.all(
+        (sentApprovals || []).map(async (approval) => {
+          const { data: logData } = await this.supabase
+            .from('history_logs')
+            .select('category')
+            .eq('project_id', approval.project_id)
+            .eq('log_type', 'approval_request')
+            .eq('author_id', approval.requester_id)
+            .eq('target_user_id', approval.approver_id)
+            .gte('created_at', new Date(new Date(approval.created_at).getTime() - 2000).toISOString())
+            .lte('created_at', new Date(new Date(approval.created_at).getTime() + 2000).toISOString())
+            .single();
+          
+          return {
+            ...approval,
+            history_logs: logData ? [logData] : []
+          };
+        })
+      );
+
+      const formattedSentApprovals = (sentApprovalsWithCategory || []).map(approval => ({
         id: approval.id,
         type: 'project' as const,
         title: '프로젝트 승인 요청 (대기중)',
