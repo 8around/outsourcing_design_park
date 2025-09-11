@@ -186,25 +186,39 @@ export default function GlobalLogFeed({
     }
   }
 
-  // 첨부파일 다운로드
+  // 파일 크기 포맷팅 함수
+  const formatFileSize = (bytes: number): string => {
+    if (bytes === 0) return '0 Bytes'
+    const k = 1024
+    const sizes = ['Bytes', 'KB', 'MB']
+    const i = Math.floor(Math.log(bytes) / Math.log(k))
+    return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i]
+  }
+
+  // 첨부파일 다운로드 (PendingApprovals와 동일한 방식)
   const handleDownloadAttachment = async (attachment: AttachmentInfo, e: React.MouseEvent) => {
+    e.preventDefault()
     e.stopPropagation() // 로그 클릭 이벤트 전파 방지
     
     try {
-      const downloadUrl = await logService.getAttachmentDownloadUrl(attachment.file_path)
-      if (downloadUrl) {
-        // 다운로드 링크 생성 및 클릭
-        const link = document.createElement('a')
-        link.href = downloadUrl
-        link.download = attachment.file_name
-        link.target = '_blank'
-        document.body.appendChild(link)
-        link.click()
-        document.body.removeChild(link)
-        message.success(`${attachment.file_name} 다운로드를 시작합니다.`)
-      } else {
-        message.error('파일 다운로드 URL을 가져올 수 없습니다.')
+      // Supabase storage public URL 생성
+      const publicUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/log-attachments/${attachment.file_path}`
+      
+      const response = await fetch(publicUrl)
+      
+      if (!response.ok) {
+        throw new Error('파일 다운로드 실패')
       }
+      
+      const blob = await response.blob()
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = attachment.file_name
+      document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
     } catch (error) {
       console.error('파일 다운로드 실패:', error)
       message.error('파일 다운로드에 실패했습니다.')
@@ -262,6 +276,14 @@ export default function GlobalLogFeed({
               {log.approval_status === 'rejected' && (
                 <Tag color="red">거절됨</Tag>
               )}
+              {log.attachments && log.attachments.length > 0 && (
+                <Tag 
+                  icon={<PaperClipOutlined />} 
+                  color="blue"
+                >
+                  첨부 {log.attachments.length}
+                </Tag>
+              )}
             </Space>
           }
           description={
@@ -274,21 +296,47 @@ export default function GlobalLogFeed({
                   </Tag>
                 </div>
               )}
+              {/* 첨부파일 표시 - PendingApprovals와 동일한 스타일 */}
               {log.attachments && log.attachments.length > 0 && (
-                <div className="mt-2">
-                  <Space direction="vertical" size="small">
-                    {log.attachments.map((attachment) => (
-                      <Button
-                        key={attachment.id}
-                        size="small"
-                        icon={<DownloadOutlined />}
-                        onClick={(e) => handleDownloadAttachment(attachment, e)}
-                        className="attachment-download-btn"
-                      >
-                        {attachment.file_name} ({(attachment.file_size / 1024).toFixed(1)}KB)
-                      </Button>
-                    ))}
-                  </Space>
+                <div className="mt-3 pt-3 border-t border-gray-200">
+                  <div className="space-y-2">
+                    <Text type="secondary" className="text-sm font-medium">첨부파일:</Text>
+                    <div className="space-y-1">
+                      {log.attachments.map((attachment) => {
+                        // Supabase storage public URL 생성
+                        const publicUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/log-attachments/${attachment.file_path}`
+                        
+                        return (
+                          <div
+                            key={attachment.id}
+                            className="flex items-center gap-2 p-2 bg-gray-50 rounded hover:bg-gray-100 transition-colors"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <PaperClipOutlined className="text-gray-500" />
+                            <a
+                              href={publicUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-sm text-blue-600 hover:underline flex-1"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              {attachment.file_name}
+                            </a>
+                            <Text type="secondary" className="text-xs">
+                              {formatFileSize(attachment.file_size)}
+                            </Text>
+                            <Button
+                              type="text"
+                              size="small"
+                              icon={<DownloadOutlined />}
+                              onClick={(e) => handleDownloadAttachment(attachment, e)}
+                              title="다운로드"
+                            />
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
                 </div>
               )}
               <Text type="secondary" className="text-xs">
@@ -372,17 +420,6 @@ export default function GlobalLogFeed({
 
         .log-list :global(.ant-list-item:last-child) {
           border-bottom: none;
-        }
-
-        .log-list :global(.attachment-download-btn) {
-          background-color: #f0f0f0;
-          border-color: #d9d9d9;
-        }
-
-        .log-list :global(.attachment-download-btn:hover) {
-          background-color: #e6f7ff;
-          border-color: #1890ff;
-          color: #1890ff;
         }
 
         .pagination-container {

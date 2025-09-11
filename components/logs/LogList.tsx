@@ -267,11 +267,10 @@ export default function LogList({ projectId, refreshTrigger = 0, onRefresh }: Lo
                 </p>
               </div>
 
-              {/* 확장된 내용 */}
-              {isExpanded && (
+              {/* 첨부파일 목록 - 항상 표시 */}
+              {log.attachments && log.attachments.length > 0 && (
                 <div className="border-t border-gray-200 px-4 py-3 bg-gray-50">
                   {/* 첨부파일 목록 */}
-                  {log.attachments && log.attachments.length > 0 && (
                     <div className="space-y-2">
                       <p className="text-sm font-medium text-gray-700">첨부파일:</p>
                       <div className="space-y-1">
@@ -317,7 +316,7 @@ export default function LogList({ projectId, refreshTrigger = 0, onRefresh }: Lo
                           return (
                             <div
                               key={attachment.id}
-                              className="flex items-center gap-2 p-2 bg-white rounded hover:bg-gray-100 transition-colors group"
+                              className="flex items-center gap-2 p-2 bg-gray-50 rounded hover:bg-gray-100 transition-colors"
                               onClick={(e) => e.stopPropagation()}
                             >
                               <PaperClipIcon className="h-4 w-4 text-gray-500" />
@@ -335,28 +334,29 @@ export default function LogList({ projectId, refreshTrigger = 0, onRefresh }: Lo
                               </span>
                               <button
                                 onClick={handleDownload}
-                                className="p-1 rounded opacity-0 group-hover:opacity-100 hover:bg-gray-200 transition-all"
+                                className="inline-flex items-center px-2 py-1 text-xs text-gray-600 hover:text-gray-800 hover:bg-gray-200 rounded transition-colors"
                                 title="다운로드"
                               >
-                                <ArrowDownTrayIcon className="h-4 w-4 text-gray-600" />
+                                <ArrowDownTrayIcon className="h-4 w-4" />
                               </button>
                             </div>
                           )
                         })}
                       </div>
                     </div>
-                  )}
+                </div>
+              )}
 
-                  {/* 로그 타입별 추가 정보 */}
-                  {isApprovalLog && (
-                    <div className="mt-3 pt-3 border-t border-gray-200">
-                      <p className="text-xs text-gray-500">
-                        {log.log_type === 'approval_request' 
-                          ? '이 로그는 승인 요청으로 생성되었습니다.'
-                          : '이 로그는 승인 응답으로 생성되었습니다.'}
-                      </p>
-                    </div>
-                  )}
+              {/* 로그 타입별 추가 정보 */}
+              {isExpanded && isApprovalLog && (
+                <div className="border-t border-gray-200 px-4 py-3 bg-gray-50">
+                  <div className="mt-3 pt-3 border-t border-gray-200">
+                    <p className="text-xs text-gray-500">
+                      {log.log_type === 'approval_request' 
+                        ? '이 로그는 승인 요청으로 생성되었습니다.'
+                        : '이 로그는 승인 응답으로 생성되었습니다.'}
+                    </p>
+                  </div>
                 </div>
               )}
             </div>

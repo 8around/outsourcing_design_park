@@ -12,6 +12,7 @@ import {
   EyeOutlined,
   ReloadOutlined,
   PaperClipOutlined,
+  DownloadOutlined,
 } from '@ant-design/icons'
 import { formatDistanceToNow } from 'date-fns'
 import { ko } from 'date-fns/locale'
@@ -292,6 +293,15 @@ export default function PendingApprovals({
     }
   }
 
+  // 파일 크기 포맷팅 함수
+  const formatFileSize = (bytes: number): string => {
+    if (bytes === 0) return '0 Bytes'
+    const k = 1024
+    const sizes = ['Bytes', 'KB', 'MB']
+    const i = Math.floor(Math.log(bytes) / Math.log(k))
+    return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i]
+  }
+
   // 승인 아이템 렌더링
   const renderApprovalItem = (approval: ApprovalItem) => {
     const config = typeConfig[approval.type]
@@ -373,8 +383,11 @@ export default function PendingApprovals({
                 <Tag color="red">긴급</Tag>
               )}
               {approval.attachments && approval.attachments.length > 0 && (
-                <Tag icon={<PaperClipOutlined />} color="default">
-                  {approval.attachments.length}
+                <Tag 
+                  icon={<PaperClipOutlined />} 
+                  color="blue"
+                >
+                  첨부 {approval.attachments.length}
                 </Tag>
               )}
             </Space>
@@ -421,6 +434,76 @@ export default function PendingApprovals({
                   })}
                 </Text>
               </Space>
+              {/* 첨부파일 표시 - 항상 보이기 */}
+              {approval.attachments && approval.attachments.length > 0 && (
+                <div className="mt-3 pt-3 border-t border-gray-200">
+                  <div className="space-y-2">
+                    <Text type="secondary" className="text-sm font-medium">첨부파일:</Text>
+                    <div className="space-y-1">
+                      {approval.attachments.map((attachment) => {
+                        // Supabase storage public URL 생성
+                        const publicUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/log-attachments/${attachment.file_path}`
+                        
+                        // 파일 다운로드 핸들러
+                        const handleDownload = async (e: React.MouseEvent) => {
+                          e.preventDefault()
+                          e.stopPropagation()
+                          
+                          try {
+                            const response = await fetch(publicUrl)
+                            
+                            if (!response.ok) {
+                              throw new Error('파일 다운로드 실패')
+                            }
+                            
+                            const blob = await response.blob()
+                            const url = window.URL.createObjectURL(blob)
+                            const a = document.createElement('a')
+                            a.href = url
+                            a.download = attachment.file_name
+                            document.body.appendChild(a)
+                            a.click()
+                            window.URL.revokeObjectURL(url)
+                            document.body.removeChild(a)
+                          } catch (error) {
+                            console.error('파일 다운로드 실패:', error)
+                            message.error('파일 다운로드에 실패했습니다.')
+                          }
+                        }
+                        
+                        return (
+                          <div
+                            key={attachment.id}
+                            className="flex items-center gap-2 p-2 bg-gray-50 rounded hover:bg-gray-100 transition-colors"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <PaperClipOutlined className="text-gray-500" />
+                            <a
+                              href={publicUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-sm text-blue-600 hover:underline flex-1"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              {attachment.file_name}
+                            </a>
+                            <Text type="secondary" className="text-xs">
+                              {formatFileSize(attachment.file_size)}
+                            </Text>
+                            <Button
+                              type="text"
+                              size="small"
+                              icon={<DownloadOutlined />}
+                              onClick={handleDownload}
+                              title="다운로드"
+                            />
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           }
         />

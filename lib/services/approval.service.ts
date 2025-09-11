@@ -503,7 +503,7 @@ export class ApprovalService {
             .from('history_logs')
             .select(`
               category,
-              attachments:log_attachments(
+              attachments:history_log_attachments(
                 id,
                 file_name,
                 file_path,
@@ -567,7 +567,7 @@ export class ApprovalService {
             .from('history_logs')
             .select(`
               category,
-              attachments:log_attachments(
+              attachments:history_log_attachments(
                 id,
                 file_name,
                 file_path,
