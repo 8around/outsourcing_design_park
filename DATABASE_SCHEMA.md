@@ -1256,23 +1256,12 @@ CREATE TRIGGER update_weekly_report_config_updated_at
 
 ```sql
 -- 승인/반려 자동 로그 생성 (핵심 기능)
+-- 주의: 승인 요청은 현재 수동으로 생성되며, 응답만 트리거로 자동 생성됨
 CREATE OR REPLACE FUNCTION create_approval_log()
 RETURNS TRIGGER AS $$
 BEGIN
-  -- 승인 요청시 history_logs에 자동 로그 생성
-  IF TG_OP = 'INSERT' THEN
-    INSERT INTO history_logs (
-      project_id, category, content, author_id, author_name, 
-      target_user_id, target_user_name, log_type
-    ) VALUES (
-      NEW.project_id, '승인요청', NEW.memo, 
-      NEW.requester_id, NEW.requester_name,
-      NEW.approver_id, NEW.approver_name, 'approval_request'
-    );
-    RETURN NEW;
-  END IF;
-  
   -- 승인/반려 처리시 history_logs에 응답 로그 생성
+  -- UPDATE 작업만 처리 (INSERT는 서비스 레이어에서 처리)
   IF TG_OP = 'UPDATE' AND OLD.status = 'pending' AND NEW.status != 'pending' THEN
     INSERT INTO history_logs (
       project_id, category, content, author_id, author_name,
@@ -1286,15 +1275,15 @@ BEGIN
       NEW.requester_id, NEW.requester_name, 
       'approval_response', NEW.status
     );
-    RETURN NEW;
   END IF;
   
   RETURN NEW;
 END;
 $$ language 'plpgsql';
 
-CREATE TRIGGER approval_request_log_trigger
-  AFTER INSERT OR UPDATE ON approval_requests
+-- 승인 응답시에만 트리거 실행 (중복 트리거 제거됨)
+CREATE TRIGGER approval_response_log_trigger
+  AFTER UPDATE ON approval_requests
   FOR EACH ROW EXECUTE FUNCTION create_approval_log();
 ```
 
