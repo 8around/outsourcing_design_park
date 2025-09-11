@@ -218,7 +218,7 @@ export default function PendingApprovals({
     if (approval.type === 'user') {
       router.push('/admin/users')
     } else if (approval.project_id) {
-      router.push(`/projects/${approval.project_id}/approval`)
+      router.push(`/projects/${approval.project_id}`)
     }
   }
 
