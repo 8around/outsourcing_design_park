@@ -547,41 +547,6 @@ export default function EditProjectPage() {
           />
         </div>
 
-        {/* 히스토리 로그 섹션 */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-semibold">히스토리 로그</h2>
-            <button
-              type="button"
-              onClick={() => setShowLogForm(!showLogForm)}
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 font-medium"
-            >
-              {showLogForm ? '취소' : '로그 작성'}
-            </button>
-          </div>
-
-          {/* 로그 작성 폼 */}
-          {showLogForm && (
-            <div className="mb-6 p-4 border border-gray-200 rounded-lg bg-gray-50">
-              <LogFormSimple
-                onSubmit={handleLogSubmit}
-                onCancel={() => setShowLogForm(false)}
-                showAttachments={true}
-                users={users.map(u => ({ ...u, name: u.name || u.email, role: u.role || 'user' }))}
-              />
-            </div>
-          )}
-
-          {/* 로그 목록 */}
-          {params.id && (
-            <LogList 
-              projectId={params.id as string} 
-              onRefresh={() => setRefreshLogs(prev => prev + 1)}
-              key={refreshLogs}
-            />
-          )}
-        </div>
-
         {/* 이미지 갤러리 섹션 */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <h2 className="text-xl font-semibold mb-4">이미지 갤러리</h2>
@@ -664,6 +629,41 @@ export default function EditProjectPage() {
           </button>
         </div>
       </form>
+
+      {/* 히스토리 로그 섹션 - form 외부에 위치 */}
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mt-8">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-semibold">히스토리 로그</h2>
+          <button
+            type="button"
+            onClick={() => setShowLogForm(!showLogForm)}
+            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 font-medium"
+          >
+            {showLogForm ? '취소' : '로그 작성'}
+          </button>
+        </div>
+
+        {/* 로그 작성 폼 */}
+        {showLogForm && (
+          <div className="mb-6 p-4 border border-gray-200 rounded-lg bg-gray-50">
+            <LogFormSimple
+              onSubmit={handleLogSubmit}
+              onCancel={() => setShowLogForm(false)}
+              showAttachments={true}
+              users={users.map(u => ({ ...u, name: u.name || u.email, role: u.role || 'user' }))}
+            />
+          </div>
+        )}
+
+        {/* 로그 목록 */}
+        {params.id && (
+          <LogList 
+            projectId={params.id as string} 
+            refreshTrigger={refreshLogs}
+            onRefresh={() => setRefreshLogs(prev => prev + 1)}
+          />
+        )}
+      </div>
     </div>
   )
 }
