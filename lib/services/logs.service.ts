@@ -202,25 +202,37 @@ class LogService {
   /**
    * 글로벌 로그 피드 조회 (모든 프로젝트)
    */
-  async getGlobalLogFeed(page = 1, pageSize = 20): Promise<{ logs: HistoryLogWithAttachments[], total: number, page: number, page_size: number }> {
+  async getGlobalLogFeed(page = 1, pageSize = 20, userId?: string): Promise<{ logs: HistoryLogWithAttachments[], total: number, page: number, page_size: number }> {
     const supabase = createClient()
     const start = (page - 1) * pageSize
     const end = start + pageSize - 1
 
-    // 전체 개수 조회
-    const { count } = await supabase
+    // 기본 쿼리 생성
+    let countQuery = supabase
       .from('history_logs')
       .select('*', { count: 'exact', head: true })
       .eq('is_deleted', false)
-
-    // 데이터 조회 (첨부파일 포함)
-    const { data: logs, error } = await supabase
+    
+    let dataQuery = supabase
       .from('history_logs')
       .select(`
         *,
         attachments:history_log_attachments(*)
       `)
       .eq('is_deleted', false)
+
+    // 사용자 필터링 적용
+    if (userId) {
+      // 사용자가 보낸 로그 또는 받은 로그
+      countQuery = countQuery.or(`author_id.eq.${userId},target_user_id.eq.${userId}`)
+      dataQuery = dataQuery.or(`author_id.eq.${userId},target_user_id.eq.${userId}`)
+    }
+
+    // 전체 개수 조회
+    const { count } = await countQuery
+
+    // 데이터 조회 (첨부파일 포함)
+    const { data: logs, error } = await dataQuery
       .order('created_at', { ascending: false })
       .range(start, end)
 

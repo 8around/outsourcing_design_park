@@ -13,13 +13,17 @@ import {
   PaperClipOutlined,
   ReloadOutlined,
   DownloadOutlined,
+  FilterOutlined,
+  CloseCircleOutlined,
 } from '@ant-design/icons'
 import { formatDistanceToNow } from 'date-fns'
 import { ko } from 'date-fns/locale'
 import { logService } from '@/lib/services/logs.service'
 import { projectService } from '@/lib/services/projects.service'
 import { useAuth } from '@/lib/hooks/useAuth'
+import UserSelectModal from '@/components/common/UserSelectModal'
 import type { HistoryLog } from '@/types/log'
+import type { User } from '@/types/user'
 
 const { Text, Title } = Typography
 
@@ -88,6 +92,9 @@ export default function GlobalLogFeed({
   const [currentPage, setCurrentPage] = useState(1)
   const [totalCount, setTotalCount] = useState(0)
   const [deletingLogId, setDeletingLogId] = useState<string | null>(null)
+  const [filterUserId, setFilterUserId] = useState<string | null>(null)
+  const [filterUser, setFilterUser] = useState<User | null>(null)
+  const [showUserSelectModal, setShowUserSelectModal] = useState(false)
 
   // 로그 데이터 로드
   const loadLogs = async (page = currentPage, isRefresh = false) => {
@@ -98,8 +105,8 @@ export default function GlobalLogFeed({
     }
 
     try {
-      // 글로벌 로그 피드 조회
-      const response = await logService.getGlobalLogFeed(page, limit)
+      // 글로벌 로그 피드 조회 (사용자 필터링 적용)
+      const response = await logService.getGlobalLogFeed(page, limit, filterUserId || undefined)
       
       // 프로젝트 정보 조회를 위한 프로젝트 ID 수집
       const projectIds = [...new Set(response.logs.filter(log => log.project_id).map(log => log.project_id!))]
@@ -155,10 +162,11 @@ export default function GlobalLogFeed({
     }
   }
 
-  // 초기 로드
+  // 초기 로드 및 필터 변경 시 재로드
   useEffect(() => {
+    setCurrentPage(1)
     loadLogs(1)
-  }, [limit])
+  }, [limit, filterUserId])
 
   // 자동 새로고침
   useEffect(() => {
@@ -180,6 +188,21 @@ export default function GlobalLogFeed({
   const handlePageChange = (page: number) => {
     setCurrentPage(page)
     loadLogs(page)
+  }
+
+  // 사용자 필터 선택 핸들러
+  const handleUserSelect = (user: User) => {
+    setFilterUser(user)
+    setFilterUserId(user.id)
+    setShowUserSelectModal(false)
+    message.success(`${user.name}님의 로그를 필터링합니다.`)
+  }
+
+  // 필터 초기화
+  const handleResetFilter = () => {
+    setFilterUser(null)
+    setFilterUserId(null)
+    message.info('전체 로그를 표시합니다.')
   }
 
   // 로그 클릭 시 프로젝트 상세 페이지로 이동
@@ -402,18 +425,54 @@ export default function GlobalLogFeed({
     <Card
       title={
         <div className="flex items-center justify-between">
-          <Title level={4} className="mb-0">전체 활동 로그</Title>
-          {showRefresh && (
-            <Button
-              type="text"
-              icon={<ReloadOutlined spin={refreshing} />}
-              onClick={handleRefresh}
-              loading={refreshing}
-              size="small"
-            >
-              새로고침
-            </Button>
-          )}
+          <div className="flex items-center gap-2">
+            <Title level={4} className="mb-0">전체 활동 로그</Title>
+            {filterUser && (
+              <Tag 
+                color="blue" 
+                closable 
+                onClose={handleResetFilter}
+                className="ml-2"
+              >
+                {filterUser.name} 필터링 중
+              </Tag>
+            )}
+          </div>
+          <Space>
+            {/* 관리자인 경우에만 사용자 필터 버튼 표시 */}
+            {userData?.role === 'admin' && (
+              <Button
+                icon={<FilterOutlined />}
+                onClick={() => setShowUserSelectModal(true)}
+                size="small"
+                type={filterUserId ? "primary" : "default"}
+              >
+                사용자 필터
+              </Button>
+            )}
+            {/* 필터가 적용된 경우 초기화 버튼 표시 */}
+            {filterUserId && (
+              <Button
+                icon={<CloseCircleOutlined />}
+                onClick={handleResetFilter}
+                size="small"
+                danger
+              >
+                초기화
+              </Button>
+            )}
+            {showRefresh && (
+              <Button
+                type="text"
+                icon={<ReloadOutlined spin={refreshing} />}
+                onClick={handleRefresh}
+                loading={refreshing}
+                size="small"
+              >
+                새로고침
+              </Button>
+            )}
+          </Space>
         </div>
       }
       className="global-log-feed"
@@ -445,6 +504,14 @@ export default function GlobalLogFeed({
       ) : (
         <Empty description="활동 로그가 없습니다." />
       )}
+
+      {/* 사용자 선택 모달 */}
+      <UserSelectModal
+        visible={showUserSelectModal}
+        onClose={() => setShowUserSelectModal(false)}
+        onSelect={handleUserSelect}
+        selectedUserId={filterUserId}
+      />
 
       <style jsx>{`
         .global-log-feed :global(.ant-card-body) {

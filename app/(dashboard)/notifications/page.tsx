@@ -22,8 +22,8 @@ import {
   BellOutlined,
   CheckOutlined,
   DeleteOutlined,
-  SettingOutlined,
   FilterOutlined,
+  SettingOutlined,
   ExclamationCircleOutlined,
   InfoCircleOutlined,
   WarningOutlined,
@@ -55,16 +55,6 @@ interface Notification {
   actionUrl?: string
   sender?: string
   metadata?: Record<string, any>
-}
-
-interface NotificationSettings {
-  emailNotifications: boolean
-  pushNotifications: boolean
-  projectUpdates: boolean
-  approvalRequests: boolean
-  deadlineReminders: boolean
-  meetingReminders: boolean
-  systemUpdates: boolean
 }
 
 const notificationIcons = {
@@ -105,17 +95,6 @@ export default function NotificationsPage() {
   const [filteredNotifications, setFilteredNotifications] = useState<Notification[]>([])
   const [selectedNotifications, setSelectedNotifications] = useState<string[]>([])
   const [filterType, setFilterType] = useState<'all' | 'unread' | 'read'>('all')
-  const [filterCategory, setFilterCategory] = useState<string>('all')
-  const [settingsModalVisible, setSettingsModalVisible] = useState(false)
-  const [settings, setSettings] = useState<NotificationSettings>({
-    emailNotifications: true,
-    pushNotifications: true,
-    projectUpdates: true,
-    approvalRequests: true,
-    deadlineReminders: true,
-    meetingReminders: true,
-    systemUpdates: false
-  })
 
   // 임시 알림 데이터
   useEffect(() => {
@@ -248,13 +227,8 @@ export default function NotificationsPage() {
       filtered = filtered.filter(n => n.isRead)
     }
 
-    // 카테고리 필터
-    if (filterCategory !== 'all') {
-      filtered = filtered.filter(n => n.category === filterCategory)
-    }
-
     setFilteredNotifications(filtered)
-  }, [notifications, filterType, filterCategory])
+  }, [notifications, filterType])
 
   // 안읽은 알림 수
   const unreadCount = notifications.filter(n => !n.isRead).length
@@ -266,12 +240,6 @@ export default function NotificationsPage() {
         ? { ...notification, isRead: true }
         : notification
     ))
-  }
-
-  // 전체 읽음 처리
-  const markAllAsRead = () => {
-    setNotifications(prev => prev.map(notification => ({ ...notification, isRead: true })))
-    message.success('모든 알림을 읽음으로 처리했습니다')
   }
 
   // 알림 삭제
@@ -334,13 +302,6 @@ export default function NotificationsPage() {
     }
   }
 
-  // 설정 저장
-  const handleSaveSettings = (newSettings: NotificationSettings) => {
-    setSettings(newSettings)
-    setSettingsModalVisible(false)
-    message.success('알림 설정이 저장되었습니다')
-  }
-
   // 시간 포맷팅
   const formatTime = (date: Date) => {
     const now = moment()
@@ -360,7 +321,7 @@ export default function NotificationsPage() {
   return (
     <div className="notifications-page container mx-auto px-6 py-8">
       {/* 헤더 */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="mb-6">
         <div>
           <Title level={2} className="mb-2 flex items-center gap-3">
             <BellOutlined />
@@ -373,12 +334,6 @@ export default function NotificationsPage() {
             프로젝트 관련 알림을 확인하세요
           </Text>
         </div>
-        <Button 
-          icon={<SettingOutlined />}
-          onClick={() => setSettingsModalVisible(true)}
-        >
-          알림 설정
-        </Button>
       </div>
 
       {/* 컨트롤 패널 */}
@@ -395,23 +350,6 @@ export default function NotificationsPage() {
               <Option value="unread">안읽음</Option>
               <Option value="read">읽음</Option>
             </Select>
-
-            <Select
-              value={filterCategory}
-              onChange={setFilterCategory}
-              style={{ width: 150 }}
-            >
-              <Option value="all">모든 카테고리</Option>
-              {Object.entries(categoryLabels).map(([key, label]) => (
-                <Option key={key} value={key}>
-                  <Space>
-                    <Tag color={categoryColors[key as keyof typeof categoryColors]} icon={categoryIcons[key as keyof typeof categoryIcons]}>
-                      {label}
-                    </Tag>
-                  </Space>
-                </Option>
-              ))}
-            </Select>
           </Space>
 
           {/* 액션 버튼 */}
@@ -427,15 +365,6 @@ export default function NotificationsPage() {
                   선택 삭제
                 </Button>
               </>
-            )}
-            {unreadCount > 0 && (
-              <Button 
-                type="primary" 
-                icon={<CheckOutlined />}
-                onClick={markAllAsRead}
-              >
-                전체 읽음
-              </Button>
             )}
           </Space>
         </div>
@@ -558,80 +487,6 @@ export default function NotificationsPage() {
           </>
         )}
       </Card>
-
-      {/* 알림 설정 모달 */}
-      <Modal
-        title="알림 설정"
-        open={settingsModalVisible}
-        onCancel={() => setSettingsModalVisible(false)}
-        onOk={() => handleSaveSettings(settings)}
-        width={500}
-      >
-        <div className="space-y-4">
-          <div>
-            <Title level={5}>일반 알림</Title>
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <Text>이메일 알림</Text>
-                <Switch
-                  checked={settings.emailNotifications}
-                  onChange={(checked) => setSettings(prev => ({ ...prev, emailNotifications: checked }))}
-                />
-              </div>
-              <div className="flex items-center justify-between">
-                <Text>푸시 알림</Text>
-                <Switch
-                  checked={settings.pushNotifications}
-                  onChange={(checked) => setSettings(prev => ({ ...prev, pushNotifications: checked }))}
-                />
-              </div>
-            </div>
-          </div>
-
-          <Divider />
-
-          <div>
-            <Title level={5}>카테고리별 알림</Title>
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <Text>프로젝트 업데이트</Text>
-                <Switch
-                  checked={settings.projectUpdates}
-                  onChange={(checked) => setSettings(prev => ({ ...prev, projectUpdates: checked }))}
-                />
-              </div>
-              <div className="flex items-center justify-between">
-                <Text>승인 요청</Text>
-                <Switch
-                  checked={settings.approvalRequests}
-                  onChange={(checked) => setSettings(prev => ({ ...prev, approvalRequests: checked }))}
-                />
-              </div>
-              <div className="flex items-center justify-between">
-                <Text>마감일 알림</Text>
-                <Switch
-                  checked={settings.deadlineReminders}
-                  onChange={(checked) => setSettings(prev => ({ ...prev, deadlineReminders: checked }))}
-                />
-              </div>
-              <div className="flex items-center justify-between">
-                <Text>회의 알림</Text>
-                <Switch
-                  checked={settings.meetingReminders}
-                  onChange={(checked) => setSettings(prev => ({ ...prev, meetingReminders: checked }))}
-                />
-              </div>
-              <div className="flex items-center justify-between">
-                <Text>시스템 업데이트</Text>
-                <Switch
-                  checked={settings.systemUpdates}
-                  onChange={(checked) => setSettings(prev => ({ ...prev, systemUpdates: checked }))}
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-      </Modal>
 
       <style jsx>{`
         .notifications-page {
