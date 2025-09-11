@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Card, List, Avatar, Typography, Tag, Space, Button, Empty, Skeleton, Badge, Tooltip, message } from 'antd'
+import { Card, List, Avatar, Typography, Tag, Space, Button, Empty, Skeleton, Badge, Tooltip, message, Pagination } from 'antd'
 import {
   ClockCircleOutlined,
   CheckOutlined,
@@ -91,10 +91,13 @@ export default function PendingApprovals({
 }: PendingApprovalsProps) {
   const router = useRouter()
   const { user, userData } = useAuth()
-  const [approvals, setApprovals] = useState<ApprovalItem[]>([])
+  const [allApprovals, setAllApprovals] = useState<ApprovalItem[]>([])  // 전체 승인 목록
+  const [approvals, setApprovals] = useState<ApprovalItem[]>([])  // 현재 페이지에 표시할 목록
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [processing, setProcessing] = useState<string | null>(null)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [pageSize] = useState(limit)  // 페이지당 항목 수
 
   // 승인 대기 목록 로드
   const loadApprovals = async () => {
@@ -109,7 +112,7 @@ export default function PendingApprovals({
       const response = await approvalService.getPendingApprovalsForUser(user.id)
       
       // 사용자 승인과 프로젝트 승인을 합쳐서 정렬
-      const allApprovals: ApprovalItem[] = [
+      const combinedApprovals: ApprovalItem[] = [
         ...response.userApprovals.map(approval => ({
           ...approval,
           memo: undefined, // 사용자 승인은 메모가 없음
@@ -124,15 +127,24 @@ export default function PendingApprovals({
       ]
 
       // 생성 시간 기준으로 정렬
-      allApprovals.sort((a, b) => {
+      combinedApprovals.sort((a, b) => {
         return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
       })
 
-      // limit 적용
-      setApprovals(allApprovals.slice(0, limit))
+      // 전체 목록 저장
+      setAllApprovals(combinedApprovals)
+      
+      // 첫 페이지로 리셋
+      setCurrentPage(1)
+      
+      // 현재 페이지의 항목 설정
+      const startIndex = 0
+      const endIndex = pageSize
+      setApprovals(combinedApprovals.slice(startIndex, endIndex))
     } catch (error) {
       console.error('승인 목록 로드 실패:', error)
       message.error('승인 대기 목록을 불러오는데 실패했습니다.')
+      setAllApprovals([])
       setApprovals([])
     } finally {
       setLoading(false)
@@ -142,7 +154,19 @@ export default function PendingApprovals({
   // 초기 로드 및 사용자 변경 시 재로드
   useEffect(() => {
     loadApprovals()
-  }, [limit, user])
+  }, [user])  // limit 제거 - pageSize를 내부적으로 사용
+
+  // 페이지 변경 시 표시할 항목 업데이트
+  useEffect(() => {
+    const startIndex = (currentPage - 1) * pageSize
+    const endIndex = startIndex + pageSize
+    setApprovals(allApprovals.slice(startIndex, endIndex))
+  }, [currentPage, allApprovals, pageSize])
+
+  // 페이지 변경 핸들러
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page)
+  }
 
   // 새로고침 핸들러
   const handleRefresh = async () => {
@@ -190,7 +214,8 @@ export default function PendingApprovals({
         if (onApprove) {
           onApprove(id)
         }
-        // 목록에서 제거
+        // 전체 목록과 현재 페이지 목록에서 제거
+        setAllApprovals(prev => prev.filter(item => item.id !== id))
         setApprovals(prev => prev.filter(item => item.id !== id))
       } else {
         message.error('승인 처리에 실패했습니다.')
@@ -233,7 +258,8 @@ export default function PendingApprovals({
         if (onReject) {
           onReject(id)
         }
-        // 목록에서 제거
+        // 전체 목록과 현재 페이지 목록에서 제거
+        setAllApprovals(prev => prev.filter(item => item.id !== id))
         setApprovals(prev => prev.filter(item => item.id !== id))
       } else {
         message.error('거절 처리에 실패했습니다.')
@@ -420,6 +446,23 @@ export default function PendingApprovals({
         <Empty description="승인 대기 중인 항목이 없습니다." />
       )}
 
+      {/* 페이지네이션 추가 */}
+      {!loading && allApprovals.length > pageSize && (
+        <div className="pagination-container">
+          <Pagination
+            current={currentPage}
+            total={allApprovals.length}
+            pageSize={pageSize}
+            onChange={handlePageChange}
+            showSizeChanger={false}
+            showQuickJumper={allApprovals.length > pageSize * 5}
+            showTotal={(total, range) => `${range[0]}-${range[1]} / 총 ${total}건`}
+            className="mt-4"
+            size="small"
+          />
+        </div>
+      )}
+
       <style jsx>{`
         .pending-approvals :global(.ant-card-body) {
           padding: 0;
@@ -442,6 +485,18 @@ export default function PendingApprovals({
 
         .approval-list :global(.ant-list-item-action) {
           margin-left: auto;
+        }
+
+        .pagination-container {
+          padding: 16px 20px;
+          border-top: 1px solid var(--border-light);
+          display: flex;
+          justify-content: center;
+        }
+
+        .pagination-container :global(.ant-pagination) {
+          display: flex;
+          align-items: center;
         }
 
         @media (max-width: 768px) {
