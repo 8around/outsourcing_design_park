@@ -488,10 +488,14 @@ export class ApprovalService {
         .from('approval_requests')
         .select(`
           *,
-          project:projects(site_name, product_name)
+          project:projects(site_name, product_name),
+          history_logs!inner(
+            category
+          )
         `)
         .eq('approver_id', userId)
         .eq('status', 'pending')
+        .eq('history_logs.log_type', 'approval_request')
         .order('created_at', { ascending: false })
         .limit(10);
 
@@ -511,6 +515,7 @@ export class ApprovalService {
         project_name: approval.project ? 
           `${approval.project.site_name} - ${approval.project.product_name}` : 
           '프로젝트',
+        category: approval.history_logs?.[0]?.category || null,  // 로그 카테고리 추가
         requestType: 'received' as const  // 내가 받은 승인 요청
       }));
 
@@ -519,10 +524,14 @@ export class ApprovalService {
         .from('approval_requests')
         .select(`
           *,
-          project:projects(site_name, product_name)
+          project:projects(site_name, product_name),
+          history_logs!inner(
+            category
+          )
         `)
         .eq('requester_id', userId)
         .eq('status', 'pending')
+        .eq('history_logs.log_type', 'approval_request')
         .order('created_at', { ascending: false })
         .limit(10);
 
@@ -542,6 +551,7 @@ export class ApprovalService {
         project_name: approval.project ? 
           `${approval.project.site_name} - ${approval.project.product_name}` : 
           '프로젝트',
+        category: approval.history_logs?.[0]?.category || null,  // 로그 카테고리 추가
         requestType: 'sent' as const  // 내가 보낸 승인 요청
       }));
 

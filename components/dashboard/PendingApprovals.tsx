@@ -42,6 +42,7 @@ interface ApprovalItem {
   created_at: string
   project_id?: string
   project_name?: string
+  category?: string | null  // 로그 카테고리 추가
   memo?: string
   requestType: 'sent' | 'received'  // 요청 타입 추가
 }
@@ -60,6 +61,19 @@ const priorityColors = {
   high: 'red',
   medium: 'orange',
   low: 'default',
+}
+
+// 카테고리 색상 (LogList 컴포넌트와 동일하게 설정)
+const categoryColors: Record<string, string> = {
+  '사양변경': 'purple',
+  '도면설계': 'blue',
+  '구매발주': 'green',
+  '생산제작': 'gold',
+  '상하차': 'orange',
+  '현장설치시공': 'red',
+  '설치인증': 'purple',
+  '승인요청': 'magenta',
+  '승인처리': 'cyan',
 }
 
 interface PendingApprovalsProps {
@@ -104,6 +118,7 @@ export default function PendingApprovals({
         ...response.projectApprovals.map(approval => ({
           ...approval,
           memo: approval.description, // 프로젝트 승인의 설명을 메모로 사용
+          category: approval.category, // 로그 카테고리 포함
           requestType: approval.requestType || 'received' as const
         }))
       ]
@@ -325,10 +340,10 @@ export default function PendingApprovals({
           description={
             <div className="space-y-1">
               <Text>{approval.description}</Text>
-              {approval.project_name && (
+              {approval.category && (
                 <div>
-                  <Tag color="blue" className="mt-1">
-                    {approval.project_name}
+                  <Tag color={categoryColors[approval.category] || 'default'} className="mt-1">
+                    {approval.category}
                   </Tag>
                 </div>
               )}
