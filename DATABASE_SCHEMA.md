@@ -308,6 +308,7 @@ CREATE TABLE approval_requests (
     CHECK (status IN ('pending', 'approved', 'rejected')),
   response_memo TEXT,
   responded_at TIMESTAMP WITH TIME ZONE,
+  history_log_id UUID REFERENCES history_logs(id) ON DELETE CASCADE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
@@ -317,6 +318,7 @@ CREATE INDEX idx_approval_requests_requester ON approval_requests(requester_id);
 CREATE INDEX idx_approval_requests_approver ON approval_requests(approver_id);
 CREATE INDEX idx_approval_requests_status ON approval_requests(status);
 CREATE INDEX idx_approval_requests_pending ON approval_requests(approver_id, status) WHERE status = 'pending';
+CREATE INDEX idx_approval_requests_history_log ON approval_requests(history_log_id);
 ```
 
 **컬럼 설명:**
@@ -330,6 +332,7 @@ CREATE INDEX idx_approval_requests_pending ON approval_requests(approver_id, sta
 - `status`: 처리 상태, **현재 승인 상태 관리용** (대기중/승인됨/반려됨)
 - `response_memo`: 응답 메모, 승인/반려시 사유나 코멘트
 - `responded_at`: 응답 시각, 승인/반려 처리 시점
+- `history_log_id`: 연관된 히스토리 로그 ID, **프로젝트 상세에서 생성된 승인 요청시 연결** (NULL 허용)
 - `created_at`: 요청 시각, 승인 요청 생성 시점
 
 ---

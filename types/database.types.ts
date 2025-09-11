@@ -19,6 +19,7 @@ export type Database = {
           approver_id: string
           approver_name: string
           created_at: string | null
+          history_log_id: string | null
           id: string
           memo: string
           project_id: string
@@ -32,6 +33,7 @@ export type Database = {
           approver_id: string
           approver_name: string
           created_at?: string | null
+          history_log_id?: string | null
           id?: string
           memo: string
           project_id: string
@@ -45,6 +47,7 @@ export type Database = {
           approver_id?: string
           approver_name?: string
           created_at?: string | null
+          history_log_id?: string | null
           id?: string
           memo?: string
           project_id?: string

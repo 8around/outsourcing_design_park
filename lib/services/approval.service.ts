@@ -420,7 +420,7 @@ export class ApprovalService {
     try {
       console.log('deleteApprovalRequest called:', { requestId, adminId });
       
-      // 승인 요청 정보 조회
+      // 승인 요청 정보 조회 (history_log_id 포함)
       const { data: requestData, error: fetchError } = await this.supabase
         .from('approval_requests')
         .select('*')
@@ -435,28 +435,26 @@ export class ApprovalService {
         throw fetchError || new Error('Approval request not found');
       }
 
-      // 1. 먼저 관련된 history_logs 삭제 (소프트 삭제)
-      // 승인 요청과 관련된 로그는 project_id, requester_id, approver_id로 찾을 수 있음
-      const { error: logsDeleteError } = await this.supabase
-        .from('history_logs')
-        .update({ 
-          is_deleted: true,
-          deleted_by: adminId,
-          deleted_at: new Date().toISOString()
-        })
-        .match({
-          project_id: requestData.project_id,
-          author_id: requestData.requester_id,
-          target_user_id: requestData.approver_id,
-          log_type: 'approval_request'
-        });
+      // 1. history_log_id가 있으면 연결된 로그 삭제 (소프트 삭제)
+      // CASCADE DELETE 설정으로 approval_request 삭제시 자동으로 처리되지만,
+      // 소프트 삭제를 원한다면 먼저 처리
+      if (requestData.history_log_id) {
+        const { error: logDeleteError } = await this.supabase
+          .from('history_logs')
+          .update({ 
+            is_deleted: true,
+            deleted_by: adminId,
+            deleted_at: new Date().toISOString()
+          })
+          .eq('id', requestData.history_log_id);
 
-      if (logsDeleteError) {
-        console.error('Error deleting related logs:', logsDeleteError);
-        // 로그 삭제 실패해도 계속 진행
+        if (logDeleteError) {
+          console.error('Error soft-deleting related log:', logDeleteError);
+          // 로그 삭제 실패해도 계속 진행
+        }
       }
 
-      // 승인 응답 로그도 삭제 (있는 경우)
+      // 2. 승인 응답 로그도 삭제 (있는 경우 - 이것은 별도로 생성되므로 history_log_id로 연결되지 않음)
       if (requestData.status !== 'pending') {
         const { error: responseLogDeleteError } = await this.supabase
           .from('history_logs')
@@ -477,7 +475,8 @@ export class ApprovalService {
         }
       }
 
-      // 2. 승인 요청 삭제 (실제 삭제)
+      // 3. 승인 요청 삭제 (실제 삭제)
+      // 만약 history_logs를 하드 삭제하고 싶다면, CASCADE DELETE가 자동으로 처리
       const { error: deleteError } = await this.supabase
         .from('approval_requests')
         .delete()

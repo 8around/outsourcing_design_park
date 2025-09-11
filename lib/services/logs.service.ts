@@ -315,10 +315,28 @@ class LogService {
 
   /**
    * 로그 삭제 (소프트 삭제)
+   * 연관된 승인 요청이 있으면 함께 삭제
    */
   async deleteLog(logId: string, userId: string) {
     const supabase = createClient()
     
+    // 먼저 이 로그와 연결된 승인 요청이 있는지 확인
+    const { data: approvalRequests } = await supabase
+      .from('approval_requests')
+      .select('id')
+      .eq('history_log_id', logId)
+    
+    // 연결된 승인 요청이 있으면 먼저 삭제
+    if (approvalRequests && approvalRequests.length > 0) {
+      for (const request of approvalRequests) {
+        await supabase
+          .from('approval_requests')
+          .delete()
+          .eq('id', request.id)
+      }
+    }
+    
+    // 로그 소프트 삭제
     const { data, error } = await supabase
       .from('history_logs')
       .update({
