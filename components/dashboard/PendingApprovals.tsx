@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Card, List, Avatar, Typography, Tag, Space, Button, Empty, Skeleton, Badge, Tooltip } from 'antd'
+import { Card, List, Avatar, Typography, Tag, Space, Button, Empty, Skeleton, Badge, Tooltip, message } from 'antd'
 import {
   ClockCircleOutlined,
   CheckOutlined,
@@ -14,6 +14,8 @@ import {
 import { formatDistanceToNow } from 'date-fns'
 import { ko } from 'date-fns/locale'
 import { useRouter } from 'next/navigation'
+import { approvalService } from '@/lib/services/approval.service'
+import { useAuth } from '@/lib/hooks/useAuth'
 
 const { Text, Title } = Typography
 
@@ -32,12 +34,15 @@ interface ApprovalItem {
   requester_id: string
   requester_name: string
   requester_email?: string
+  approver_id?: string
+  approver_name?: string
   status: ApprovalStatus
   priority: 'high' | 'medium' | 'low'
   created_at: string
   project_id?: string
   project_name?: string
   memo?: string
+  requestType: 'sent' | 'received'  // 요청 타입 추가
 }
 
 // 타입별 설정
@@ -70,101 +75,96 @@ export default function PendingApprovals({
   onReject
 }: PendingApprovalsProps) {
   const router = useRouter()
+  const { user, userData } = useAuth()
   const [approvals, setApprovals] = useState<ApprovalItem[]>([])
   const [loading, setLoading] = useState(true)
   const [processing, setProcessing] = useState<string | null>(null)
 
   // 승인 대기 목록 로드
   const loadApprovals = async () => {
+    if (!user) {
+      setLoading(false)
+      return
+    }
+
     setLoading(true)
     try {
-      // TODO: 실제 Supabase API 호출로 대체
-      await new Promise(resolve => setTimeout(resolve, 800))
+      // 현재 사용자의 승인 대기 목록 조회
+      const response = await approvalService.getPendingApprovalsForUser(user.id)
       
-      // 임시 데이터
-      const mockApprovals: ApprovalItem[] = [
-        {
-          id: '1',
-          type: 'user',
-          title: '신규 사용자 가입 승인',
-          description: 'test@company.com 사용자가 가입 승인을 기다리고 있습니다.',
-          requester_id: 'user1',
-          requester_name: '김철수',
-          requester_email: 'test@company.com',
-          status: 'pending',
-          priority: 'high',
-          created_at: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
-        },
-        {
-          id: '2',
-          type: 'project',
-          title: '프로젝트 단계 변경 승인',
-          description: 'ABC 제조공장 프로젝트의 용접 단계 완료 승인이 필요합니다.',
-          requester_id: 'user2',
-          requester_name: '이영희',
-          status: 'pending',
-          priority: 'medium',
-          created_at: new Date(Date.now() - 1000 * 60 * 60).toISOString(),
-          project_id: 'proj1',
-          project_name: 'ABC 제조공장',
-          memo: '품질 검사 완료, 다음 단계 진행 가능',
-        },
-        {
-          id: '3',
-          type: 'stage',
-          title: '도면 설계 승인',
-          description: 'XYZ 물류센터 프로젝트의 도면 설계 승인이 필요합니다.',
-          requester_id: 'user3',
-          requester_name: '박민수',
-          status: 'pending',
-          priority: 'high',
-          created_at: new Date(Date.now() - 1000 * 60 * 120).toISOString(),
-          project_id: 'proj2',
-          project_name: 'XYZ 물류센터',
-        },
-        {
-          id: '4',
-          type: 'document',
-          title: '계약서 승인',
-          description: 'DEF 시설 개선 프로젝트 계약서 최종 승인이 필요합니다.',
-          requester_id: 'user4',
-          requester_name: '최지훈',
-          status: 'pending',
-          priority: 'medium',
-          created_at: new Date(Date.now() - 1000 * 60 * 240).toISOString(),
-          project_id: 'proj3',
-          project_name: 'DEF 시설 개선',
-        },
+      // 사용자 승인과 프로젝트 승인을 합쳐서 정렬
+      const allApprovals: ApprovalItem[] = [
+        ...response.userApprovals.map(approval => ({
+          ...approval,
+          memo: undefined, // 사용자 승인은 메모가 없음
+          requestType: approval.requestType || 'received' as const
+        })),
+        ...response.projectApprovals.map(approval => ({
+          ...approval,
+          memo: approval.description, // 프로젝트 승인의 설명을 메모로 사용
+          requestType: approval.requestType || 'received' as const
+        }))
       ]
 
-      setApprovals(mockApprovals.slice(0, limit))
+      // 생성 시간 기준으로 정렬
+      allApprovals.sort((a, b) => {
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      })
+
+      // limit 적용
+      setApprovals(allApprovals.slice(0, limit))
     } catch (error) {
       console.error('승인 목록 로드 실패:', error)
+      message.error('승인 대기 목록을 불러오는데 실패했습니다.')
+      setApprovals([])
     } finally {
       setLoading(false)
     }
   }
 
-  // 초기 로드
+  // 초기 로드 및 사용자 변경 시 재로드
   useEffect(() => {
     loadApprovals()
-  }, [limit])
+  }, [limit, user])
 
   // 승인 처리
   const handleApprove = async (id: string) => {
+    if (!user) return
+
+    const approval = approvals.find(a => a.id === id)
+    if (!approval) return
+
     setProcessing(id)
     try {
-      // TODO: 실제 승인 API 호출
-      await new Promise(resolve => setTimeout(resolve, 1000))
+      let success = false
       
-      if (onApprove) {
-        onApprove(id)
+      if (approval.type === 'user') {
+        // 사용자 승인
+        success = await approvalService.approveUser(id, user.id)
+      } else if (approval.type === 'project') {
+        // 프로젝트 승인
+        success = await approvalService.respondToApprovalRequest(
+          id,
+          user.id,
+          userData?.name || user.email || 'Unknown',
+          'approved',
+          '승인되었습니다.'
+        )
       }
-      
-      // 목록에서 제거
-      setApprovals(prev => prev.filter(item => item.id !== id))
+
+      if (success) {
+        message.success('승인이 완료되었습니다.')
+        if (onApprove) {
+          onApprove(id)
+        }
+        // 목록에서 제거
+        setApprovals(prev => prev.filter(item => item.id !== id))
+      } else {
+        message.error('승인 처리에 실패했습니다.')
+      }
     } catch (error) {
       console.error('승인 실패:', error)
+      message.error('승인 처리 중 오류가 발생했습니다.')
     } finally {
       setProcessing(null)
     }
@@ -172,19 +172,42 @@ export default function PendingApprovals({
 
   // 거절 처리
   const handleReject = async (id: string) => {
+    if (!user) return
+
+    const approval = approvals.find(a => a.id === id)
+    if (!approval) return
+
     setProcessing(id)
     try {
-      // TODO: 실제 거절 API 호출
-      await new Promise(resolve => setTimeout(resolve, 1000))
+      let success = false
       
-      if (onReject) {
-        onReject(id)
+      if (approval.type === 'user') {
+        // 사용자 거절
+        success = await approvalService.rejectUser(id, user.id, '관리자에 의해 거절되었습니다.')
+      } else if (approval.type === 'project') {
+        // 프로젝트 거절
+        success = await approvalService.respondToApprovalRequest(
+          id,
+          user.id,
+          userData?.name || user.email || 'Unknown',
+          'rejected',
+          '거절되었습니다.'
+        )
       }
-      
-      // 목록에서 제거
-      setApprovals(prev => prev.filter(item => item.id !== id))
+
+      if (success) {
+        message.success('거절이 완료되었습니다.')
+        if (onReject) {
+          onReject(id)
+        }
+        // 목록에서 제거
+        setApprovals(prev => prev.filter(item => item.id !== id))
+      } else {
+        message.error('거절 처리에 실패했습니다.')
+      }
     } catch (error) {
       console.error('거절 실패:', error)
+      message.error('거절 처리 중 오류가 발생했습니다.')
     } finally {
       setProcessing(null)
     }
@@ -203,43 +226,73 @@ export default function PendingApprovals({
   const renderApprovalItem = (approval: ApprovalItem) => {
     const config = typeConfig[approval.type]
     const isProcessing = processing === approval.id
+    const isReceivedRequest = approval.requestType === 'received'  // 내가 받은 요청인지 확인
+
+    // 내가 받은 요청인 경우에만 승인/거절 버튼 표시
+    const actions = showActions && isReceivedRequest ? [
+      <Tooltip title="상세 보기" key="view">
+        <Button
+          type="text"
+          icon={<EyeOutlined />}
+          size="small"
+          onClick={(e) => {
+            e.stopPropagation()
+            handleView(approval)
+          }}
+          disabled={isProcessing}
+        />
+      </Tooltip>,
+      <Button
+        type="primary"
+        icon={<CheckOutlined />}
+        size="small"
+        onClick={(e) => {
+          e.stopPropagation()
+          handleApprove(approval.id)
+        }}
+        loading={isProcessing}
+        disabled={isProcessing}
+        key="approve"
+      >
+        승인
+      </Button>,
+      <Button
+        danger
+        icon={<CloseOutlined />}
+        size="small"
+        onClick={(e) => {
+          e.stopPropagation()
+          handleReject(approval.id)
+        }}
+        loading={isProcessing}
+        disabled={isProcessing}
+        key="reject"
+      >
+        거절
+      </Button>,
+    ] : showActions && !isReceivedRequest ? [
+      // 내가 보낸 요청인 경우 상세 보기 버튼만 표시
+      <Tooltip title="상세 보기" key="view">
+        <Button
+          type="text"
+          icon={<EyeOutlined />}
+          size="small"
+          onClick={(e) => {
+            e.stopPropagation()
+            handleView(approval)
+          }}
+        />
+      </Tooltip>,
+      <Tag color="blue" key="status">대기중</Tag>
+    ] : undefined
 
     return (
       <List.Item
         key={approval.id}
-        actions={showActions ? [
-          <Tooltip title="상세 보기" key="view">
-            <Button
-              type="text"
-              icon={<EyeOutlined />}
-              size="small"
-              onClick={() => handleView(approval)}
-              disabled={isProcessing}
-            />
-          </Tooltip>,
-          <Button
-            type="primary"
-            icon={<CheckOutlined />}
-            size="small"
-            onClick={() => handleApprove(approval.id)}
-            loading={isProcessing}
-            disabled={isProcessing}
-            key="approve"
-          >
-            승인
-          </Button>,
-          <Button
-            danger
-            icon={<CloseOutlined />}
-            size="small"
-            onClick={() => handleReject(approval.id)}
-            loading={isProcessing}
-            disabled={isProcessing}
-            key="reject"
-          >
-            거절
-          </Button>,
-        ] : undefined}
+        onClick={() => handleView(approval)}
+        style={{ cursor: 'pointer' }}
+        className="approval-item-clickable"
+        actions={actions}
       >
         <List.Item.Meta
           avatar={
@@ -281,10 +334,22 @@ export default function PendingApprovals({
                 </div>
               )}
               <Space className="text-xs">
-                <Text type="secondary">
-                  요청자: {approval.requester_name}
-                  {approval.requester_email && ` (${approval.requester_email})`}
-                </Text>
+                {approval.requestType === 'received' ? (
+                  <>
+                    <Text type="secondary">
+                      요청자: {approval.requester_name}
+                      {approval.requester_email && ` (${approval.requester_email})`}
+                    </Text>
+                  </>
+                ) : (
+                  <>
+                    <Text type="secondary">
+                      승인자: {approval.approver_name || '관리자'}
+                    </Text>
+                    <Text type="secondary">•</Text>
+                    <Tag color="orange" className="text-xs">내가 보낸 요청</Tag>
+                  </>
+                )}
                 <Text type="secondary">•</Text>
                 <Text type="secondary">
                   {formatDistanceToNow(new Date(approval.created_at), { 
@@ -341,6 +406,12 @@ export default function PendingApprovals({
         .approval-list :global(.ant-list-item) {
           padding: 16px 20px;
           border-bottom: 1px solid var(--border-light);
+          transition: background-color 0.2s;
+        }
+
+        .approval-list :global(.approval-item-clickable:hover) {
+          background-color: #f5f5f5;
+          cursor: pointer;
         }
 
         .approval-list :global(.ant-list-item:last-child) {

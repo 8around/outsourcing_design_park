@@ -173,7 +173,7 @@ class LogService {
   /**
    * 글로벌 로그 피드 조회 (모든 프로젝트)
    */
-  async getGlobalLogFeed(page = 1, pageSize = 20): Promise<LogListResponse> {
+  async getGlobalLogFeed(page = 1, pageSize = 20): Promise<{ logs: HistoryLogWithAttachments[], total: number, page: number, page_size: number }> {
     const supabase = createClient()
     const start = (page - 1) * pageSize
     const end = start + pageSize - 1
@@ -184,10 +184,13 @@ class LogService {
       .select('*', { count: 'exact', head: true })
       .eq('is_deleted', false)
 
-    // 데이터 조회
+    // 데이터 조회 (첨부파일 포함)
     const { data: logs, error } = await supabase
       .from('history_logs')
-      .select('*')
+      .select(`
+        *,
+        attachments:history_log_attachments(*)
+      `)
       .eq('is_deleted', false)
       .order('created_at', { ascending: false })
       .range(start, end)

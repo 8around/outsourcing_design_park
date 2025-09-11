@@ -452,6 +452,125 @@ export class ApprovalService {
       console.error('Error notifying admins:', error);
     }
   }
+
+  /**
+   * 현재 사용자의 승인 대기 목록 조회
+   */
+  async getPendingApprovalsForUser(userId: string): Promise<{
+    userApprovals: any[];
+    projectApprovals: any[];
+    total: number;
+  }> {
+    try {
+      // 1. 사용자 승인 대기 목록 (관리자인 경우만)
+      let userApprovals: any[] = [];
+      const { data: currentUser } = await this.supabase
+        .from('users')
+        .select('role')
+        .eq('id', userId)
+        .single();
+
+      if (currentUser?.role === 'admin') {
+        const { data: pendingUsers } = await this.supabase
+          .from('users')
+          .select('id, email, name, created_at')
+          .eq('is_approved', false)
+          .is('approved_at', null)
+          .order('created_at', { ascending: false })
+          .limit(10);
+
+        userApprovals = (pendingUsers || []).map(user => ({
+          id: user.id,
+          type: 'user' as const,
+          title: '신규 사용자 가입 승인',
+          description: `${user.email} 사용자가 가입 승인을 기다리고 있습니다.`,
+          requester_id: user.id,
+          requester_name: user.name || user.email,
+          requester_email: user.email,
+          status: 'pending' as const,
+          priority: 'high' as const,
+          created_at: user.created_at,
+          requestType: 'received' as const  // 관리자가 받은 승인 요청
+        }));
+      }
+
+      // 2. 프로젝트 승인 요청 목록 - 내가 받은 요청
+      const { data: receivedApprovals } = await this.supabase
+        .from('approval_requests')
+        .select(`
+          *,
+          project:projects(site_name, product_name)
+        `)
+        .eq('approver_id', userId)
+        .eq('status', 'pending')
+        .order('created_at', { ascending: false })
+        .limit(10);
+
+      const formattedReceivedApprovals = (receivedApprovals || []).map(approval => ({
+        id: approval.id,
+        type: 'project' as const,
+        title: '프로젝트 승인 요청',
+        description: approval.memo || '승인이 필요한 프로젝트가 있습니다.',
+        requester_id: approval.requester_id,
+        requester_name: approval.requester_name,
+        approver_id: approval.approver_id,
+        approver_name: approval.approver_name,
+        status: 'pending' as const,
+        priority: 'medium' as const,
+        created_at: approval.created_at,
+        project_id: approval.project_id,
+        project_name: approval.project ? 
+          `${approval.project.site_name} - ${approval.project.product_name}` : 
+          '프로젝트',
+        requestType: 'received' as const  // 내가 받은 승인 요청
+      }));
+
+      // 3. 프로젝트 승인 요청 목록 - 내가 보낸 요청
+      const { data: sentApprovals } = await this.supabase
+        .from('approval_requests')
+        .select(`
+          *,
+          project:projects(site_name, product_name)
+        `)
+        .eq('requester_id', userId)
+        .eq('status', 'pending')
+        .order('created_at', { ascending: false })
+        .limit(10);
+
+      const formattedSentApprovals = (sentApprovals || []).map(approval => ({
+        id: approval.id,
+        type: 'project' as const,
+        title: '프로젝트 승인 요청 (대기중)',
+        description: approval.memo || '승인 대기 중인 요청입니다.',
+        requester_id: approval.requester_id,
+        requester_name: approval.requester_name,
+        approver_id: approval.approver_id,
+        approver_name: approval.approver_name,
+        status: 'pending' as const,
+        priority: 'low' as const,  // 내가 보낸 요청은 낮은 우선순위
+        created_at: approval.created_at,
+        project_id: approval.project_id,
+        project_name: approval.project ? 
+          `${approval.project.site_name} - ${approval.project.product_name}` : 
+          '프로젝트',
+        requestType: 'sent' as const  // 내가 보낸 승인 요청
+      }));
+
+      // 모든 프로젝트 승인 요청을 합치기
+      const allProjectApprovals = [...formattedReceivedApprovals, ...formattedSentApprovals];
+
+      const total = userApprovals.length + allProjectApprovals.length;
+
+      return {
+        userApprovals,
+        projectApprovals: allProjectApprovals,
+        total
+      };
+    } catch (error) {
+      console.error('Error fetching pending approvals:', error);
+      throw error;
+    }
+  }
 }
 
 export const approvalService = new ApprovalService();
