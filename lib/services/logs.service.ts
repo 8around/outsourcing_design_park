@@ -70,10 +70,10 @@ class LogService {
    * 승인 요청 로그 생성
    * approval_requests 테이블에 먼저 삽입하고, 트리거가 자동으로 history_logs에 로그를 생성합니다.
    */
-  async createApprovalRequestLog(data: CreateApprovalRequestLog & { attachments?: AttachmentFile[] }) {
+  async createApprovalRequestLog(data: CreateApprovalRequestLog & { category?: string; attachments?: AttachmentFile[] }) {
     const supabase = createClient()
     
-    // 1. approval_requests 테이블에 승인 요청 생성
+    // 1. approval_requests 테이블에 승인 요청 생성 (카테고리 포함)
     const { data: approvalRequest, error: approvalError } = await supabase
       .from('approval_requests')
       .insert({
@@ -83,6 +83,7 @@ class LogService {
         approver_id: data.approver_id,
         approver_name: data.approver_name,
         memo: data.memo,
+        category: data.category || '일반',  // 카테고리 추가
         status: 'pending'
       })
       .select()
