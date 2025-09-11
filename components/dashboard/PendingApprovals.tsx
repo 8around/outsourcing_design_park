@@ -11,6 +11,7 @@ import {
   ExclamationCircleOutlined,
   EyeOutlined,
   ReloadOutlined,
+  PaperClipOutlined,
 } from '@ant-design/icons'
 import { formatDistanceToNow } from 'date-fns'
 import { ko } from 'date-fns/locale'
@@ -45,6 +46,14 @@ interface ApprovalItem {
   category?: string | null  // 로그 카테고리 추가
   memo?: string
   requestType: 'sent' | 'received'  // 요청 타입 추가
+  attachments?: Array<{  // 첨부파일 추가
+    id: string
+    file_name: string
+    file_path: string
+    file_size: number
+    mime_type: string | null
+    created_at?: string | null
+  }>
 }
 
 // 타입별 설정
@@ -116,12 +125,14 @@ export default function PendingApprovals({
         ...response.userApprovals.map(approval => ({
           ...approval,
           memo: undefined, // 사용자 승인은 메모가 없음
+          attachments: undefined, // 사용자 승인은 첨부파일이 없음
           requestType: approval.requestType || 'received' as const
         })),
         ...response.projectApprovals.map(approval => ({
           ...approval,
           memo: approval.description, // 프로젝트 승인의 설명을 메모로 사용
           category: approval.category, // 로그 카테고리 포함
+          attachments: approval.attachments, // 첨부파일 포함
           requestType: approval.requestType || 'received' as const
         }))
       ]
@@ -360,6 +371,11 @@ export default function PendingApprovals({
               <Tag color={config.color}>{config.label}</Tag>
               {approval.priority === 'high' && (
                 <Tag color="red">긴급</Tag>
+              )}
+              {approval.attachments && approval.attachments.length > 0 && (
+                <Tag icon={<PaperClipOutlined />} color="default">
+                  {approval.attachments.length}
+                </Tag>
               )}
             </Space>
           }

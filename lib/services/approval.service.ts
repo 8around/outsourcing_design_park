@@ -496,12 +496,22 @@ export class ApprovalService {
         .order('created_at', { ascending: false })
         .limit(10);
 
-      // 각 approval에 대해 history_logs 조회
+      // 각 approval에 대해 history_logs 조회 (첨부파일 포함)
       const receivedApprovalsWithCategory = await Promise.all(
         (receivedApprovals || []).map(async (approval) => {
           const { data: logData } = await this.supabase
             .from('history_logs')
-            .select('category')
+            .select(`
+              category,
+              attachments:log_attachments(
+                id,
+                file_name,
+                file_path,
+                file_size,
+                mime_type,
+                created_at
+              )
+            `)
             .eq('project_id', approval.project_id)
             .eq('log_type', 'approval_request')
             .eq('author_id', approval.requester_id)
@@ -534,6 +544,7 @@ export class ApprovalService {
           `${approval.project.site_name} - ${approval.project.product_name}` : 
           '프로젝트',
         category: approval.history_logs?.[0]?.category || null,  // 로그 카테고리 추가
+        attachments: approval.history_logs?.[0]?.attachments || [],  // 첨부파일 추가
         requestType: 'received' as const  // 내가 받은 승인 요청
       }));
 
@@ -549,12 +560,22 @@ export class ApprovalService {
         .order('created_at', { ascending: false })
         .limit(10);
 
-      // 각 approval에 대해 history_logs 조회
+      // 각 approval에 대해 history_logs 조회 (첨부파일 포함)
       const sentApprovalsWithCategory = await Promise.all(
         (sentApprovals || []).map(async (approval) => {
           const { data: logData } = await this.supabase
             .from('history_logs')
-            .select('category')
+            .select(`
+              category,
+              attachments:log_attachments(
+                id,
+                file_name,
+                file_path,
+                file_size,
+                mime_type,
+                created_at
+              )
+            `)
             .eq('project_id', approval.project_id)
             .eq('log_type', 'approval_request')
             .eq('author_id', approval.requester_id)
@@ -587,6 +608,7 @@ export class ApprovalService {
           `${approval.project.site_name} - ${approval.project.product_name}` : 
           '프로젝트',
         category: approval.history_logs?.[0]?.category || null,  // 로그 카테고리 추가
+        attachments: approval.history_logs?.[0]?.attachments || [],  // 첨부파일 추가
         requestType: 'sent' as const  // 내가 보낸 승인 요청
       }));
 
