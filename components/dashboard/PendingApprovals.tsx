@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Card, List, Avatar, Typography, Tag, Space, Button, Empty, Skeleton, Badge, Tooltip, message, Pagination } from 'antd'
+import { Card, List, Avatar, Typography, Tag, Space, Button, Empty, Skeleton, Badge, Tooltip, message, Pagination, Modal, Input } from 'antd'
 import {
   ClockCircleOutlined,
   CheckOutlined,
@@ -22,6 +22,7 @@ import { approvalService } from '@/lib/services/approval.service'
 import { useAuth } from '@/lib/hooks/useAuth'
 
 const { Text, Title } = Typography
+const { TextArea } = Input
 
 // 승인 타입
 type ApprovalType = 'user' | 'project' | 'stage' | 'document' | 'other'
@@ -110,6 +111,9 @@ export default function PendingApprovals({
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize] = useState(limit)  // 페이지당 항목 수
+  const [rejectModalVisible, setRejectModalVisible] = useState(false)
+  const [selectedApproval, setSelectedApproval] = useState<ApprovalItem | null>(null)
+  const [rejectReason, setRejectReason] = useState('')
 
   // 승인 대기 목록 로드
   const loadApprovals = async () => {
@@ -242,39 +246,56 @@ export default function PendingApprovals({
     }
   }
 
-  // 거절 처리
-  const handleReject = async (id: string) => {
-    if (!user) return
-
+  // 거절 모달 열기
+  const handleReject = (id: string) => {
     const approval = approvals.find(a => a.id === id)
     if (!approval) return
+    
+    setSelectedApproval(approval)
+    setRejectReason('')
+    setRejectModalVisible(true)
+  }
 
-    setProcessing(id)
+  // 거절 처리 확인
+  const confirmReject = async () => {
+    if (!user || !selectedApproval) return
+
+    setProcessing(selectedApproval.id)
     try {
       let success = false
+      const reasonText = rejectReason.trim() || '관리자에 의해 거절되었습니다.'
       
-      if (approval.type === 'user') {
+      if (selectedApproval.type === 'user') {
         // 사용자 거절
-        success = await approvalService.rejectUser(id, user.id, '관리자에 의해 거절되었습니다.')
-      } else if (approval.type === 'project') {
+        success = await approvalService.rejectUser(
+          selectedApproval.id, 
+          user.id, 
+          reasonText
+        )
+      } else if (selectedApproval.type === 'project') {
         // 프로젝트 거절
         success = await approvalService.respondToApprovalRequest(
-          id,
+          selectedApproval.id,
           user.id,
           userData?.name || user.email || 'Unknown',
           'rejected',
-          '거절되었습니다.'
+          reasonText
         )
       }
 
       if (success) {
         message.success('거절이 완료되었습니다.')
         if (onReject) {
-          onReject(id)
+          onReject(selectedApproval.id)
         }
         // 전체 목록과 현재 페이지 목록에서 제거
-        setAllApprovals(prev => prev.filter(item => item.id !== id))
-        setApprovals(prev => prev.filter(item => item.id !== id))
+        setAllApprovals(prev => prev.filter(item => item.id !== selectedApproval.id))
+        setApprovals(prev => prev.filter(item => item.id !== selectedApproval.id))
+        
+        // 모달 닫기 및 상태 초기화
+        setRejectModalVisible(false)
+        setSelectedApproval(null)
+        setRejectReason('')
       } else {
         message.error('거절 처리에 실패했습니다.')
       }
@@ -691,6 +712,94 @@ export default function PendingApprovals({
           }
         }
       `}</style>
+
+      {/* 거절 모달 */}
+      <Modal
+        title={
+          <div className="flex items-center gap-3 pb-4 border-b border-gray-200">
+            <div className="w-10 h-10 bg-error-100 rounded-soft-lg flex items-center justify-center">
+              <svg className="w-5 h-5 text-error-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+              </svg>
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900">승인 거절</h3>
+              <p className="text-sm text-gray-500 mt-1">
+                {selectedApproval?.type === 'user' ? '사용자 가입 요청' : '프로젝트 승인 요청'}을 거절합니다
+              </p>
+            </div>
+          </div>
+        }
+        open={rejectModalVisible}
+        onOk={confirmReject}
+        onCancel={() => {
+          setRejectModalVisible(false)
+          setSelectedApproval(null)
+          setRejectReason('')
+        }}
+        okText="거절하기"
+        cancelText="취소"
+        okType="danger"
+        className="reject-approval-modal"
+        confirmLoading={processing === selectedApproval?.id}
+        okButtonProps={{
+          className: "bg-error-600 hover:bg-error-700 border-error-600 hover:border-error-700 rounded-soft font-medium h-10 px-6"
+        }}
+        cancelButtonProps={{
+          className: "border-gray-200 hover:border-gray-300 text-gray-700 hover:text-gray-800 rounded-soft font-medium h-10 px-6"
+        }}
+      >
+        <div className="space-y-6 pt-4">
+          {/* Warning Section */}
+          <div className="flex items-start gap-3 p-4 bg-error-50 rounded-soft-lg border border-error-200">
+            <svg className="w-5 h-5 text-error-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <div>
+              <p className="text-error-800 font-medium">
+                {selectedApproval?.type === 'user' ? (
+                  <>
+                    <strong className="text-error-900">{selectedApproval?.requester_name}</strong>님의 가입을 거절하시겠습니까?
+                  </>
+                ) : (
+                  <>
+                    <strong className="text-error-900">{selectedApproval?.requester_name}</strong>님이 요청한 프로젝트 승인을 거절하시겠습니까?
+                  </>
+                )}
+              </p>
+              <p className="text-error-700 text-sm mt-1">
+                {selectedApproval?.type === 'user' 
+                  ? '이 작업은 되돌릴 수 없으며, 해당 사용자는 다시 가입 신청을 해야 합니다.'
+                  : '거절된 승인 요청은 다시 제출해야 합니다.'}
+              </p>
+              {selectedApproval?.type === 'project' && selectedApproval?.project_name && (
+                <p className="text-error-700 text-sm mt-2">
+                  프로젝트: <strong>{selectedApproval.project_name}</strong>
+                </p>
+              )}
+            </div>
+          </div>
+          
+          {/* Reason Section */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-3">
+              거절 사유 (선택사항)
+            </label>
+            <TextArea
+              value={rejectReason}
+              onChange={(e) => setRejectReason(e.target.value)}
+              placeholder="거절 사유를 상세히 입력해주세요..."
+              rows={4}
+              maxLength={500}
+              showCount
+              className="resize-none rounded-soft border-gray-200 hover:border-primary-300 focus:border-primary-500 transition-smooth"
+            />
+            <p className="text-xs text-gray-500 mt-2">
+              거절 사유는 요청자에게 전달되며, 향후 재신청 시 참고자료로 활용됩니다.
+            </p>
+          </div>
+        </div>
+      </Modal>
     </Card>
   )
 }
