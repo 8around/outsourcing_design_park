@@ -147,7 +147,7 @@ export default function ProjectDetailPage() {
 
     try {
       if (data.approvalRequestTo) {
-        // 승인 요청 로그 생성
+        // 승인 요청 로그 생성 (선택한 카테고리 포함)
         await logService.createApprovalRequestLog({
           project_id: project.id,
           memo: data.content,
@@ -155,7 +155,8 @@ export default function ProjectDetailPage() {
           requester_name: userData?.name || user.email || 'Unknown',
           approver_id: data.approvalRequestTo.id,
           approver_name: data.approvalRequestTo.name,
-          attachments: data.attachments
+          attachments: data.attachments,
+          category: data.category as LogCategory  // 선택한 카테고리 전달
         })
         toast.success('승인 요청이 생성되었습니다.')
       } else {

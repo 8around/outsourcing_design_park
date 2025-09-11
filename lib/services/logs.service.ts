@@ -69,6 +69,7 @@ class LogService {
   /**
    * 승인 요청 로그 생성
    * approval_requests 테이블에 먼저 삽입하고, 트리거가 자동으로 history_logs에 로그를 생성합니다.
+   * 카테고리가 제공된 경우, 트리거로 생성된 로그의 카테고리를 업데이트합니다.
    */
   async createApprovalRequestLog(data: CreateApprovalRequestLog & { attachments?: AttachmentFile[] }) {
     const supabase = createClient()
@@ -93,20 +94,29 @@ class LogService {
       throw new Error('승인 요청 생성에 실패했습니다.')
     }
 
-    // 2. 트리거가 생성한 history_logs 찾기 (선택적 - 첨부파일 업로드를 위해)
-    if (data.attachments && data.attachments.length > 0) {
-      // 방금 생성된 로그를 찾기
-      const { data: logs } = await supabase
-        .from('history_logs')
-        .select('id')
-        .eq('project_id', data.project_id)
-        .eq('author_id', data.requester_id)
-        .eq('target_user_id', data.approver_id)
-        .eq('log_type', 'approval_request')
-        .order('created_at', { ascending: false })
-        .limit(1)
+    // 2. 트리거가 생성한 history_logs 찾기 및 카테고리 업데이트
+    // 방금 생성된 로그를 찾기
+    const { data: logs } = await supabase
+      .from('history_logs')
+      .select('id')
+      .eq('project_id', data.project_id)
+      .eq('author_id', data.requester_id)
+      .eq('target_user_id', data.approver_id)
+      .eq('log_type', 'approval_request')
+      .order('created_at', { ascending: false })
+      .limit(1)
 
-      if (logs && logs.length > 0) {
+    if (logs && logs.length > 0) {
+      // 카테고리가 제공된 경우 업데이트
+      if (data.category) {
+        await supabase
+          .from('history_logs')
+          .update({ category: data.category })
+          .eq('id', logs[0].id)
+      }
+
+      // 첨부파일 업로드
+      if (data.attachments && data.attachments.length > 0) {
         await this.uploadAttachments(logs[0].id, data.attachments, data.requester_id)
       }
     }

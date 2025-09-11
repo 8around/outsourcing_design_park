@@ -62,6 +62,7 @@ export interface CreateApprovalRequestLog {
   approver_id: string
   approver_name: string
   memo: string
+  category?: LogCategory  // 선택한 카테고리 (선택적)
 }
 
 // 승인 응답 로그 생성 타입
