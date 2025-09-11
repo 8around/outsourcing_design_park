@@ -68,36 +68,50 @@ class LogService {
 
   /**
    * 승인 요청 로그 생성
+   * approval_requests 테이블에 먼저 삽입하고, 트리거가 자동으로 history_logs에 로그를 생성합니다.
    */
   async createApprovalRequestLog(data: CreateApprovalRequestLog & { attachments?: AttachmentFile[] }) {
     const supabase = createClient()
     
-    const { data: log, error } = await supabase
-      .from('history_logs')
+    // 1. approval_requests 테이블에 승인 요청 생성
+    const { data: approvalRequest, error: approvalError } = await supabase
+      .from('approval_requests')
       .insert({
         project_id: data.project_id,
-        category: '승인요청',
-        content: data.memo,
-        author_id: data.requester_id,
-        author_name: data.requester_name,
-        target_user_id: data.approver_id,
-        target_user_name: data.approver_name,
-        log_type: 'approval_request'
+        requester_id: data.requester_id,
+        requester_name: data.requester_name,
+        approver_id: data.approver_id,
+        approver_name: data.approver_name,
+        memo: data.memo,
+        status: 'pending'
       })
       .select()
       .single()
 
-    if (error) {
-      console.error('승인 요청 로그 생성 실패:', error)
-      throw new Error('승인 요청 로그 생성에 실패했습니다.')
+    if (approvalError) {
+      console.error('승인 요청 생성 실패:', approvalError)
+      throw new Error('승인 요청 생성에 실패했습니다.')
     }
 
-    // 첨부파일 업로드
+    // 2. 트리거가 생성한 history_logs 찾기 (선택적 - 첨부파일 업로드를 위해)
     if (data.attachments && data.attachments.length > 0) {
-      await this.uploadAttachments(log.id, data.attachments, data.requester_id)
+      // 방금 생성된 로그를 찾기
+      const { data: logs } = await supabase
+        .from('history_logs')
+        .select('id')
+        .eq('project_id', data.project_id)
+        .eq('author_id', data.requester_id)
+        .eq('target_user_id', data.approver_id)
+        .eq('log_type', 'approval_request')
+        .order('created_at', { ascending: false })
+        .limit(1)
+
+      if (logs && logs.length > 0) {
+        await this.uploadAttachments(logs[0].id, data.attachments, data.requester_id)
+      }
     }
 
-    return log
+    return approvalRequest
   }
 
   /**
