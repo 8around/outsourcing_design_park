@@ -209,9 +209,10 @@ export default function EditProjectPage() {
 
     try {
       if (data.approvalRequestTo) {
-        // 승인 요청 로그 생성
+        // 승인 요청 로그 생성 - 카테고리도 함께 전달
         await logService.createApprovalRequestLog({
           project_id: params.id as string,
+          category: data.category,  // 선택한 카테고리 전달
           memo: data.content,
           requester_id: user.id,
           requester_name: userData?.name || user.email || 'Unknown',
