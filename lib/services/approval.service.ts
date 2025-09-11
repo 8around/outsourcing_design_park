@@ -435,17 +435,35 @@ export class ApprovalService {
         throw fetchError || new Error('Approval request not found');
       }
 
-      // 1. history_log_id가 있으면 연결된 로그 삭제 (소프트 삭제)
-      // CASCADE DELETE 설정으로 approval_request 삭제시 자동으로 처리되지만,
-      // 소프트 삭제를 원한다면 먼저 처리
+      // 1. history_log_id가 있으면 연결된 로그 완전 삭제
+      // 승인 요청이 삭제되면 관련 로그도 완전히 삭제되어야 함
       if (requestData.history_log_id) {
+        console.log('Deleting related history log:', requestData.history_log_id);
+        
+        // 먼저 로그의 첨부파일 정보 조회
+        const { data: attachments } = await this.supabase
+          .from('log_attachments')
+          .select('file_path')
+          .eq('log_id', requestData.history_log_id);
+        
+        // 첨부파일이 있으면 스토리지에서도 삭제
+        if (attachments && attachments.length > 0) {
+          const filePaths = attachments.map(a => a.file_path);
+          await this.supabase.storage
+            .from('log-attachments')
+            .remove(filePaths);
+          
+          // 첨부파일 레코드 삭제
+          await this.supabase
+            .from('log_attachments')
+            .delete()
+            .eq('log_id', requestData.history_log_id);
+        }
+        
+        // 로그 완전 삭제
         const { error: logDeleteError } = await this.supabase
           .from('history_logs')
-          .update({ 
-            is_deleted: true,
-            deleted_by: adminId,
-            deleted_at: new Date().toISOString()
-          })
+          .delete()
           .eq('id', requestData.history_log_id);
 
         if (logDeleteError) {

@@ -319,36 +319,71 @@ class LogService {
   }
 
   /**
-   * 로그 삭제 (소프트 삭제)
+   * 로그 삭제 (완전 삭제)
    * 연관된 승인 요청이 있으면 함께 삭제
    */
   async deleteLog(logId: string, userId: string) {
     const supabase = createClient()
     
-    // 먼저 이 로그와 연결된 승인 요청이 있는지 확인
+    console.log('Deleting log:', logId, 'by user:', userId);
+    
+    // 1. 먼저 이 로그와 연결된 승인 요청이 있는지 확인
     const { data: approvalRequests } = await supabase
       .from('approval_requests')
       .select('id')
       .eq('history_log_id', logId)
     
-    // 연결된 승인 요청이 있으면 먼저 삭제
+    console.log('Related approval requests:', approvalRequests);
+    
+    // 2. 연결된 승인 요청이 있으면 먼저 삭제
     if (approvalRequests && approvalRequests.length > 0) {
       for (const request of approvalRequests) {
-        await supabase
+        console.log('Deleting approval request:', request.id);
+        const { error: approvalDeleteError } = await supabase
           .from('approval_requests')
           .delete()
           .eq('id', request.id)
+          
+        if (approvalDeleteError) {
+          console.error('Error deleting approval request:', approvalDeleteError);
+        }
       }
     }
     
-    // 로그 소프트 삭제
+    // 3. 로그의 첨부파일 정보 조회
+    const { data: attachments } = await supabase
+      .from('log_attachments')
+      .select('file_path')
+      .eq('log_id', logId)
+    
+    // 4. 첨부파일이 있으면 스토리지에서도 삭제
+    if (attachments && attachments.length > 0) {
+      console.log('Deleting attachments:', attachments);
+      const filePaths = attachments.map(a => a.file_path)
+      
+      const { error: storageError } = await supabase.storage
+        .from('log-attachments')
+        .remove(filePaths)
+        
+      if (storageError) {
+        console.error('Error deleting files from storage:', storageError);
+      }
+      
+      // 첨부파일 레코드 삭제
+      const { error: attachmentDeleteError } = await supabase
+        .from('log_attachments')
+        .delete()
+        .eq('log_id', logId)
+        
+      if (attachmentDeleteError) {
+        console.error('Error deleting attachment records:', attachmentDeleteError);
+      }
+    }
+    
+    // 5. 로그 완전 삭제 (소프트 삭제 대신 완전 삭제)
     const { data, error } = await supabase
       .from('history_logs')
-      .update({
-        is_deleted: true,
-        deleted_by: userId,
-        deleted_at: new Date().toISOString()
-      })
+      .delete()
       .eq('id', logId)
       .select()
       .single()
@@ -358,6 +393,7 @@ class LogService {
       throw new Error('로그 삭제에 실패했습니다.')
     }
 
+    console.log('Log deleted successfully:', data);
     return data
   }
 
