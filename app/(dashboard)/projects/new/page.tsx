@@ -5,13 +5,10 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/lib/hooks/useAuth'
 import { projectService } from '@/lib/services/projects.service'
-import { logService } from '@/lib/services/logs.service'
 import ImageUploader from '@/components/projects/ImageUploader'
 import ProcessStageManager from '@/components/projects/ProcessStageManager'
 import UserSelector from '@/components/projects/UserSelector'
-import LogFormSimple from '@/components/logs/LogFormSimple'
 import { toast } from 'react-hot-toast'
-import { PlusIcon, XMarkIcon } from '@heroicons/react/24/outline'
 
 // 공정 단계 정의
 const PROCESS_STAGES = [
@@ -45,14 +42,6 @@ export default function NewProjectPage() {
   const { user } = useAuth()
   const [loading, setLoading] = useState(false)
   const [users, setUsers] = useState<any[]>([])
-  const [showLogForm, setShowLogForm] = useState(false)
-  const [pendingLogs, setPendingLogs] = useState<Array<{ 
-    category: string; 
-    content: string;
-    attachments?: any[];
-    approvalRequestTo?: { id: string; name: string };
-  }>>([])
-  const [tempProjectId, setTempProjectId] = useState<string | null>(null)
   
   // 폼 데이터
   const [formData, setFormData] = useState({
@@ -165,38 +154,6 @@ export default function NewProjectPage() {
         processStages,
         formData.current_process_stage
       )
-
-      // 프로젝트 생성 후 바로 로그 생성 (임시 저장된 로그가 있다면)
-      if (pendingLogs.length > 0 && user) {
-        for (const log of pendingLogs) {
-          try {
-            // 승인 요청이 있는 경우
-            if (log.approvalRequestTo) {
-              await logService.createApprovalRequestLog({
-                project_id: project.id,
-                requester_id: user.id,
-                requester_name: (user as any).name || user.email || '알 수 없음',
-                approver_id: log.approvalRequestTo.id,
-                approver_name: log.approvalRequestTo.name,
-                memo: log.content,
-                attachments: log.attachments
-              })
-            } else {
-              // 일반 로그
-              await logService.createManualLog({
-                project_id: project.id,
-                category: log.category as any,
-                content: log.content,
-                author_id: user.id,
-                author_name: (user as any).name || user.email || '알 수 없음',
-                attachments: log.attachments
-              })
-            }
-          } catch (error) {
-            console.error('로그 생성 실패:', error)
-          }
-        }
-      }
 
       toast.success('프로젝트가 성공적으로 생성되었습니다.')
       router.push(`/projects/${project.id}`)
@@ -410,89 +367,6 @@ export default function NewProjectPage() {
           </button>
         </div>
       </form>
-
-      {/* 히스토리 로그 섹션 - form 외부에 위치 */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mt-8">
-        <div className="flex justify-between items-center mb-4">
-          <div>
-            <h2 className="text-xl font-semibold">초기 히스토리 로그</h2>
-            <p className="text-sm text-gray-600 mt-1">프로젝트 생성과 함께 초기 로그를 작성할 수 있습니다 (선택사항)</p>
-          </div>
-          {!showLogForm && pendingLogs.length === 0 && (
-            <button
-              type="button"
-              onClick={() => setShowLogForm(true)}
-              className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-            >
-              <PlusIcon className="h-4 w-4 mr-1" />
-              로그 추가
-            </button>
-          )}
-        </div>
-
-        {/* 대기 중인 로그 목록 */}
-        {pendingLogs.length > 0 && (
-          <div className="mb-4 space-y-2">
-            <p className="text-sm font-medium text-gray-700">저장 예정 로그 ({pendingLogs.length}개)</p>
-            {pendingLogs.map((log, index) => (
-              <div key={index} className="bg-gray-50 rounded-md p-3 flex justify-between items-start">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="inline-block px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded">
-                      {log.category}
-                    </span>
-                    {log.approvalRequestTo && (
-                      <span className="inline-block px-2 py-1 text-xs font-medium bg-purple-100 text-purple-800 rounded">
-                        승인 요청: {log.approvalRequestTo.name}
-                      </span>
-                    )}
-                    {log.attachments && log.attachments.length > 0 && (
-                      <span className="inline-block px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded">
-                        첨부파일 {log.attachments.length}개
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-sm text-gray-700">{log.content}</p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setPendingLogs(pendingLogs.filter((_, i) => i !== index))
-                  }}
-                  className="ml-2 text-red-600 hover:text-red-800"
-                >
-                  <XMarkIcon className="h-4 w-4" />
-                </button>
-              </div>
-            ))}
-            {!showLogForm && (
-              <button
-                type="button"
-                onClick={() => setShowLogForm(true)}
-                className="mt-2 text-sm text-blue-600 hover:text-blue-800"
-              >
-                + 추가 로그 작성
-              </button>
-            )}
-          </div>
-        )}
-
-        {/* 로그 작성 폼 */}
-        {showLogForm && (
-          <div className="border-t pt-4">
-            <LogFormSimple
-              onSubmit={(data) => {
-                setPendingLogs([...pendingLogs, data])
-                setShowLogForm(false)
-                toast.success('로그가 추가되었습니다. 프로젝트 생성 시 함께 저장됩니다.')
-              }}
-              onCancel={() => setShowLogForm(false)}
-              showAttachments={true}  // 첨부파일 기능 활성화
-              users={users}  // 사용자 목록 전달
-            />
-          </div>
-        )}
-      </div>
     </div>
   )
 }
