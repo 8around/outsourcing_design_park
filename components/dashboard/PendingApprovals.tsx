@@ -129,12 +129,12 @@ export default function PendingApprovals({
           requestType: approval.requestType || 'received' as const
         })),
         ...response.projectApprovals.map(approval => ({
-          ...approval,
-          memo: approval.description, // 프로젝트 승인의 설명을 메모로 사용
-          category: approval.category, // 로그 카테고리 포함
-          attachments: approval.attachments, // 첨부파일 포함
-          requestType: approval.requestType || 'received' as const
-        }))
+            ...approval,
+            memo: approval.description, // 프로젝트 승인의 설명을 메모로 사용
+            category: approval.category, // 로그 카테고리 포함
+            attachments: approval.attachments || [], // 첨부파일 포함 (빈 배열로 기본값 설정)
+            requestType: approval.requestType || 'received' as const
+          }))
       ]
 
       // 생성 시간 기준으로 정렬

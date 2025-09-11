@@ -118,17 +118,6 @@ export default function Header({
         </div>
       </div>
 
-      {/* 중앙 영역 - 검색 */}
-      <div className="hidden md:flex flex-1 max-w-md mx-8">
-        <Search
-          placeholder="프로젝트 검색..."
-          allowClear
-          enterButton={<SearchOutlined />}
-          size="large"
-          className="w-full"
-        />
-      </div>
-
       {/* 오른쪽 영역 */}
       <div className="flex items-center space-x-3">
         {/* 검색 버튼 (모바일) */}
