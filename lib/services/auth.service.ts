@@ -56,7 +56,7 @@ export class AuthService {
 
       // 이메일이 이미 존재하는 경우 (첫 번째 레코드 확인)
       const user = data[0];
-      
+
       // 승인 대기 중인 계정인 경우
       if (!user.is_approved) {
         return {
@@ -64,7 +64,7 @@ export class AuthService {
           message: "이미 등록된 이메일입니다. 관리자 승인 대기 중입니다.",
         };
       }
-      
+
       // 이미 활성화된 계정인 경우
       return {
         exists: true,
@@ -109,10 +109,13 @@ export class AuthService {
       if (authError) throw authError;
 
       // 프로필 레코드는 DB 트리거가 자동 생성하므로 별도 삽입하지 않음
-      
+
       // 관리자에게 신규 가입 알림 발송
       if (authData.user) {
-        await approvalService.notifyAdminsOfNewSignup(authData.user.id, data.name);
+        await approvalService.notifyAdminsOfNewSignup(
+          authData.user.id,
+          data.name
+        );
       }
 
       return {
@@ -244,7 +247,7 @@ export class AuthService {
    * 사용자 승인 상태 체크
    */
   async checkUserApprovalStatus(userId: string): Promise<{
-    status: 'pending' | 'approved' | 'rejected';
+    status: "pending" | "approved" | "rejected";
     message: string;
   }> {
     const { data, error } = await this.supabase
@@ -255,25 +258,25 @@ export class AuthService {
 
     if (error || !data) {
       return {
-        status: 'pending',
-        message: '사용자 정보를 확인할 수 없습니다.'
+        status: "pending",
+        message: "사용자 정보를 확인할 수 없습니다.",
       };
     }
 
     if (data.is_approved) {
       return {
-        status: 'approved',
-        message: '승인된 사용자입니다.'
+        status: "approved",
+        message: "승인된 사용자입니다.",
       };
     } else if (data.approved_at) {
       return {
-        status: 'rejected',
-        message: '승인이 거절되었습니다. 관리자에게 문의하세요.'
+        status: "rejected",
+        message: "승인이 거절되었습니다. 관리자에게 문의하세요.",
       };
     } else {
       return {
-        status: 'pending',
-        message: '관리자 승인 대기 중입니다.'
+        status: "pending",
+        message: "관리자 승인 대기 중입니다.",
       };
     }
   }
@@ -319,6 +322,14 @@ export class AuthService {
         password: data.newPassword,
       });
       if (error) throw error;
+      // 비밀번호 변경 후에는 로그인 유지가 아닌 재로그인 유도
+      // (미들웨어에서 /login 접근 리다이렉트를 피하기 위해 세션 종료)
+      try {
+        await this.supabase.auth.signOut();
+      } catch (e) {
+        // signOut 실패는 UX에 큰 영향이 없으므로 로깅만
+        console.error("Sign out after password update failed", e);
+      }
       return { success: true };
     } catch (error) {
       return { success: false, error: this.getErrorMessage(error) };

@@ -128,6 +128,7 @@ export default function ProjectDetailPage() {
       const { data, error } = await supabase
         .from('users')
         .select('id, name, email')
+        .eq('is_approved', true)  // 승인된 사용자만 필터링
         .order('name')
 
       if (error) throw error

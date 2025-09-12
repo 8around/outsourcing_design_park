@@ -26,6 +26,15 @@ function LoginContent() {
       return
     }
     
+    // Check for password reset success
+    if (searchParams.get('reset') === 'success') {
+      message.success('비밀번호가 변경되었습니다. 새 비밀번호로 로그인하세요.')
+      const newUrl = new URL(window.location.href)
+      newUrl.searchParams.delete('reset')
+      window.history.replaceState({}, '', newUrl.toString())
+      return
+    }
+
     // Check for error with custom message
     const errorType = searchParams.get('error')
     const errorMessage = searchParams.get('error_message')
