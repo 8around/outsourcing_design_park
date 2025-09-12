@@ -5,7 +5,6 @@ import { usePathname } from 'next/navigation'
 import { useAuth } from '@/lib/hooks/useAuth'
 import {
   SearchOutlined,
-  SettingOutlined,
   UserOutlined,
   MenuOutlined,
 } from '@ant-design/icons'
@@ -56,11 +55,6 @@ export default function Header({
       icon: <UserOutlined />,
     },
     {
-      key: 'settings',
-      label: '설정',
-      icon: <SettingOutlined />,
-    },
-    {
       type: 'divider',
     },
     {
@@ -75,9 +69,6 @@ export default function Header({
     switch (key) {
       case 'profile':
         console.log('프로필 클릭')
-        break
-      case 'settings':
-        console.log('설정 클릭')
         break
       case 'logout':
         console.log('로그아웃 클릭')
@@ -125,14 +116,6 @@ export default function Header({
           icon={<SearchOutlined />}
           className="md:hidden"
           size="large"
-        />
-
-        {/* 설정 버튼 */}
-        <Button
-          type="text"
-          icon={<SettingOutlined />}
-          size="large"
-          className="text-gray-600 hover:text-gray-900"
         />
 
         {/* 사용자 드롭다운 */}
