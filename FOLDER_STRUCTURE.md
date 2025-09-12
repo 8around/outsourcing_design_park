@@ -29,22 +29,25 @@ projectAdminManagment/
 │   │   ├── reset-password/             # 비밀번호 재설정
 │   │   │   ├── page.tsx
 │   │   │   └── loading.tsx
+│   │   ├── loading.tsx                  # 인증 페이지 로딩
 │   │   └── layout.tsx                  # 인증 레이아웃
 │   │                                    # → 인증 섹션 레이아웃 (Auth routes 전용)
 │   │
 │   ├── (dashboard)/                    # 메인 대시보드 라우트 그룹
 │   │   ├── page.tsx                    # 홈 대시보드 (글로벌 로그 피드)
+│   │   ├── loading.tsx                 # 대시보드 로딩
 │   │   ├── projects/                   # 프로젝트 관리
 │   │   │   ├── page.tsx                # 프로젝트 목록
+│   │   │   ├── loading.tsx             # 프로젝트 목록 로딩
 │   │   │   ├── [id]/                   # 프로젝트 상세
 │   │   │   │   ├── page.tsx
+│   │   │   │   ├── loading.tsx         # 프로젝트 상세 로딩
 │   │   │   │   ├── edit/
 │   │   │   │   │   └── page.tsx
 │   │   │   │   ├── logs/               # 히스토리 로그
 │   │   │   │   │   └── page.tsx
-│   │   │   │   ├── approval/           # 승인 관리
-│   │   │   │   │   └── page.tsx
-│   │   │   │   └── loading.tsx
+│   │   │   │   └── approval/           # 승인 관리
+│   │   │   │       └── page.tsx
 │   │   │   ├── new/                    # 프로젝트 생성
 │   │   │   │   └── page.tsx
 │   │   │   └── favorites/              # 즐겨찾기 프로젝트
@@ -59,6 +62,7 @@ projectAdminManagment/
 │   │   │   └── loading.tsx
 │   │   │
 │   │   ├── admin/                      # 관리자 전용
+│   │   │   ├── loading.tsx             # 관리자 페이지 로딩
 │   │   │   ├── users/                  # 사용자 관리 (구현됨)
 │   │   │   │   └── page.tsx
 │   │   │   ├── reports/                # 리포트 관리
@@ -165,6 +169,7 @@ projectAdminManagment/
 │   │   └── NotificationSettings.tsx
 │   │
 │   ├── common/                        # 공통 UI 컴포넌트
+│   │   ├── NavigationProgress.tsx     # 페이지 전환 로딩 인디케이터 (구현됨)
 │   │   ├── layout/
 │   │   │   ├── Header.tsx
 │   │   │   ├── Sidebar.tsx
@@ -179,9 +184,10 @@ projectAdminManagment/
 │   │   │   ├── Card.tsx
 │   │   │   ├── Badge.tsx
 │   │   │   ├── Alert.tsx
-│   │   │   ├── Loading.tsx
+│   │   │   ├── Loading.tsx            # 로딩 컴포넌트 (구현됨)
 │   │   │   ├── Skeleton.tsx
-│   │   │   └── Toast.tsx
+│   │   │   ├── Toast.tsx
+│   │   │   └── index.ts                # UI 컴포넌트 export
 │   │   └── forms/                     # 폼 관련 컴포넌트
 │   │       ├── FormField.tsx
 │   │       ├── FormError.tsx
