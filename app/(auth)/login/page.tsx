@@ -53,7 +53,7 @@ function LoginContent() {
       setUserData(userData)
       
       message.success('로그인 성공!')
-      const redirectTo = searchParams.get('redirectedFrom') || '/projects'
+      const redirectTo = searchParams.get('redirectedFrom') || '/'
       router.push(redirectTo)
     } else {
       message.error(response.error || '로그인에 실패했습니다.')

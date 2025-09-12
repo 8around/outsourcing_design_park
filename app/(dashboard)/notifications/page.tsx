@@ -292,7 +292,7 @@ export default function NotificationsPage() {
 
                     {/* 아이콘 */}
                     <div className="notification-icon">
-                      {typeIcons[notification.type]}
+                      {typeIcons[notification.type as keyof typeof typeIcons]}
                     </div>
 
                     {/* 메인 컨텐츠 */}
@@ -308,10 +308,10 @@ export default function NotificationsPage() {
                         </div>
                         <Space size="small">
                           <Tag 
-                            color={typeColors[notification.type]}
-                            icon={typeIcons[notification.type]}
+                            color={typeColors[notification.type as keyof typeof typeColors]}
+                            icon={typeIcons[notification.type as keyof typeof typeIcons]}
                           >
-                            {typeLabels[notification.type]}
+                            {typeLabels[notification.type as keyof typeof typeLabels]}
                           </Tag>
                           <Text type="secondary" className="notification-time">
                             {formatTime(notification.created_at)}

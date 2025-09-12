@@ -4,13 +4,12 @@ import React from 'react'
 import { usePathname } from 'next/navigation'
 import { useAuth } from '@/lib/hooks/useAuth'
 import {
-  BellOutlined,
   SearchOutlined,
   SettingOutlined,
   UserOutlined,
   MenuOutlined,
 } from '@ant-design/icons'
-import { Button, Badge, Avatar, Input, Dropdown, Space, Typography } from 'antd'
+import { Button, Avatar, Input, Dropdown, Space, Typography } from 'antd'
 import type { MenuProps } from 'antd'
 
 const { Text } = Typography
@@ -127,16 +126,6 @@ export default function Header({
           className="md:hidden"
           size="large"
         />
-
-        {/* 알림 버튼 */}
-        <Badge count={5} size="small">
-          <Button
-            type="text"
-            icon={<BellOutlined />}
-            size="large"
-            className="text-gray-600 hover:text-gray-900"
-          />
-        </Badge>
 
         {/* 설정 버튼 */}
         <Button

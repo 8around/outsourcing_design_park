@@ -1,9 +1,10 @@
 import { useEffect, useCallback } from 'react'
 import { useAuth } from '@/lib/hooks/useAuth'
 import { useNotificationStore } from '@/lib/store/notifications.store'
+import type { Notification } from '@/lib/services/notification.service'
 
 export interface UseNotificationsReturn {
-  notifications: ReturnType<typeof useNotificationStore>['notifications']
+  notifications: Notification[]
   unreadCount: number
   loading: boolean
   error: string | null
