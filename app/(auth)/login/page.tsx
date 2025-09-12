@@ -16,6 +16,25 @@ function LoginContent() {
   const [statusAlert, setStatusAlert] = useState<{type: 'warning' | 'error' | 'info', message: string} | null>(null)
 
   React.useEffect(() => {
+    // Check for email verification success
+    if (searchParams.get('verified') === 'true') {
+      message.success('이메일 인증이 완료되었습니다. 이제 로그인할 수 있습니다.')
+      // Clean up URL params
+      const newUrl = new URL(window.location.href)
+      newUrl.searchParams.delete('verified')
+      window.history.replaceState({}, '', newUrl.toString())
+      return
+    }
+    
+    // Check for email verification error
+    if (searchParams.get('error') === 'verification_failed') {
+      setStatusAlert({
+        type: 'error',
+        message: '이메일 인증에 실패했습니다. 다시 시도해주세요.'
+      })
+      return
+    }
+    
     // Check for approval status messages
     if (searchParams.get('approval_pending')) {
       setStatusAlert({
@@ -68,6 +87,8 @@ function LoginContent() {
     newUrl.searchParams.delete('approval_rejected')
     newUrl.searchParams.delete('unauthorized')
     newUrl.searchParams.delete('message')
+    newUrl.searchParams.delete('error')
+    newUrl.searchParams.delete('verified')
     window.history.replaceState({}, '', newUrl.toString())
   }
 

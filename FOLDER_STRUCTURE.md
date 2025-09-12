@@ -76,6 +76,10 @@ projectAdminManagment/
 │   │   │
 │   │   └── layout.tsx                  # 대시보드 레이아웃
 │   │
+│   ├── auth/                           # 인증 관련 라우트
+│   │   └── callback/                   # 이메일 인증 콜백
+│   │       └── route.ts                # Supabase Auth 이메일 확인 처리
+│   │
 │   ├── api/                            # API 라우트 (필요시)
 │   │   ├── webhooks/
 │   │   │   └── route.ts
@@ -191,7 +195,7 @@ projectAdminManagment/
 ├── lib/                               # 비즈니스 로직 및 유틸리티
 │   ├── supabase/                     # Supabase 클라이언트 설정
 │   │   ├── client.ts                 # 클라이언트 사이드 Supabase
-│   │   ├── server.ts                 # 서버 사이드 Supabase
+│   │   ├── server.ts                 # 서버 사이드 Supabase (구현됨)
 │   │   ├── admin.ts                  # Admin 클라이언트
 │   │   └── middleware.ts             # Supabase 미들웨어
 │   │
