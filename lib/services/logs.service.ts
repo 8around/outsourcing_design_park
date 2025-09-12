@@ -330,8 +330,8 @@ class LogService {
   }
 
   /**
-   * 로그 삭제 (완전 삭제)
-   * 연관된 승인 요청이 있으면 함께 삭제
+   * 로그 삭제 (논리적 삭제 - soft delete)
+   * is_deleted를 true로, deleted_at에 현재 시간, deleted_by에 사용자 ID 저장
    */
   async deleteLog(logId: string, userId: string) {
     const supabase = createClient()
@@ -405,10 +405,14 @@ class LogService {
       }
     }
     
-    // 5. 로그 완전 삭제 (소프트 삭제 대신 완전 삭제)
+    // 5. 로그 논리적 삭제 (soft delete)
     const { error } = await supabase
       .from('history_logs')
-      .delete()
+      .update({
+        is_deleted: true,
+        deleted_at: new Date().toISOString(),
+        deleted_by: userId
+      })
       .eq('id', logId)
 
     if (error) {

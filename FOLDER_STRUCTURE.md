@@ -227,7 +227,7 @@ projectAdminManagment/
 │   │   ├── auth.store.ts            # 인증 상태 전역 관리 (구현됨)
 │   │   ├── projects.store.ts
 │   │   ├── ui.store.ts
-│   │   └── notifications.store.ts
+│   │   └── notifications.store.ts   # 알림 상태 전역 관리 (구현됨 - 실시간 업데이트)
 │   │
 │   ├── utils/                        # 유틸리티 함수
 │   │   ├── date.ts                  # 날짜 관련 유틸
