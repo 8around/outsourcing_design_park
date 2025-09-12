@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/client';
 import { Database } from '@/lib/database/types/supabase';
-import { emailService } from '@/lib/services/email.service';
+import { emailClientService } from '@/lib/services/email.client.service';
 import { logService } from '@/lib/services/logs.service';
 
 type User = Database['public']['Tables']['users']['Row'];
@@ -142,10 +142,8 @@ export class ApprovalService {
           `귀하의 계정이 승인되었습니다. 이제 시스템을 이용하실 수 있습니다.`
         );
 
-        // 이메일 발송 (서버 사이드에서만)
-        if (typeof window === 'undefined') {
-          await emailService.sendApprovalEmail(userData.email, userData.name, 'approved');
-        }
+        // 이메일 발송 (클라이언트 사이드에서 Edge Function 호출)
+        await emailClientService.sendUserApprovalEmail(userData.email, userData.name, 'approved');
       }
 
       return true;
@@ -213,10 +211,8 @@ export class ApprovalService {
         
         await this.createApprovalNotification(userId, 'rejected', message);
 
-        // 이메일 발송 (서버 사이드에서만)
-        if (typeof window === 'undefined') {
-          await emailService.sendApprovalEmail(userData.email, userData.name, 'rejected', reason);
-        }
+        // 이메일 발송 (클라이언트 사이드에서 Edge Function 호출)
+        await emailClientService.sendUserApprovalEmail(userData.email, userData.name, 'rejected', reason);
       }
 
       return true;
@@ -276,7 +272,9 @@ export class ApprovalService {
     requesterName: string,
     approverId: string,
     approverName: string,
-    memo: string
+    memo: string,
+    projectName?: string,
+    category?: string
   ): Promise<boolean> {
     try {
       // 1. approval_requests 테이블에 승인 요청 생성
@@ -314,7 +312,26 @@ export class ApprovalService {
         // 로그 생성 실패는 승인 요청 생성을 막지 않음
       }
 
-      // 3. 알림 생성 (승인자에게)
+      // 3. 승인자 이메일 조회
+      const { data: approverData } = await this.supabase
+        .from('users')
+        .select('email')
+        .eq('id', approverId)
+        .single();
+
+      // 4. 이메일 발송
+      if (approverData?.email) {
+        await emailClientService.sendProjectApprovalRequest(
+          approverData.email,
+          requesterName,
+          projectName || '프로젝트',
+          projectId,
+          memo,
+          category || '일반'
+        );
+      }
+
+      // 5. 알림 생성 (승인자에게)
       // approval_request는 notifications 테이블의 type에만 있고 createApprovalNotification의 타입과 다름
       // 이 부분은 별도 알림 생성 메서드를 사용하거나 타입을 수정해야 함
       // 일단 주석 처리
@@ -374,7 +391,37 @@ export class ApprovalService {
       // 수동으로 로그를 생성하면 중복이 발생합니다.
       // 트리거가 approval_requests 테이블 업데이트 시 자동으로 처리합니다.
 
-      // 4. 알림 생성 (요청자에게)
+      // 4. 요청자 이메일 조회
+      const { data: requesterData } = await this.supabase
+        .from('users')
+        .select('email')
+        .eq('id', requestData.requester_id)
+        .single();
+
+      // 5. 프로젝트 정보 조회
+      const { data: projectData } = await this.supabase
+        .from('projects')
+        .select('site_name, product_name')
+        .eq('id', requestData.project_id)
+        .single();
+
+      // 6. 이메일 발송
+      if (requesterData?.email) {
+        const projectName = projectData ? 
+          `${projectData.site_name} - ${projectData.product_name}` : 
+          '프로젝트';
+        
+        await emailClientService.sendProjectApprovalResult(
+          requesterData.email,
+          approverName,
+          projectName,
+          requestData.project_id,
+          status,
+          responseMemo
+        );
+      }
+
+      // 7. 알림 생성 (요청자에게)
       const statusText = status === 'approved' ? '승인' : '반려';
       // 타입 문제로 주석 처리
       // await this.createApprovalNotification(
@@ -517,12 +564,12 @@ export class ApprovalService {
   /**
    * 관리자에게 신규 가입 알림
    */
-  async notifyAdminsOfNewSignup(newUserId: string, newUserName: string): Promise<void> {
+  async notifyAdminsOfNewSignup(newUserId: string, newUserName: string, newUserEmail?: string): Promise<void> {
     try {
       // 모든 관리자 조회
       const { data: admins } = await this.supabase
         .from('users')
-        .select('id')
+        .select('id, email')
         .eq('role', 'admin')
         .eq('is_approved', true);
 
@@ -540,6 +587,16 @@ export class ApprovalService {
       }));
 
       await this.supabase.from('notifications').insert(notifications);
+
+      // 관리자들에게 이메일 발송
+      const adminEmails = admins.map(admin => admin.email).filter(Boolean) as string[];
+      if (adminEmails.length > 0 && newUserEmail) {
+        await emailClientService.sendNewSignupNotification(
+          adminEmails,
+          newUserName,
+          newUserEmail
+        );
+      }
     } catch (error) {
       console.error('Error notifying admins:', error);
     }
