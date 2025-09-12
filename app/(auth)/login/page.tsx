@@ -26,11 +26,26 @@ function LoginContent() {
       return
     }
     
-    // Check for email verification error
-    if (searchParams.get('error') === 'verification_failed') {
+    // Check for error with custom message
+    const errorType = searchParams.get('error')
+    const errorMessage = searchParams.get('error_message')
+    
+    if (errorType === 'link_expired') {
+      setStatusAlert({
+        type: 'warning',
+        message: errorMessage || '인증 링크가 만료되었습니다. 다시 시도해주세요.'
+      })
+      return
+    } else if (errorType === 'verification_failed') {
       setStatusAlert({
         type: 'error',
-        message: '이메일 인증에 실패했습니다. 다시 시도해주세요.'
+        message: errorMessage || '이메일 인증에 실패했습니다. 다시 시도해주세요.'
+      })
+      return
+    } else if (errorType === 'invalid_request') {
+      setStatusAlert({
+        type: 'error',
+        message: errorMessage || '잘못된 인증 요청입니다.'
       })
       return
     }
@@ -88,6 +103,7 @@ function LoginContent() {
     newUrl.searchParams.delete('unauthorized')
     newUrl.searchParams.delete('message')
     newUrl.searchParams.delete('error')
+    newUrl.searchParams.delete('error_message')
     newUrl.searchParams.delete('verified')
     window.history.replaceState({}, '', newUrl.toString())
   }
