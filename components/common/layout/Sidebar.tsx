@@ -4,6 +4,7 @@ import React, { useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useAuth } from '@/lib/hooks/useAuth'
+import { useNotifications } from '@/lib/hooks/useNotifications'
 import {
   HomeOutlined,
   ProjectOutlined,
@@ -63,7 +64,6 @@ const menuItems: MenuItemType[] = [
     label: '알림',
     icon: <BellOutlined />,
     path: '/notifications',
-    badge: 3,
   },
   {
     key: 'admin',
@@ -91,6 +91,7 @@ export default function Sidebar({ collapsed, onCollapse, className }: SidebarPro
   const pathname = usePathname()
   const router = useRouter()
   const { user, userData, signOut } = useAuth()
+  const { unreadCount } = useNotifications()
   const [loading, setLoading] = useState(false)
 
   // 현재 경로에서 선택된 키 결정
@@ -132,6 +133,9 @@ export default function Sidebar({ collapsed, onCollapse, className }: SidebarPro
   // 메뉴 아이템 렌더링
   const renderMenuItem = (item: MenuItemType) => {
     const isSelected = selectedKey === item.key
+    // 알림 메뉴일 경우 실시간 알림 개수 표시
+    const badgeCount = item.key === 'notifications' ? unreadCount : item.badge
+    const shouldShowBadge = badgeCount !== undefined && badgeCount !== null && badgeCount > 0
     
     return (
       <Link
@@ -145,20 +149,34 @@ export default function Sidebar({ collapsed, onCollapse, className }: SidebarPro
         style={{ display: 'flex', textDecoration: 'none' }}
       >
         <div className={`
-          flex items-center justify-center w-5 h-5 mr-3
+          flex items-center justify-center w-5 h-5 mr-3 relative
           ${isSelected ? 'text-primary-600' : 'text-gray-500 group-hover:text-primary-600'}
         `}>
-          {item.icon}
+          {/* collapsed 상태에서도 알림 개수 표시 */}
+          {collapsed && item.key === 'notifications' && shouldShowBadge ? (
+            <Badge
+              count={badgeCount}
+              size="small"
+              offset={[0, 0]}
+              showZero={false}
+              style={{ backgroundColor: '#ff4d4f' }}
+            >
+              {item.icon}
+            </Badge>
+          ) : (
+            item.icon
+          )}
         </div>
         
         {!collapsed && (
           <div className="flex-1 flex items-center justify-between">
             <span className="font-medium">{item.label}</span>
-            {item.badge && item.badge > 0 && (
+            {shouldShowBadge && (
               <Badge
-                count={item.badge}
+                count={badgeCount}
                 size="small"
                 className="ml-2"
+                showZero={false}
                 style={{ backgroundColor: '#ff4d4f' }}
               />
             )}

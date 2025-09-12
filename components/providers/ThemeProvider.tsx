@@ -1,7 +1,7 @@
 'use client'
 
 import React, { createContext, useContext, useEffect, useState } from 'react'
-import { ConfigProvider, theme } from 'antd'
+import { ConfigProvider, theme as antdTheme } from 'antd'
 import ko_KR from 'antd/locale/ko_KR'
 
 type Theme = 'light' | 'dark' | 'system'
@@ -120,7 +120,7 @@ export function ThemeProvider({
 
   // Ant Design 테마 설정
   const antTheme = {
-    algorithm: resolvedTheme === 'dark' ? theme.darkAlgorithm : theme.defaultAlgorithm,
+    algorithm: resolvedTheme === 'dark' ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm,
     token: {
       // 기본 색상
       colorPrimary: '#2563eb',

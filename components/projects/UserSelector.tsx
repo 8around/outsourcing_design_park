@@ -29,8 +29,8 @@ export default function UserSelector({
   const [searchTerm, setSearchTerm] = useState('')
   const dropdownRef = useRef<HTMLDivElement>(null)
 
-  // 선택된 사용자 정보
-  const selectedUser = users.find(user => user.name === value)
+  // 선택된 사용자 정보 - ID로 찾기
+  const selectedUser = users.find(user => user.id === value)
 
   // 검색 필터링
   const filteredUsers = users.filter(user =>
@@ -51,7 +51,7 @@ export default function UserSelector({
   }, [])
 
   const handleSelect = (user: User) => {
-    onChange(user.name)
+    onChange(user.id) // ID를 전달
     setIsOpen(false)
     setSearchTerm('')
   }

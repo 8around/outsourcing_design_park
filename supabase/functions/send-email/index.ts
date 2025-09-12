@@ -1,0 +1,336 @@
+import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
+import { Resend } from 'npm:resend@2.0.0'
+
+const resend = new Resend(Deno.env.get('RESEND_API_KEY')!)
+const fromEmail = 'noreply@designpark.or.kr'
+
+serve(async (req) => {
+  // CORS 헤더 설정
+  const corsHeaders = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  }
+
+  // OPTIONS 요청 처리
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders })
+  }
+
+  try {
+    const { type, data } = await req.json()
+
+    let result
+    
+    switch (type) {
+      case 'project-approval-request':
+        result = await sendProjectApprovalRequest(data)
+        break
+      case 'project-approval-result':
+        result = await sendProjectApprovalResult(data)
+        break
+      case 'user-approval':
+        result = await sendUserApproval(data)
+        break
+      case 'new-signup':
+        result = await sendNewSignupNotification(data)
+        break
+      default:
+        throw new Error(`Unknown email type: ${type}`)
+    }
+
+    return new Response(
+      JSON.stringify({ success: true, data: result }),
+      {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200,
+      }
+    )
+  } catch (error) {
+    console.error('Error in send-email function:', error)
+    return new Response(
+      JSON.stringify({ success: false, error: error.message }),
+      {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 400,
+      }
+    )
+  }
+})
+
+// 프로젝트 승인 요청 이메일
+async function sendProjectApprovalRequest(data: any) {
+  const { approverEmail, requesterName, projectName, projectId, memo, category } = data
+  
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="UTF-8">
+      <style>
+        body { font-family: 'Malgun Gothic', sans-serif; line-height: 1.6; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: #FF9800; color: white; padding: 20px; text-align: center; border-radius: 5px 5px 0 0; }
+        .content { background: #f4f4f4; padding: 20px; border-radius: 0 0 5px 5px; }
+        .project-info { background: white; padding: 15px; border-radius: 5px; margin: 15px 0; }
+        .memo-box { background: #FFF3E0; padding: 15px; border-left: 4px solid #FF9800; margin: 15px 0; }
+        .button { display: inline-block; padding: 12px 24px; background: #FF9800; color: white; text-decoration: none; border-radius: 5px; margin-top: 15px; font-weight: bold; }
+        .footer { text-align: center; margin-top: 20px; color: #666; font-size: 12px; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>프로젝트 승인 요청</h1>
+        </div>
+        <div class="content">
+          <h2>승인이 필요한 항목이 있습니다</h2>
+          <div class="project-info">
+            <p><strong>요청자:</strong> ${requesterName}</p>
+            <p><strong>프로젝트명:</strong> ${projectName}</p>
+            <p><strong>카테고리:</strong> ${category}</p>
+            <p><strong>요청 시간:</strong> ${new Date().toLocaleString('ko-KR')}</p>
+          </div>
+          <div class="memo-box">
+            <strong>요청 메모:</strong>
+            <p>${memo || '메모 없음'}</p>
+          </div>
+          <p>아래 버튼을 클릭하여 승인 대기 목록을 확인하고 처리해주세요.</p>
+          <a href="${Deno.env.get('NEXT_PUBLIC_APP_URL') || 'http://localhost:3000'}/" class="button">승인 대기 목록 확인</a>
+          <p style="margin-top: 20px; font-size: 14px; color: #666;">
+            이 이메일은 프로젝트 현장 관리 시스템에서 자동으로 발송되었습니다.
+          </p>
+        </div>
+        <div class="footer">
+          <p>© 2024 프로젝트 현장 관리 시스템</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `
+
+  const { data: emailData, error } = await resend.emails.send({
+    from: fromEmail,
+    to: approverEmail,
+    subject: `[승인 요청] ${projectName} - ${category}`,
+    html,
+  })
+
+  if (error) throw error
+  return emailData
+}
+
+// 프로젝트 승인/반려 결과 이메일
+async function sendProjectApprovalResult(data: any) {
+  const { requesterEmail, approverName, projectName, projectId, status, memo } = data
+  
+  const statusText = status === 'approved' ? '승인' : '반려'
+  const statusColor = status === 'approved' ? '#4CAF50' : '#f44336'
+  
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="UTF-8">
+      <style>
+        body { font-family: 'Malgun Gothic', sans-serif; line-height: 1.6; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: ${statusColor}; color: white; padding: 20px; text-align: center; border-radius: 5px 5px 0 0; }
+        .content { background: #f4f4f4; padding: 20px; border-radius: 0 0 5px 5px; }
+        .project-info { background: white; padding: 15px; border-radius: 5px; margin: 15px 0; }
+        .memo-box { background: ${status === 'approved' ? '#E8F5E9' : '#FFEBEE'}; padding: 15px; border-left: 4px solid ${statusColor}; margin: 15px 0; }
+        .button { display: inline-block; padding: 12px 24px; background: ${statusColor}; color: white; text-decoration: none; border-radius: 5px; margin-top: 15px; font-weight: bold; }
+        .footer { text-align: center; margin-top: 20px; color: #666; font-size: 12px; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>프로젝트 ${statusText} 알림</h1>
+        </div>
+        <div class="content">
+          <h2>요청하신 항목이 ${statusText}되었습니다</h2>
+          <div class="project-info">
+            <p><strong>${statusText}자:</strong> ${approverName}</p>
+            <p><strong>프로젝트명:</strong> ${projectName}</p>
+            <p><strong>처리 결과:</strong> <span style="color: ${statusColor}; font-weight: bold;">${statusText}</span></p>
+            <p><strong>처리 시간:</strong> ${new Date().toLocaleString('ko-KR')}</p>
+          </div>
+          ${memo ? `
+            <div class="memo-box">
+              <strong>${status === 'approved' ? '승인 메모' : '반려 사유'}:</strong>
+              <p>${memo}</p>
+            </div>
+          ` : ''}
+          <p>프로젝트 상세 페이지에서 자세한 내용을 확인하실 수 있습니다.</p>
+          <a href="${Deno.env.get('NEXT_PUBLIC_APP_URL') || 'http://localhost:3000'}/projects/${projectId}" class="button">프로젝트 보기</a>
+          <p style="margin-top: 20px; font-size: 14px; color: #666;">
+            이 이메일은 프로젝트 현장 관리 시스템에서 자동으로 발송되었습니다.
+          </p>
+        </div>
+        <div class="footer">
+          <p>© 2024 프로젝트 현장 관리 시스템</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `
+
+  const { data: emailData, error } = await resend.emails.send({
+    from: fromEmail,
+    to: requesterEmail,
+    subject: `[${statusText}] ${projectName}`,
+    html,
+  })
+
+  if (error) throw error
+  return emailData
+}
+
+// 사용자 승인/거절 이메일
+async function sendUserApproval(data: any) {
+  const { email, userName, status, reason } = data
+  
+  const subject = status === 'approved' ? '회원가입 승인 완료' : '회원가입 승인 거절'
+  
+  const html = status === 'approved' ? getApprovalTemplate(userName) : getRejectionTemplate(userName, reason)
+
+  const { data: emailData, error } = await resend.emails.send({
+    from: fromEmail,
+    to: email,
+    subject,
+    html,
+  })
+
+  if (error) throw error
+  return emailData
+}
+
+// 관리자에게 신규 가입 알림
+async function sendNewSignupNotification(data: any) {
+  const { adminEmails, newUserName, newUserEmail } = data
+  
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="UTF-8">
+      <style>
+        body { font-family: 'Malgun Gothic', sans-serif; line-height: 1.6; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: #2196F3; color: white; padding: 20px; text-align: center; border-radius: 5px 5px 0 0; }
+        .content { background: #f4f4f4; padding: 20px; border-radius: 0 0 5px 5px; }
+        .user-info { background: white; padding: 15px; border-radius: 5px; margin: 15px 0; }
+        .button { display: inline-block; padding: 10px 20px; background: #2196F3; color: white; text-decoration: none; border-radius: 5px; margin-top: 15px; }
+        .footer { text-align: center; margin-top: 20px; color: #666; font-size: 12px; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>신규 사용자 가입 알림</h1>
+        </div>
+        <div class="content">
+          <h2>새로운 사용자가 가입했습니다</h2>
+          <div class="user-info">
+            <p><strong>이름:</strong> ${newUserName}</p>
+            <p><strong>이메일:</strong> ${newUserEmail}</p>
+            <p><strong>가입 시간:</strong> ${new Date().toLocaleString('ko-KR')}</p>
+          </div>
+          <p>사용자 승인 관리 페이지에서 승인 또는 거절할 수 있습니다.</p>
+          <a href="${Deno.env.get('NEXT_PUBLIC_APP_URL') || 'http://localhost:3000'}/admin/users" class="button">사용자 관리 페이지로 이동</a>
+        </div>
+        <div class="footer">
+          <p>© 2024 프로젝트 현장 관리 시스템</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `
+
+  const { data: emailData, error } = await resend.emails.send({
+    from: fromEmail,
+    to: adminEmails,
+    subject: '신규 사용자 가입 - 승인 필요',
+    html,
+  })
+
+  if (error) throw error
+  return emailData
+}
+
+function getApprovalTemplate(userName: string): string {
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="UTF-8">
+      <style>
+        body { font-family: 'Malgun Gothic', sans-serif; line-height: 1.6; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: #4CAF50; color: white; padding: 20px; text-align: center; border-radius: 5px 5px 0 0; }
+        .content { background: #f4f4f4; padding: 20px; border-radius: 0 0 5px 5px; }
+        .button { display: inline-block; padding: 10px 20px; background: #4CAF50; color: white; text-decoration: none; border-radius: 5px; margin-top: 15px; }
+        .footer { text-align: center; margin-top: 20px; color: #666; font-size: 12px; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>회원가입 승인 완료</h1>
+        </div>
+        <div class="content">
+          <h2>안녕하세요, ${userName}님!</h2>
+          <p>귀하의 회원가입이 <strong>승인</strong>되었습니다.</p>
+          <p>이제 시스템에 로그인하여 모든 기능을 이용하실 수 있습니다.</p>
+          <a href="${Deno.env.get('NEXT_PUBLIC_APP_URL') || 'http://localhost:3000'}/login" class="button">로그인하기</a>
+          <p style="margin-top: 20px;">문의사항이 있으시면 관리자에게 연락해주세요.</p>
+        </div>
+        <div class="footer">
+          <p>© 2024 프로젝트 현장 관리 시스템</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `
+}
+
+function getRejectionTemplate(userName: string, reason?: string): string {
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="UTF-8">
+      <style>
+        body { font-family: 'Malgun Gothic', sans-serif; line-height: 1.6; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: #f44336; color: white; padding: 20px; text-align: center; border-radius: 5px 5px 0 0; }
+        .content { background: #f4f4f4; padding: 20px; border-radius: 0 0 5px 5px; }
+        .reason-box { background: white; padding: 15px; border-left: 4px solid #f44336; margin: 15px 0; }
+        .footer { text-align: center; margin-top: 20px; color: #666; font-size: 12px; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>회원가입 승인 거절</h1>
+        </div>
+        <div class="content">
+          <h2>안녕하세요, ${userName}님</h2>
+          <p>죄송합니다. 귀하의 회원가입이 <strong>거절</strong>되었습니다.</p>
+          ${reason ? `
+            <div class="reason-box">
+              <strong>거절 사유:</strong>
+              <p>${reason}</p>
+            </div>
+          ` : ''}
+          <p>자세한 사항은 관리자에게 문의해주시기 바랍니다.</p>
+          <p style="margin-top: 20px;">감사합니다.</p>
+        </div>
+        <div class="footer">
+          <p>© 2024 프로젝트 현장 관리 시스템</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `
+}

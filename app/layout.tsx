@@ -4,6 +4,7 @@ import { ConfigProvider } from 'antd'
 import ko_KR from 'antd/locale/ko_KR'
 import { AuthProvider } from '@/components/providers/AuthProvider'
 import { Toaster } from 'react-hot-toast'
+import NavigationProgress, { NavigationProgressStyles } from '@/components/common/NavigationProgress'
 import '../styles/globals.css'
 
 const inter = Inter({ subsets: ['latin'] })
@@ -23,6 +24,8 @@ export default function RootLayout({
       <body className={inter.className}>
         <ConfigProvider locale={ko_KR}>
           <AuthProvider>
+            <NavigationProgressStyles />
+            <NavigationProgress />
             <Toaster 
               position="top-right"
               toastOptions={{

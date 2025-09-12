@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { message, Alert } from 'antd'
 import { ExclamationCircleOutlined, CloseCircleOutlined, WarningOutlined } from '@ant-design/icons'
@@ -8,7 +8,7 @@ import LoginForm from '@/components/auth/LoginForm'
 import { authService } from '@/lib/services/auth.service'
 import { useAuthStore } from '@/lib/store/auth.store'
 
-export default function LoginPage() {
+function LoginContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const setUser = useAuthStore(state => state.setUser)
@@ -16,6 +16,49 @@ export default function LoginPage() {
   const [statusAlert, setStatusAlert] = useState<{type: 'warning' | 'error' | 'info', message: string} | null>(null)
 
   React.useEffect(() => {
+    // Check for email verification success
+    if (searchParams.get('verified') === 'true') {
+      message.success('이메일 인증이 완료되었습니다. 이제 로그인할 수 있습니다.')
+      // Clean up URL params
+      const newUrl = new URL(window.location.href)
+      newUrl.searchParams.delete('verified')
+      window.history.replaceState({}, '', newUrl.toString())
+      return
+    }
+    
+    // Check for password reset success
+    if (searchParams.get('reset') === 'success') {
+      message.success('비밀번호가 변경되었습니다. 새 비밀번호로 로그인하세요.')
+      const newUrl = new URL(window.location.href)
+      newUrl.searchParams.delete('reset')
+      window.history.replaceState({}, '', newUrl.toString())
+      return
+    }
+
+    // Check for error with custom message
+    const errorType = searchParams.get('error')
+    const errorMessage = searchParams.get('error_message')
+    
+    if (errorType === 'link_expired') {
+      setStatusAlert({
+        type: 'warning',
+        message: errorMessage || '인증 링크가 만료되었습니다. 다시 시도해주세요.'
+      })
+      return
+    } else if (errorType === 'verification_failed') {
+      setStatusAlert({
+        type: 'error',
+        message: errorMessage || '이메일 인증에 실패했습니다. 다시 시도해주세요.'
+      })
+      return
+    } else if (errorType === 'invalid_request') {
+      setStatusAlert({
+        type: 'error',
+        message: errorMessage || '잘못된 인증 요청입니다.'
+      })
+      return
+    }
+    
     // Check for approval status messages
     if (searchParams.get('approval_pending')) {
       setStatusAlert({
@@ -53,7 +96,7 @@ export default function LoginPage() {
       setUserData(userData)
       
       message.success('로그인 성공!')
-      const redirectTo = searchParams.get('redirectedFrom') || '/projects'
+      const redirectTo = searchParams.get('redirectedFrom') || '/'
       router.push(redirectTo)
     } else {
       message.error(response.error || '로그인에 실패했습니다.')
@@ -68,6 +111,9 @@ export default function LoginPage() {
     newUrl.searchParams.delete('approval_rejected')
     newUrl.searchParams.delete('unauthorized')
     newUrl.searchParams.delete('message')
+    newUrl.searchParams.delete('error')
+    newUrl.searchParams.delete('error_message')
+    newUrl.searchParams.delete('verified')
     window.history.replaceState({}, '', newUrl.toString())
   }
 
@@ -101,5 +147,13 @@ export default function LoginPage() {
       )}
       <LoginForm onSubmit={handleLogin} />
     </div>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <LoginContent />
+    </Suspense>
   )
 }

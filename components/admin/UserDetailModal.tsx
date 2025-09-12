@@ -9,7 +9,7 @@ interface User {
   id: string;
   name: string;
   email: string;
-  phone?: string;
+  phone?: string | null;
   created_at: string;
   is_approved: boolean;
   approved_at?: string | null;

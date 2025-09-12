@@ -27,8 +27,8 @@ export type ProcessStatus = 'in_progress' | 'completed' | 'waiting' | 'delayed';
 export interface Project {
   id: string;
   site_name: string;
-  sales_manager: string;
-  site_manager: string;
+  sales_manager: string | null;  // UUID (foreign key to users table)
+  site_manager: string | null;   // UUID (foreign key to users table)
   product_name: string;
   product_quantity: number;
   outsourcing_company: string;
@@ -47,6 +47,16 @@ export interface Project {
   process_stages?: ProcessStage[];
   project_images?: ProjectImage[];
   creator?: {
+    id: string;
+    name: string;
+    email: string;
+  };
+  sales_manager_user?: {  // 영업담당자 정보
+    id: string;
+    name: string;
+    email: string;
+  };
+  site_manager_user?: {   // 현장담당자 정보
     id: string;
     name: string;
     email: string;

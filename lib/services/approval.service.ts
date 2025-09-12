@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/client';
 import { Database } from '@/lib/database/types/supabase';
-import { emailService } from '@/lib/services/email.service';
+import { emailClientService } from '@/lib/services/email.client.service';
+import { logService } from '@/lib/services/logs.service';
 
 type User = Database['public']['Tables']['users']['Row'];
 type UserUpdate = Database['public']['Tables']['users']['Update'];
@@ -141,10 +142,8 @@ export class ApprovalService {
           `귀하의 계정이 승인되었습니다. 이제 시스템을 이용하실 수 있습니다.`
         );
 
-        // 이메일 발송 (서버 사이드에서만)
-        if (typeof window === 'undefined') {
-          await emailService.sendApprovalEmail(userData.email, userData.name, 'approved');
-        }
+        // 이메일 발송 (클라이언트 사이드에서 Edge Function 호출)
+        await emailClientService.sendUserApprovalEmail(userData.email, userData.name, 'approved');
       }
 
       return true;
@@ -212,10 +211,8 @@ export class ApprovalService {
         
         await this.createApprovalNotification(userId, 'rejected', message);
 
-        // 이메일 발송 (서버 사이드에서만)
-        if (typeof window === 'undefined') {
-          await emailService.sendApprovalEmail(userData.email, userData.name, 'rejected', reason);
-        }
+        // 이메일 발송 (클라이언트 사이드에서 Edge Function 호출)
+        await emailClientService.sendUserApprovalEmail(userData.email, userData.name, 'rejected', reason);
       }
 
       return true;
@@ -267,6 +264,283 @@ export class ApprovalService {
   }
 
   /**
+   * 프로젝트 승인 요청 생성
+   */
+  async createApprovalRequest(
+    projectId: string,
+    requesterId: string,
+    requesterName: string,
+    approverId: string,
+    approverName: string,
+    memo: string,
+    projectName?: string,
+    category?: string
+  ): Promise<boolean> {
+    try {
+      // 1. approval_requests 테이블에 승인 요청 생성
+      const { data: approvalData, error: approvalError } = await this.supabase
+        .from('approval_requests')
+        .insert({
+          project_id: projectId,
+          requester_id: requesterId,
+          requester_name: requesterName,
+          approver_id: approverId,
+          approver_name: approverName,
+          memo: memo,
+          status: 'pending'
+        })
+        .select()
+        .single();
+
+      if (approvalError) {
+        console.error('Error creating approval request:', approvalError);
+        throw approvalError;
+      }
+
+      // 2. 승인 요청 로그 생성
+      try {
+        await logService.createApprovalRequestLog({
+          project_id: projectId,
+          requester_id: requesterId,
+          requester_name: requesterName,
+          approver_id: approverId,
+          approver_name: approverName,
+          memo: memo
+        });
+      } catch (logError) {
+        console.error('Error creating approval request log:', logError);
+        // 로그 생성 실패는 승인 요청 생성을 막지 않음
+      }
+
+      // 3. 승인자 이메일 조회
+      const { data: approverData } = await this.supabase
+        .from('users')
+        .select('email')
+        .eq('id', approverId)
+        .single();
+
+      // 4. 이메일 발송
+      if (approverData?.email) {
+        await emailClientService.sendProjectApprovalRequest(
+          approverData.email,
+          requesterName,
+          projectName || '프로젝트',
+          projectId,
+          memo,
+          category || '일반'
+        );
+      }
+
+      // 5. 알림 생성 (승인자에게)
+      // approval_request는 notifications 테이블의 type에만 있고 createApprovalNotification의 타입과 다름
+      // 이 부분은 별도 알림 생성 메서드를 사용하거나 타입을 수정해야 함
+      // 일단 주석 처리
+      // await this.createApprovalNotification(
+      //   approverId,
+      //   'approval_request',
+      //   `${requesterName}님이 프로젝트 승인을 요청했습니다: ${memo}`
+      // );
+
+      return true;
+    } catch (error) {
+      console.error('Error in createApprovalRequest:', error);
+      return false;
+    }
+  }
+
+  /**
+   * 프로젝트 승인 요청 응답 처리
+   */
+  async respondToApprovalRequest(
+    requestId: string,
+    approverId: string,
+    approverName: string,
+    status: 'approved' | 'rejected',
+    responseMemo: string
+  ): Promise<boolean> {
+    try {
+      // 1. 승인 요청 정보 조회
+      const { data: requestData, error: fetchError } = await this.supabase
+        .from('approval_requests')
+        .select('*')
+        .eq('id', requestId)
+        .single();
+
+      if (fetchError || !requestData) {
+        console.error('Error fetching approval request:', fetchError);
+        throw fetchError || new Error('Approval request not found');
+      }
+
+      // 2. approval_requests 테이블 업데이트
+      const { error: updateError } = await this.supabase
+        .from('approval_requests')
+        .update({
+          status: status,
+          response_memo: responseMemo,
+          responded_at: new Date().toISOString()
+        })
+        .eq('id', requestId);
+
+      if (updateError) {
+        console.error('Error updating approval request:', updateError);
+        throw updateError;
+      }
+
+      // 3. 승인 응답 로그 생성 - 제거됨
+      // 데이터베이스 트리거가 자동으로 history_logs에 로그를 생성하므로
+      // 수동으로 로그를 생성하면 중복이 발생합니다.
+      // 트리거가 approval_requests 테이블 업데이트 시 자동으로 처리합니다.
+
+      // 4. 요청자 이메일 조회
+      const { data: requesterData } = await this.supabase
+        .from('users')
+        .select('email')
+        .eq('id', requestData.requester_id)
+        .single();
+
+      // 5. 프로젝트 정보 조회
+      const { data: projectData } = await this.supabase
+        .from('projects')
+        .select('site_name, product_name')
+        .eq('id', requestData.project_id)
+        .single();
+
+      // 6. 이메일 발송
+      if (requesterData?.email) {
+        const projectName = projectData ? 
+          `${projectData.site_name} - ${projectData.product_name}` : 
+          '프로젝트';
+        
+        await emailClientService.sendProjectApprovalResult(
+          requesterData.email,
+          approverName,
+          projectName,
+          requestData.project_id,
+          status,
+          responseMemo
+        );
+      }
+
+      // 7. 알림 생성 (요청자에게)
+      const statusText = status === 'approved' ? '승인' : '반려';
+      // 타입 문제로 주석 처리
+      // await this.createApprovalNotification(
+      //   requestData.requester_id,
+      //   'approval_response',
+      //   `${approverName}님이 프로젝트 승인 요청을 ${statusText}했습니다: ${responseMemo}`
+      // );
+
+      return true;
+    } catch (error) {
+      console.error('Error in respondToApprovalRequest:', error);
+      return false;
+    }
+  }
+
+  /**
+   * 사용자 삭제 (관리자 전용 - 미승인 사용자 삭제용)
+   */
+  async deleteUser(userId: string, adminId: string): Promise<boolean> {
+    try {
+      // 사용자 삭제 (users 테이블)
+      const { error } = await this.supabase
+        .from('users')
+        .delete()
+        .eq('id', userId);
+
+      if (error) {
+        console.error('Error deleting user:', error);
+        throw error;
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error in deleteUser:', error);
+      return false;
+    }
+  }
+
+  /**
+   * 승인 요청 삭제 (관리자 전용)
+   */
+  async deleteApprovalRequest(requestId: string, adminId: string): Promise<boolean> {
+    try {
+      console.log('deleteApprovalRequest called:', { requestId, adminId });
+      
+      // 승인 요청 정보 조회
+      const { data: requestData, error: fetchError } = await this.supabase
+        .from('approval_requests')
+        .select('*')
+        .eq('id', requestId)
+        .single();
+
+      console.log('Approval request data:', requestData);
+      console.log('Fetch error:', fetchError);
+
+      if (fetchError || !requestData) {
+        console.error('Error fetching approval request:', fetchError);
+        throw fetchError || new Error('Approval request not found');
+      }
+
+      // 1. 승인 요청과 관련된 로그 삭제 (승인 요청 로그)
+      const { error: requestLogDeleteError } = await this.supabase
+        .from('history_logs')
+        .update({ 
+          is_deleted: true,
+          deleted_by: adminId,
+          deleted_at: new Date().toISOString()
+        })
+        .match({
+          project_id: requestData.project_id,
+          author_id: requestData.requester_id,
+          target_user_id: requestData.approver_id,
+          log_type: 'approval_request'
+        });
+
+      if (requestLogDeleteError) {
+        console.error('Error deleting request logs:', requestLogDeleteError);
+      }
+
+      // 2. 승인 응답 로그도 삭제 (있는 경우)
+      if (requestData.status !== 'pending') {
+        const { error: responseLogDeleteError } = await this.supabase
+          .from('history_logs')
+          .update({ 
+            is_deleted: true,
+            deleted_by: adminId,
+            deleted_at: new Date().toISOString()
+          })
+          .match({
+            project_id: requestData.project_id,
+            author_id: requestData.approver_id,
+            target_user_id: requestData.requester_id,
+            log_type: 'approval_response'
+          });
+
+        if (responseLogDeleteError) {
+          console.error('Error deleting response logs:', responseLogDeleteError);
+        }
+      }
+
+      // 3. 승인 요청 삭제 (실제 삭제)
+      const { error: deleteError } = await this.supabase
+        .from('approval_requests')
+        .delete()
+        .eq('id', requestId);
+
+      if (deleteError) {
+        console.error('Error deleting approval request:', deleteError);
+        throw deleteError;
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error in deleteApprovalRequest:', error);
+      return false;
+    }
+  }
+
+  /**
    * 승인 관련 알림 생성
    */
   private async createApprovalNotification(
@@ -290,12 +564,12 @@ export class ApprovalService {
   /**
    * 관리자에게 신규 가입 알림
    */
-  async notifyAdminsOfNewSignup(newUserId: string, newUserName: string): Promise<void> {
+  async notifyAdminsOfNewSignup(newUserId: string, newUserName: string, newUserEmail?: string): Promise<void> {
     try {
       // 모든 관리자 조회
       const { data: admins } = await this.supabase
         .from('users')
-        .select('id')
+        .select('id, email')
         .eq('role', 'admin')
         .eq('is_approved', true);
 
@@ -313,8 +587,204 @@ export class ApprovalService {
       }));
 
       await this.supabase.from('notifications').insert(notifications);
+
+      // 관리자들에게 이메일 발송
+      const adminEmails = admins.map(admin => admin.email).filter(Boolean) as string[];
+      if (adminEmails.length > 0 && newUserEmail) {
+        await emailClientService.sendNewSignupNotification(
+          adminEmails,
+          newUserName,
+          newUserEmail
+        );
+      }
     } catch (error) {
       console.error('Error notifying admins:', error);
+    }
+  }
+
+  /**
+   * 현재 사용자의 승인 대기 목록 조회
+   */
+  async getPendingApprovalsForUser(userId: string): Promise<{
+    userApprovals: any[];
+    projectApprovals: any[];
+    total: number;
+  }> {
+    try {
+      // 1. 사용자 승인 대기 목록 (관리자인 경우만)
+      let userApprovals: any[] = [];
+      const { data: currentUser } = await this.supabase
+        .from('users')
+        .select('role')
+        .eq('id', userId)
+        .single();
+
+      if (currentUser?.role === 'admin') {
+        const { data: pendingUsers } = await this.supabase
+          .from('users')
+          .select('id, email, name, created_at')
+          .eq('is_approved', false)
+          .is('approved_at', null)
+          .order('created_at', { ascending: false })
+          .limit(10);
+
+        userApprovals = (pendingUsers || []).map(user => ({
+          id: user.id,
+          type: 'user' as const,
+          title: '신규 사용자 가입 승인',
+          description: `${user.email} 사용자가 가입 승인을 기다리고 있습니다.`,
+          requester_id: user.id,
+          requester_name: user.name || user.email,
+          requester_email: user.email,
+          status: 'pending' as const,
+          priority: 'high' as const,
+          created_at: user.created_at,
+          requestType: 'received' as const  // 관리자가 받은 승인 요청
+        }));
+      }
+
+      // 2. 프로젝트 승인 요청 목록 - 내가 받은 요청
+      // 먼저 approval_requests를 가져온 후 history_logs와 매칭
+      const { data: receivedApprovals } = await this.supabase
+        .from('approval_requests')
+        .select(`
+          *,
+          project:projects(site_name, product_name)
+        `)
+        .eq('approver_id', userId)
+        .eq('status', 'pending')
+        .order('created_at', { ascending: false })
+        .limit(10);
+
+      // 각 approval에 대해 history_logs 조회 (첨부파일 포함)
+      const receivedApprovalsWithCategory = await Promise.all(
+        (receivedApprovals || []).map(async (approval) => {
+          const { data: logData } = await this.supabase
+            .from('history_logs')
+            .select(`
+              category,
+              attachments:history_log_attachments(
+                id,
+                file_name,
+                file_path,
+                file_size,
+                mime_type,
+                created_at
+              )
+            `)
+            .eq('project_id', approval.project_id)
+            .eq('log_type', 'approval_request')
+            .eq('author_id', approval.requester_id)
+            .eq('target_user_id', approval.approver_id)
+            .gte('created_at', new Date(new Date(approval.created_at).getTime() - 2000).toISOString())
+            .lte('created_at', new Date(new Date(approval.created_at).getTime() + 2000).toISOString())
+            .single();
+          
+          return {
+            ...approval,
+            history_logs: logData ? [logData] : []
+          };
+        })
+      );
+
+      const formattedReceivedApprovals = (receivedApprovalsWithCategory || []).map(approval => ({
+        id: approval.id,
+        type: 'project' as const,
+        title: '프로젝트 승인 요청',
+        description: approval.memo || '승인이 필요한 프로젝트가 있습니다.',
+        requester_id: approval.requester_id,
+        requester_name: approval.requester_name,
+        approver_id: approval.approver_id,
+        approver_name: approval.approver_name,
+        status: 'pending' as const,
+        priority: 'medium' as const,
+        created_at: approval.created_at,
+        project_id: approval.project_id,
+        project_name: approval.project ? 
+          `${approval.project.site_name} - ${approval.project.product_name}` : 
+          '프로젝트',
+        category: approval.history_logs?.[0]?.category || null,  // 로그 카테고리 추가
+        attachments: approval.history_logs?.[0]?.attachments || [],  // 첨부파일 추가
+        requestType: 'received' as const  // 내가 받은 승인 요청
+      }));
+
+      // 3. 프로젝트 승인 요청 목록 - 내가 보낸 요청
+      const { data: sentApprovals } = await this.supabase
+        .from('approval_requests')
+        .select(`
+          *,
+          project:projects(site_name, product_name)
+        `)
+        .eq('requester_id', userId)
+        .eq('status', 'pending')
+        .order('created_at', { ascending: false })
+        .limit(10);
+
+      // 각 approval에 대해 history_logs 조회 (첨부파일 포함)
+      const sentApprovalsWithCategory = await Promise.all(
+        (sentApprovals || []).map(async (approval) => {
+          const { data: logData } = await this.supabase
+            .from('history_logs')
+            .select(`
+              category,
+              attachments:history_log_attachments(
+                id,
+                file_name,
+                file_path,
+                file_size,
+                mime_type,
+                created_at
+              )
+            `)
+            .eq('project_id', approval.project_id)
+            .eq('log_type', 'approval_request')
+            .eq('author_id', approval.requester_id)
+            .eq('target_user_id', approval.approver_id)
+            .gte('created_at', new Date(new Date(approval.created_at).getTime() - 2000).toISOString())
+            .lte('created_at', new Date(new Date(approval.created_at).getTime() + 2000).toISOString())
+            .single();
+          
+          return {
+            ...approval,
+            history_logs: logData ? [logData] : []
+          };
+        })
+      );
+
+      const formattedSentApprovals = (sentApprovalsWithCategory || []).map(approval => ({
+        id: approval.id,
+        type: 'project' as const,
+        title: '프로젝트 승인 요청 (대기중)',
+        description: approval.memo || '승인 대기 중인 요청입니다.',
+        requester_id: approval.requester_id,
+        requester_name: approval.requester_name,
+        approver_id: approval.approver_id,
+        approver_name: approval.approver_name,
+        status: 'pending' as const,
+        priority: 'low' as const,  // 내가 보낸 요청은 낮은 우선순위
+        created_at: approval.created_at,
+        project_id: approval.project_id,
+        project_name: approval.project ? 
+          `${approval.project.site_name} - ${approval.project.product_name}` : 
+          '프로젝트',
+        category: approval.history_logs?.[0]?.category || null,  // 로그 카테고리 추가
+        attachments: approval.history_logs?.[0]?.attachments || [],  // 첨부파일 추가
+        requestType: 'sent' as const  // 내가 보낸 승인 요청
+      }));
+
+      // 모든 프로젝트 승인 요청을 합치기
+      const allProjectApprovals = [...formattedReceivedApprovals, ...formattedSentApprovals];
+
+      const total = userApprovals.length + allProjectApprovals.length;
+
+      return {
+        userApprovals,
+        projectApprovals: allProjectApprovals,
+        total
+      };
+    } catch (error) {
+      console.error('Error fetching pending approvals:', error);
+      throw error;
     }
   }
 }

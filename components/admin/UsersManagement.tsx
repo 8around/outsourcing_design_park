@@ -4,7 +4,6 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Tabs, 
   Button, 
-  Space, 
   Input, 
   Modal, 
   message, 
@@ -15,8 +14,7 @@ import {
 } from 'antd';
 import { 
   ReloadOutlined, 
-  SearchOutlined, 
-  ExportOutlined
+  SearchOutlined
 } from '@ant-design/icons';
 import { approvalService } from '@/lib/services/approval.service';
 import { useAuth } from '@/lib/hooks/useAuth';
@@ -31,7 +29,7 @@ interface User {
   id: string;
   name: string;
   email: string;
-  phone?: string;
+  phone?: string | null;
   created_at: string;
   is_approved: boolean;
   approved_at?: string | null;
@@ -213,33 +211,6 @@ export default function UsersManagement() {
     loadStats();
   };
 
-  // 데이터 내보내기
-  const handleExport = () => {
-    // CSV 내보내기 로직
-    const csvData = filteredUsers.map(user => ({
-      이름: user.name,
-      이메일: user.email,
-      전화번호: user.phone || '',
-      가입일: user.created_at,
-      상태: user.is_approved ? '승인됨' : (user.approved_at ? '거절됨' : '승인 대기'),
-      역할: user.role === 'admin' ? '관리자' : '사용자'
-    }));
-
-    const csv = [
-      Object.keys(csvData[0]).join(','),
-      ...csvData.map(row => Object.values(row).join(','))
-    ].join('\n');
-
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    link.setAttribute('href', url);
-    link.setAttribute('download', `users_${activeTab}_${new Date().toISOString().split('T')[0]}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    message.success('사용자 목록이 CSV 파일로 내보내기 되었습니다.');
-  };
 
   // 컴포넌트 마운트 시
   useEffect(() => {
@@ -265,38 +236,21 @@ export default function UsersManagement() {
                 onSearch={setSearchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full"
-                style={{
-                  '& .ant-input': {
-                    borderRadius: '12px',
-                    border: '1px solid #e5e7eb',
-                    background: '#ffffff',
-                  }
-                }}
                 prefix={<SearchOutlined className="text-gray-400" />}
               />
             </div>
           </div>
           
           {/* Action Buttons */}
-          <Space size="middle">
-            <Button 
-              icon={<ExportOutlined />} 
-              onClick={handleExport}
-              disabled={filteredUsers.length === 0}
-              className="h-10 px-6 border-gray-200 hover:border-primary-300 hover:text-primary-600 rounded-soft font-medium transition-smooth"
-            >
-              내보내기
-            </Button>
-            <Button 
-              icon={<ReloadOutlined />} 
-              onClick={handleRefresh}
-              loading={loading}
-              type="primary"
-              className="h-10 px-6 bg-primary-600 hover:bg-primary-500 border-primary-600 hover:border-primary-500 rounded-soft font-medium shadow-soft hover:shadow-soft-md transition-smooth"
-            >
-              새로고침
-            </Button>
-          </Space>
+          <Button 
+            icon={<ReloadOutlined />} 
+            onClick={handleRefresh}
+            loading={loading}
+            type="primary"
+            className="h-10 px-6 bg-primary-600 hover:bg-primary-500 border-primary-600 hover:border-primary-500 rounded-soft font-medium shadow-soft hover:shadow-soft-md transition-smooth"
+          >
+            새로고침
+          </Button>
         </div>
       </div>
 
@@ -316,17 +270,6 @@ export default function UsersManagement() {
                     <div className="w-2 h-2 bg-warning-500 rounded-full animate-pulse"></div>
                     <span className="font-semibold">승인 대기</span>
                   </div>
-                  {stats.pending > 0 && (
-                    <Badge 
-                      count={stats.pending} 
-                      className="!bg-warning-100 !text-warning-700 !border-warning-300"
-                      style={{ 
-                        backgroundColor: '#fef3c7',
-                        color: '#92400e',
-                        border: '1px solid #fde68a'
-                      }}
-                    />
-                  )}
                 </div>
               ),
               children: (
@@ -377,7 +320,6 @@ export default function UsersManagement() {
               label: (
                 <div className="flex items-center gap-3 px-2 py-1">
                   <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 bg-error-500 rounded-full"></div>
                     <span className="font-semibold">거절됨</span>
                   </div>
                   {stats.rejected > 0 && (

@@ -1,0 +1,148 @@
+import { createClient } from '@/lib/supabase/client'
+
+export class EmailClientService {
+  private supabase = createClient();
+  /**
+   * 프로젝트 승인 요청 이메일 발송
+   */
+  async sendProjectApprovalRequest(
+    approverEmail: string,
+    requesterName: string,
+    projectName: string,
+    projectId: string,
+    memo: string,
+    category: string
+  ): Promise<{ success: boolean; error?: string }> {
+    try {
+      const { data, error } = await this.supabase.functions.invoke('send-email', {
+        body: {
+          type: 'project-approval-request',
+          data: {
+            approverEmail,
+            requesterName,
+            projectName,
+            projectId,
+            memo,
+            category
+          }
+        }
+      })
+
+      if (error) throw error
+
+      return { success: true }
+    } catch (error) {
+      console.error('Error sending project approval request email:', error)
+      return { 
+        success: false, 
+        error: error instanceof Error ? error.message : '이메일 발송에 실패했습니다.' 
+      }
+    }
+  }
+
+  /**
+   * 프로젝트 승인/반려 결과 이메일 발송
+   */
+  async sendProjectApprovalResult(
+    requesterEmail: string,
+    approverName: string,
+    projectName: string,
+    projectId: string,
+    status: 'approved' | 'rejected',
+    memo?: string
+  ): Promise<{ success: boolean; error?: string }> {
+    try {
+      const { data, error } = await this.supabase.functions.invoke('send-email', {
+        body: {
+          type: 'project-approval-result',
+          data: {
+            requesterEmail,
+            approverName,
+            projectName,
+            projectId,
+            status,
+            memo
+          }
+        }
+      })
+
+      if (error) throw error
+
+      return { success: true }
+    } catch (error) {
+      console.error('Error sending project approval result email:', error)
+      return { 
+        success: false, 
+        error: error instanceof Error ? error.message : '이메일 발송에 실패했습니다.' 
+      }
+    }
+  }
+
+  /**
+   * 사용자 승인/거절 이메일 발송
+   */
+  async sendUserApprovalEmail(
+    email: string,
+    userName: string,
+    status: 'approved' | 'rejected',
+    reason?: string
+  ): Promise<{ success: boolean; error?: string }> {
+    try {
+      const { data, error } = await this.supabase.functions.invoke('send-email', {
+        body: {
+          type: 'user-approval',
+          data: {
+            email,
+            userName,
+            status,
+            reason
+          }
+        }
+      })
+
+      if (error) throw error
+
+      return { success: true }
+    } catch (error) {
+      console.error('Error sending user approval email:', error)
+      return { 
+        success: false, 
+        error: error instanceof Error ? error.message : '이메일 발송에 실패했습니다.' 
+      }
+    }
+  }
+
+  /**
+   * 관리자에게 신규 가입 알림 이메일 발송
+   */
+  async sendNewSignupNotification(
+    adminEmails: string[],
+    newUserName: string,
+    newUserEmail: string
+  ): Promise<{ success: boolean; error?: string }> {
+    try {
+      const { data, error } = await this.supabase.functions.invoke('send-email', {
+        body: {
+          type: 'new-signup',
+          data: {
+            adminEmails,
+            newUserName,
+            newUserEmail
+          }
+        }
+      })
+
+      if (error) throw error
+
+      return { success: true }
+    } catch (error) {
+      console.error('Error sending new signup notification:', error)
+      return { 
+        success: false, 
+        error: error instanceof Error ? error.message : '이메일 발송에 실패했습니다.' 
+      }
+    }
+  }
+}
+
+export const emailClientService = new EmailClientService()

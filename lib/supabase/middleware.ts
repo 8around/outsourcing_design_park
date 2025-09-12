@@ -61,8 +61,30 @@ export async function updateSession(request: NextRequest) {
     "/calendar",
     "/notifications",
   ];
+  
+  // Admin 전용 경로 정의
+  const adminOnlyPaths = [
+    "/admin/users",
+    "/admin/reports",
+    "/admin/settings"
+  ];
   const authPaths = ["/login", "/signup", "/reset-password"];
   const pathname = request.nextUrl.pathname;
+
+  // 이메일 인증 후 대시보드로 오는 경우 처리
+  if (pathname === "/dashboard" || pathname === "/") {
+    const verified = request.nextUrl.searchParams.get("verified");
+    const message = request.nextUrl.searchParams.get("message");
+    
+    if (verified === "true" || message === "approval_pending") {
+      // 이메일 인증 완료 후 로그인 페이지로 리다이렉트
+      const url = request.nextUrl.clone();
+      url.pathname = "/login";
+      url.searchParams.set("verified", "true");
+      url.searchParams.delete("message");
+      return NextResponse.redirect(url);
+    }
+  }
 
   // 보호된 경로에 미인증 사용자가 접근하려고 할 때
   if (protectedPaths.some((path) => pathname.startsWith(path))) {
@@ -99,11 +121,11 @@ export async function updateSession(request: NextRequest) {
       }
 
       // Admin 경로 접근 권한 체크
-      if (pathname.startsWith("/admin")) {
+      if (pathname.startsWith("/admin") || adminOnlyPaths.some(path => pathname.startsWith(path))) {
         if (userData.role !== "admin") {
           // 일반 사용자가 admin 경로에 접근하려는 경우
           const url = request.nextUrl.clone();
-          url.pathname = "/dashboard";
+          url.pathname = "/";
           url.searchParams.set("message", "unauthorized");
           return NextResponse.redirect(url);
         }

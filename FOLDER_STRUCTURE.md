@@ -27,24 +27,29 @@ projectAdminManagment/
 │   │   │   ├── page.tsx
 │   │   │   └── loading.tsx
 │   │   ├── reset-password/             # 비밀번호 재설정
-│   │   │   ├── page.tsx
+│   │   │   ├── page.tsx                # 재설정 메일 요청 페이지 (구현됨)
+│   │   │   ├── confirm/                # 메일 링크 진입 후 비밀번호 변경 (구현됨)
+│   │   │   │   └── page.tsx
 │   │   │   └── loading.tsx
+│   │   ├── loading.tsx                  # 인증 페이지 로딩
 │   │   └── layout.tsx                  # 인증 레이아웃
 │   │                                    # → 인증 섹션 레이아웃 (Auth routes 전용)
 │   │
 │   ├── (dashboard)/                    # 메인 대시보드 라우트 그룹
 │   │   ├── page.tsx                    # 홈 대시보드 (글로벌 로그 피드)
+│   │   ├── loading.tsx                 # 대시보드 로딩
 │   │   ├── projects/                   # 프로젝트 관리
 │   │   │   ├── page.tsx                # 프로젝트 목록
+│   │   │   ├── loading.tsx             # 프로젝트 목록 로딩
 │   │   │   ├── [id]/                   # 프로젝트 상세
 │   │   │   │   ├── page.tsx
+│   │   │   │   ├── loading.tsx         # 프로젝트 상세 로딩
 │   │   │   │   ├── edit/
 │   │   │   │   │   └── page.tsx
 │   │   │   │   ├── logs/               # 히스토리 로그
 │   │   │   │   │   └── page.tsx
-│   │   │   │   ├── approval/           # 승인 관리
-│   │   │   │   │   └── page.tsx
-│   │   │   │   └── loading.tsx
+│   │   │   │   └── approval/           # 승인 관리
+│   │   │   │       └── page.tsx
 │   │   │   ├── new/                    # 프로젝트 생성
 │   │   │   │   └── page.tsx
 │   │   │   └── favorites/              # 즐겨찾기 프로젝트
@@ -59,6 +64,7 @@ projectAdminManagment/
 │   │   │   └── loading.tsx
 │   │   │
 │   │   ├── admin/                      # 관리자 전용
+│   │   │   ├── loading.tsx             # 관리자 페이지 로딩
 │   │   │   ├── users/                  # 사용자 관리 (구현됨)
 │   │   │   │   └── page.tsx
 │   │   │   ├── reports/                # 리포트 관리
@@ -75,6 +81,10 @@ projectAdminManagment/
 │   │   │   └── default.tsx
 │   │   │
 │   │   └── layout.tsx                  # 대시보드 레이아웃
+│   │
+│   ├── auth/                           # 인증 관련 라우트
+│   │   └── callback/                   # 이메일 인증 콜백
+│   │       └── route.ts                # Supabase Auth 이메일 확인 처리
 │   │
 │   ├── api/                            # API 라우트 (필요시)
 │   │   ├── webhooks/
@@ -161,6 +171,7 @@ projectAdminManagment/
 │   │   └── NotificationSettings.tsx
 │   │
 │   ├── common/                        # 공통 UI 컴포넌트
+│   │   ├── NavigationProgress.tsx     # 페이지 전환 로딩 인디케이터 (구현됨)
 │   │   ├── layout/
 │   │   │   ├── Header.tsx
 │   │   │   ├── Sidebar.tsx
@@ -175,9 +186,10 @@ projectAdminManagment/
 │   │   │   ├── Card.tsx
 │   │   │   ├── Badge.tsx
 │   │   │   ├── Alert.tsx
-│   │   │   ├── Loading.tsx
+│   │   │   ├── Loading.tsx            # 로딩 컴포넌트 (구현됨)
 │   │   │   ├── Skeleton.tsx
-│   │   │   └── Toast.tsx
+│   │   │   ├── Toast.tsx
+│   │   │   └── index.ts                # UI 컴포넌트 export
 │   │   └── forms/                     # 폼 관련 컴포넌트
 │   │       ├── FormField.tsx
 │   │       ├── FormError.tsx
@@ -191,7 +203,7 @@ projectAdminManagment/
 ├── lib/                               # 비즈니스 로직 및 유틸리티
 │   ├── supabase/                     # Supabase 클라이언트 설정
 │   │   ├── client.ts                 # 클라이언트 사이드 Supabase
-│   │   ├── server.ts                 # 서버 사이드 Supabase
+│   │   ├── server.ts                 # 서버 사이드 Supabase (구현됨)
 │   │   ├── admin.ts                  # Admin 클라이언트
 │   │   └── middleware.ts             # Supabase 미들웨어
 │   │
@@ -218,7 +230,7 @@ projectAdminManagment/
 │   │   ├── useAuth.ts               # 인증 관련 커스텀 훅 (구현됨)
 │   │   ├── useProjects.ts
 │   │   ├── useRefresh.ts             # 수동 새로고침 관리
-│   │   ├── useNotifications.ts
+│   │   ├── useNotifications.ts      # 알림 관련 커스텀 훅 (구현됨 - DB 연동)
 │   │   ├── useDebounce.ts
 │   │   ├── useInfiniteScroll.ts
 │   │   └── useMediaQuery.ts
@@ -227,7 +239,7 @@ projectAdminManagment/
 │   │   ├── auth.store.ts            # 인증 상태 전역 관리 (구현됨)
 │   │   ├── projects.store.ts
 │   │   ├── ui.store.ts
-│   │   └── notifications.store.ts
+│   │   └── notifications.store.ts   # 알림 상태 전역 관리 (구현됨 - 실시간 업데이트)
 │   │
 │   ├── utils/                        # 유틸리티 함수
 │   │   ├── date.ts                  # 날짜 관련 유틸
@@ -261,6 +273,7 @@ projectAdminManagment/
 │   ├── log.ts
 │   ├── approval.ts
 │   ├── notification.ts
+│   ├── database.ts                  # 데이터베이스 타입 정의 (구현됨)
 │   ├── api.ts
 │   └── global.d.ts
 │
@@ -344,6 +357,8 @@ projectAdminManagment/
   - 미승인 사용자 자동 로그아웃
   - 페이지 새로고침 시 인증 상태 유지
   - 자동 라우팅 보호
+  - 비밀번호 재설정 이메일 발송 (`/reset-password`) 및 확인 (`/reset-password/confirm`)
+  - 재설정 성공 시 세션 종료 후 `/login`으로 유도 (`/login?reset=success` 메시지 처리)
 
 ### 역할 기반 접근 제어 (✅ 구현 완료)
 - **페이지**: `app/(dashboard)/admin/users`

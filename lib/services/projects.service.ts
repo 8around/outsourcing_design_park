@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/client';
 import { generateUniqueFileName } from '@/lib/utils/file';
+import { logService } from './logs.service';
 import type { 
   Project, 
   ProcessStage,
@@ -13,6 +14,7 @@ import type {
   ProcessStageName,
   ProcessStatus
 } from '@/types/project';
+import type { LogCategory } from '@/types/log';
 
 export class ProjectService {
   private supabase = createClient();
@@ -29,6 +31,8 @@ export class ProjectService {
         .select(`
           *,
           creator:created_by(id, name, email),
+          sales_manager_user:sales_manager(id, name, email),
+          site_manager_user:site_manager(id, name, email),
           process_stages(*),
           project_images(*),
           favorites:project_favorites(*)
@@ -62,10 +66,12 @@ export class ProjectService {
               .select('project_id')
               .eq('user_id', user.id);
             
-            if (favorites && favorites.length > 0) {
-              const projectIds = favorites.map(f => f.project_id);
-              query = query.in('id', projectIds);
-            }
+            // 즐겨찾기가 있든 없든 필터 적용
+            const projectIds = favorites?.map(f => f.project_id) || [];
+            query = query.in('id', projectIds);
+          } else {
+            // 사용자가 없으면 빈 결과 반환
+            query = query.in('id', []);
           }
         }
       }
@@ -106,7 +112,10 @@ export class ProjectService {
         .select(`
           *,
           creator:created_by(id, name, email),
+          sales_manager_user:sales_manager(id, name, email),
+          site_manager_user:site_manager(id, name, email),
           process_stages(*),
+          project_images(*),
           favorites:project_favorites(*)
         `)
         .eq('id', projectId)
@@ -132,11 +141,20 @@ export class ProjectService {
       start_date?: string;
       end_date?: string;
     }>,
-    currentStage?: string
+    currentStage?: string,
+    logContent?: string,
+    logCategory?: LogCategory
   ): Promise<Project> {
     try {
       const { data: { user } } = await this.supabase.auth.getUser();
       if (!user) throw new Error('인증되지 않은 사용자');
+
+      // 사용자 정보 조회
+      const { data: userData } = await this.supabase
+        .from('users')
+        .select('name')
+        .eq('id', user.id)
+        .single();
 
       // 1. 프로젝트 생성
       const { data: project, error: projectError } = await this.supabase
@@ -185,7 +203,18 @@ export class ProjectService {
 
       if (stagesError) throw stagesError;
 
-      // 4. 생성된 프로젝트 전체 정보 조회
+      // 4. 히스토리 로그 생성 (생략 가능)
+      if (logContent && logCategory) {
+        await logService.createManualLog({
+          project_id: project.id,
+          category: logCategory,
+          content: logContent,
+          author_id: user.id,
+          author_name: userData?.name || user.email || '사용자'
+        });
+      }
+
+      // 5. 생성된 프로젝트 전체 정보 조회
       const createdProject = await this.getProject(project.id);
       if (!createdProject) throw new Error('프로젝트 생성 후 조회 실패');
 
@@ -247,8 +276,23 @@ export class ProjectService {
   }
 
   // 프로젝트 수정
-  async updateProject(projectId: string, dto: UpdateProjectDTO): Promise<Project> {
+  async updateProject(
+    projectId: string, 
+    dto: UpdateProjectDTO,
+    logContent?: string,
+    logCategory?: LogCategory
+  ): Promise<Project> {
     try {
+      const { data: { user } } = await this.supabase.auth.getUser();
+      if (!user) throw new Error('인증되지 않은 사용자');
+
+      // 사용자 정보 조회
+      const { data: userData } = await this.supabase
+        .from('users')
+        .select('name')
+        .eq('id', user.id)
+        .single();
+
       const { data, error } = await this.supabase
         .from('projects')
         .update({
@@ -261,6 +305,17 @@ export class ProjectService {
         .single();
 
       if (error) throw error;
+
+      // 히스토리 로그 생성 (생략 가능)
+      if (logContent && logCategory) {
+        await logService.createManualLog({
+          project_id: projectId,
+          category: logCategory,
+          content: logContent,
+          author_id: user.id,
+          author_name: userData?.name || user.email || '사용자'
+        });
+      }
 
       const updatedProject = await this.getProject(projectId);
       if (!updatedProject) throw new Error('프로젝트 수정 후 조회 실패');
@@ -500,6 +555,113 @@ export class ProjectService {
       };
     } catch (error) {
       console.error('프로젝트 통계 조회 실패:', error);
+      throw error;
+    }
+  }
+
+  // 대시보드 통계 조회
+  async getDashboardStats(): Promise<{
+    totalProjects: number;
+    activeProjects: number;
+    completedProjects: number;
+    totalProgress: number;
+    monthlyProgress: number;
+  }> {
+    try {
+      // 전체 프로젝트 수
+      const { count: totalProjects } = await this.supabase
+        .from('projects')
+        .select('*', { count: 'exact', head: true });
+
+      // 활성 프로젝트 (진행 중인 프로젝트)
+      const { count: activeProjects } = await this.supabase
+        .from('projects')
+        .select('*', { count: 'exact', head: true })
+        .not('current_process_stage', 'eq', 'completion');
+
+      // 완료된 프로젝트
+      const { count: completedProjects } = await this.supabase
+        .from('projects')
+        .select('*', { count: 'exact', head: true })
+        .eq('current_process_stage', 'completion');
+
+      // 전체 진행률 계산 (진행 중인 프로젝트들의 평균 진행률)
+      const { data: projects } = await this.supabase
+        .from('projects')
+        .select('current_process_stage')
+        .not('current_process_stage', 'eq', 'completion');
+
+      let totalProgress = 0;
+      if (projects && projects.length > 0) {
+        const stageProgress: Record<string, number> = {
+          contract: 7,
+          design: 14,
+          order: 21,
+          laser: 29,
+          welding: 36,
+          plating: 43,
+          painting: 50,
+          panel: 57,
+          assembly: 64,
+          shipping: 71,
+          installation: 79,
+          certification: 86,
+          closing: 93,
+          completion: 100
+        };
+        
+        const progressSum = projects.reduce((sum, project) => {
+          return sum + (stageProgress[project.current_process_stage] || 0);
+        }, 0);
+        
+        totalProgress = Math.round(progressSum / projects.length);
+      }
+
+      // 이번 달 진행률 (이번 달 생성된 프로젝트들의 진행률)
+      const startOfMonth = new Date();
+      startOfMonth.setDate(1);
+      startOfMonth.setHours(0, 0, 0, 0);
+
+      const { data: monthlyProjects } = await this.supabase
+        .from('projects')
+        .select('current_process_stage')
+        .gte('created_at', startOfMonth.toISOString());
+
+      let monthlyProgress = 0;
+      if (monthlyProjects && monthlyProjects.length > 0) {
+        const stageProgress: Record<string, number> = {
+          contract: 7,
+          design: 14,
+          order: 21,
+          laser: 29,
+          welding: 36,
+          plating: 43,
+          painting: 50,
+          panel: 57,
+          assembly: 64,
+          shipping: 71,
+          installation: 79,
+          certification: 86,
+          closing: 93,
+          completion: 100
+        };
+        
+        const progressSum = monthlyProjects.reduce((sum, project) => {
+          return sum + (stageProgress[project.current_process_stage] || 0);
+        }, 0);
+        
+        monthlyProgress = Math.round(progressSum / monthlyProjects.length);
+      }
+
+      return {
+        totalProjects: totalProjects || 0,
+        activeProjects: activeProjects || 0,
+        completedProjects: completedProjects || 0,
+        totalProgress: totalProgress || 0,
+        monthlyProgress: monthlyProgress || 0
+      };
+    } catch (error) {
+      console.error('대시보드 통계 조회 실패:', error);
       throw error;
     }
   }

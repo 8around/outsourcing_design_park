@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { 
   Card, Row, Col, Button, Input, Select, Space, Typography, Empty, 
-  Skeleton, Tag, Progress, message, Modal, Badge, Tooltip 
+  Skeleton, Tag, Progress, message, Modal, Badge, Tooltip, Pagination 
 } from 'antd'
 import {
   ProjectOutlined,
@@ -16,7 +16,6 @@ import {
   TeamOutlined,
   EditOutlined,
   EyeOutlined,
-  DeleteOutlined,
   ExclamationCircleOutlined,
   ReloadOutlined,
   UserOutlined,
@@ -56,14 +55,14 @@ export default function ProjectsPage() {
       const appliedFilters: ProjectFilters = {
         search: searchTerm || undefined,
         current_process_stage: selectedStage,
-        is_urgent: showUrgentOnly || undefined,
-        favorites_only: showFavoritesOnly || undefined
+        is_urgent: showUrgentOnly ? true : undefined,
+        favorites_only: showFavoritesOnly ? true : undefined
       }
 
       const response = await projectService.getProjects(
         appliedFilters,
         { sortBy: 'created_at', order: 'desc' },
-        { page: currentPage, limit: 20 }
+        { page: currentPage, limit: 10 }
       )
 
       setProjects(response.data)
@@ -89,28 +88,6 @@ export default function ProjectsPage() {
     }
   }
 
-  // 프로젝트 삭제
-  const handleDeleteProject = (e: React.MouseEvent, project: Project) => {
-    e.stopPropagation()
-    
-    confirm({
-      title: '프로젝트 삭제',
-      icon: <ExclamationCircleOutlined />,
-      content: `"${project.site_name}" 프로젝트를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.`,
-      okText: '삭제',
-      okType: 'danger',
-      cancelText: '취소',
-      onOk: async () => {
-        try {
-          await projectService.deleteProject(project.id)
-          message.success('프로젝트가 삭제되었습니다.')
-          fetchProjects(true)
-        } catch (error) {
-          message.error('프로젝트 삭제에 실패했습니다.')
-        }
-      }
-    })
-  }
 
   // 공정 상태 색상
   const getStageColor = (stage: ProcessStageName) => {
@@ -144,12 +121,12 @@ export default function ProjectsPage() {
   // 상태별 색상
   const getStatusColor = (project: Project) => {
     const hasDelayed = project.process_stages?.some(s => s.status === 'delayed')
-    if (hasDelayed) return 'error'
+    if (hasDelayed) return 'exception'
     
     const progress = calculateProgress(project)
     if (progress === 100) return 'success'
-    if (progress > 0) return 'processing'
-    return 'default'
+    if (progress > 0) return 'active'
+    return 'normal'
   }
 
   useEffect(() => {
@@ -209,6 +186,7 @@ export default function ProjectsPage() {
               size="large"
               allowClear
             >
+              <Option value="">전체</Option>
               {Object.entries(PROCESS_STAGES).map(([key, label]) => (
                 <Option key={key} value={key}>
                   {label}
@@ -354,11 +332,11 @@ export default function ProjectsPage() {
                           </div>
                           <div className="flex items-center gap-2">
                             <TeamOutlined />
-                            <span>{project.site_manager}</span>
+                            <span>{project.site_manager_user?.name || '미지정'}</span>
                           </div>
                           <div className="flex items-center gap-2">
                             <UserOutlined />
-                            <span>{project.sales_manager}</span>
+                            <span>{project.sales_manager_user?.name || '미지정'}</span>
                           </div>
                         </div>
 
@@ -408,14 +386,6 @@ export default function ProjectsPage() {
                               }}
                             />
                           </Tooltip>
-                          <Tooltip title="삭제">
-                            <Button
-                              size="small"
-                              danger
-                              icon={<DeleteOutlined />}
-                              onClick={(e) => handleDeleteProject(e, project)}
-                            />
-                          </Tooltip>
                         </div>
                       </div>
                     </div>
@@ -424,6 +394,21 @@ export default function ProjectsPage() {
             )
           })}
         </Row>
+      )}
+
+      {/* 페이지네이션 */}
+      {!loading && projects.length > 0 && (
+        <div className="flex justify-center mt-8">
+          <Pagination
+            current={currentPage}
+            total={totalProjects}
+            pageSize={10}
+            onChange={(page) => setCurrentPage(page)}
+            showSizeChanger={false}
+            showTotal={(total, range) => `${range[0]}-${range[1]} / 전체 ${total}개`}
+            className="mt-4"
+          />
+        </div>
       )}
     </div>
   )
