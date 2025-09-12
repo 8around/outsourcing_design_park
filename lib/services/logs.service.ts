@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/client'
+import { emailClientService } from '@/lib/services/email.client.service'
 import type { 
   CreateLogRequest, 
   CreateApprovalRequestLog, 
@@ -123,6 +124,38 @@ class LogService {
     // 3. 첨부파일 업로드
     if (data.attachments && data.attachments.length > 0) {
       await this.uploadAttachments(historyLog.id, data.attachments, data.requester_id)
+    }
+
+    // 4. 승인자 이메일 정보 가져오기
+    const { data: approverData } = await supabase
+      .from('users')
+      .select('email')
+      .eq('id', data.approver_id)
+      .single()
+
+    // 5. 프로젝트 정보 가져오기 (프로젝트명 포함)
+    const { data: projectData } = await supabase
+      .from('projects')
+      .select('site_name')
+      .eq('id', data.project_id)
+      .single()
+
+    // 6. 이메일 발송
+    if (approverData?.email) {
+      try {
+        await emailClientService.sendProjectApprovalRequest(
+          approverData.email,
+          data.requester_name,
+          projectData?.site_name || '프로젝트',
+          data.project_id,
+          data.memo,
+          data.category || '승인요청'
+        )
+        console.log('승인 요청 이메일 발송 성공')
+      } catch (error) {
+        // 이메일 발송 실패해도 승인 요청은 생성되도록 처리
+        console.error('승인 요청 이메일 발송 실패:', error)
+      }
     }
 
     return approvalRequest
