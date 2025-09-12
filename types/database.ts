@@ -157,7 +157,6 @@ export interface Database {
           status: 'pending' | 'approved' | 'rejected'
           response_memo: string | null
           responded_at: string | null
-          history_log_id: string | null
           created_at: string
         }
         Insert: {
@@ -171,7 +170,6 @@ export interface Database {
           status?: 'pending' | 'approved' | 'rejected'
           response_memo?: string | null
           responded_at?: string | null
-          history_log_id?: string | null
           created_at?: string
         }
         Update: {
@@ -185,7 +183,6 @@ export interface Database {
           status?: 'pending' | 'approved' | 'rejected'
           response_memo?: string | null
           responded_at?: string | null
-          history_log_id?: string | null
           created_at?: string
         }
       }

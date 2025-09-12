@@ -95,7 +95,7 @@ class LogService {
       throw new Error('승인 요청 로그 생성에 실패했습니다.')
     }
 
-    // 2. approval_requests 테이블에 승인 요청 생성 (history_log_id 포함)
+    // 2. approval_requests 테이블에 승인 요청 생성
     const { data: approvalRequest, error: approvalError } = await supabase
       .from('approval_requests')
       .insert({
@@ -105,8 +105,7 @@ class LogService {
         approver_id: data.approver_id,
         approver_name: data.approver_name,
         memo: data.memo,
-        status: 'pending',
-        history_log_id: historyLog.id  // 생성된 로그의 ID 저장
+        status: 'pending'
       })
       .select()
       .single()
@@ -340,24 +339,38 @@ class LogService {
     console.log('Deleting log:', logId, 'by user:', userId);
     
     // 1. 먼저 이 로그와 연결된 승인 요청이 있는지 확인
-    const { data: approvalRequests } = await supabase
-      .from('approval_requests')
-      .select('id')
-      .eq('history_log_id', logId)
+    // history_log_id 컬럼이 제거되었으므로 다른 방식으로 확인
+    const { data: logData } = await supabase
+      .from('history_logs')
+      .select('project_id, author_id, target_user_id, log_type')
+      .eq('id', logId)
+      .single()
     
-    console.log('Related approval requests:', approvalRequests);
-    
-    // 2. 연결된 승인 요청이 있으면 먼저 삭제
-    if (approvalRequests && approvalRequests.length > 0) {
-      for (const request of approvalRequests) {
-        console.log('Deleting approval request:', request.id);
-        const { error: approvalDeleteError } = await supabase
-          .from('approval_requests')
-          .delete()
-          .eq('id', request.id)
-          
-        if (approvalDeleteError) {
-          console.error('Error deleting approval request:', approvalDeleteError);
+    // 승인 요청 로그인 경우, 관련 approval_requests 찾기
+    if (logData && logData.log_type === 'approval_request') {
+      const { data: approvalRequests } = await supabase
+        .from('approval_requests')
+        .select('id')
+        .eq('project_id', logData.project_id)
+        .eq('requester_id', logData.author_id)
+        .eq('approver_id', logData.target_user_id)
+        .eq('status', 'pending')
+      
+      console.log('Related approval requests:', approvalRequests);
+      
+      // 연결된 승인 요청이 있으면 먼저 삭제
+      if (approvalRequests && approvalRequests.length > 0) {
+        for (const request of approvalRequests) {
+          console.log('Deleting approval request:', request.id);
+          const { error: approvalDeleteError } = await supabase
+            .from('approval_requests')
+            .delete()
+            .eq('id', request.id)
+            
+          if (approvalDeleteError) {
+            console.error('Error deleting approval request:', approvalDeleteError);
+            // 승인 요청 삭제 실패해도 계속 진행 (로그는 삭제할 수 있도록)
+          }
         }
       }
     }
@@ -410,7 +423,7 @@ class LogService {
   /**
    * 로그 수정 (내용만 수정 가능)
    */
-  async updateLog(logId: string, content: string) {
+  updateLog = async (logId: string, content: string) => {
     const supabase = createClient()
     
     const { data, error } = await supabase
