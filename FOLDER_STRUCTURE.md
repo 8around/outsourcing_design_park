@@ -27,7 +27,9 @@ projectAdminManagment/
 │   │   │   ├── page.tsx
 │   │   │   └── loading.tsx
 │   │   ├── reset-password/             # 비밀번호 재설정
-│   │   │   ├── page.tsx
+│   │   │   ├── page.tsx                # 재설정 메일 요청 페이지 (구현됨)
+│   │   │   ├── confirm/                # 메일 링크 진입 후 비밀번호 변경 (구현됨)
+│   │   │   │   └── page.tsx
 │   │   │   └── loading.tsx
 │   │   ├── loading.tsx                  # 인증 페이지 로딩
 │   │   └── layout.tsx                  # 인증 레이아웃
@@ -355,6 +357,8 @@ projectAdminManagment/
   - 미승인 사용자 자동 로그아웃
   - 페이지 새로고침 시 인증 상태 유지
   - 자동 라우팅 보호
+  - 비밀번호 재설정 이메일 발송 (`/reset-password`) 및 확인 (`/reset-password/confirm`)
+  - 재설정 성공 시 세션 종료 후 `/login`으로 유도 (`/login?reset=success` 메시지 처리)
 
 ### 역할 기반 접근 제어 (✅ 구현 완료)
 - **페이지**: `app/(dashboard)/admin/users`

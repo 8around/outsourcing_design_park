@@ -337,6 +337,40 @@ export class AuthService {
   }
 
   /**
+   * 사용자 프로필 업데이트 (이름, 전화번호)
+   */
+  async updateUserProfile(
+    data: { name: string; phone: string }
+  ): Promise<{ success: boolean; error?: string }> {
+    try {
+      // 현재 로그인한 사용자 정보 가져오기
+      const { data: { user }, error: authError } = await this.supabase.auth.getUser();
+      
+      if (authError || !user) {
+        throw new Error('로그인이 필요합니다.');
+      }
+
+      // users 테이블 업데이트
+      const { error: updateError } = await this.supabase
+        .from('users')
+        .update({
+          name: data.name,
+          phone: data.phone,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', user.id);
+
+      if (updateError) {
+        throw updateError;
+      }
+
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: this.getErrorMessage(error) };
+    }
+  }
+
+  /**
    * 에러 메시지 처리
    */
   private getErrorMessage(error: unknown): string {
