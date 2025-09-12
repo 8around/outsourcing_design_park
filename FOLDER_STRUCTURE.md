@@ -218,7 +218,7 @@ projectAdminManagment/
 │   │   ├── useAuth.ts               # 인증 관련 커스텀 훅 (구현됨)
 │   │   ├── useProjects.ts
 │   │   ├── useRefresh.ts             # 수동 새로고침 관리
-│   │   ├── useNotifications.ts
+│   │   ├── useNotifications.ts      # 알림 관련 커스텀 훅 (구현됨 - DB 연동)
 │   │   ├── useDebounce.ts
 │   │   ├── useInfiniteScroll.ts
 │   │   └── useMediaQuery.ts
@@ -261,6 +261,7 @@ projectAdminManagment/
 │   ├── log.ts
 │   ├── approval.ts
 │   ├── notification.ts
+│   ├── database.ts                  # 데이터베이스 타입 정의 (구현됨)
 │   ├── api.ts
 │   └── global.d.ts
 │

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { 
   Card, 
   Button, 
@@ -16,7 +16,8 @@ import {
   Divider,
   Empty,
   message,
-  Modal
+  Modal,
+  Spin
 } from 'antd'
 import {
   BellOutlined,
@@ -33,230 +34,124 @@ import {
   ProjectOutlined,
   CalendarOutlined,
   FileTextOutlined,
-  TeamOutlined
+  TeamOutlined,
+  ReloadOutlined,
+  CheckSquareOutlined
 } from '@ant-design/icons'
 import { useRouter } from 'next/navigation'
 import moment from 'moment'
+import { useNotifications } from '@/lib/hooks/useNotifications'
+import type { Notification } from '@/lib/services/notification.service'
 
 const { Title, Text } = Typography
 const { Option } = Select
 
-interface Notification {
-  id: string
-  title: string
-  message: string
-  type: 'info' | 'success' | 'warning' | 'error'
-  category: 'project' | 'approval' | 'deadline' | 'meeting' | 'system'
-  priority: 'high' | 'medium' | 'low'
-  isRead: boolean
-  createdAt: Date
-  projectId?: string
-  projectName?: string
-  actionUrl?: string
-  sender?: string
-  metadata?: Record<string, any>
+// 알림 타입별 아이콘
+const typeIcons = {
+  approval_request: <ExclamationCircleOutlined style={{ color: '#faad14' }} />,
+  approval_response: <CheckCircleOutlined style={{ color: '#52c41a' }} />,
+  system: <InfoCircleOutlined style={{ color: '#1890ff' }} />
 }
 
-const notificationIcons = {
-  info: <InfoCircleOutlined style={{ color: '#1890ff' }} />,
-  success: <CheckCircleOutlined style={{ color: '#52c41a' }} />,
-  warning: <WarningOutlined style={{ color: '#faad14' }} />,
-  error: <ExclamationCircleOutlined style={{ color: '#ff4d4f' }} />
+// 알림 타입별 색상
+const typeColors = {
+  approval_request: 'orange',
+  approval_response: 'green',
+  system: 'blue'
 }
 
-const categoryIcons = {
-  project: <ProjectOutlined />,
-  approval: <CheckOutlined />,
-  deadline: <ClockCircleOutlined />,
-  meeting: <TeamOutlined />,
-  system: <SettingOutlined />
-}
-
-const categoryColors = {
-  project: 'blue',
-  approval: 'orange',
-  deadline: 'red',
-  meeting: 'green',
-  system: 'purple'
-}
-
-const categoryLabels = {
-  project: '프로젝트',
-  approval: '승인',
-  deadline: '마감일',
-  meeting: '회의',
+// 알림 타입별 라벨
+const typeLabels = {
+  approval_request: '승인 요청',
+  approval_response: '승인 응답',
   system: '시스템'
 }
 
 export default function NotificationsPage() {
   const router = useRouter()
-  const [loading, setLoading] = useState(true)
-  const [notifications, setNotifications] = useState<Notification[]>([])
-  const [filteredNotifications, setFilteredNotifications] = useState<Notification[]>([])
+  const {
+    notifications,
+    unreadCount,
+    loading,
+    error,
+    markAsRead,
+    markMultipleAsRead,
+    markAllAsRead,
+    deleteNotification,
+    deleteMultipleNotifications,
+    refreshNotifications
+  } = useNotifications()
+  
   const [selectedNotifications, setSelectedNotifications] = useState<string[]>([])
   const [filterType, setFilterType] = useState<'all' | 'unread' | 'read'>('all')
+  const [isRefreshing, setIsRefreshing] = useState(false)
 
-  // 임시 알림 데이터
-  useEffect(() => {
-    const mockNotifications: Notification[] = [
-      {
-        id: '1',
-        title: '프로젝트 승인 요청',
-        message: 'ABC 제조공장 설비 구축 프로젝트의 도면 승인이 필요합니다.',
-        type: 'warning',
-        category: 'approval',
-        priority: 'high',
-        isRead: false,
-        createdAt: new Date('2024-03-01T10:30:00'),
-        projectId: '1',
-        projectName: 'ABC 제조공장 설비 구축',
-        actionUrl: '/projects/1/approval',
-        sender: '이영희',
-        metadata: { stage: '도면설계', approvalType: 'design' }
-      },
-      {
-        id: '2',
-        title: '마감일 임박 알림',
-        message: '자재 발주 작업이 3일 후 마감됩니다.',
-        type: 'warning',
-        category: 'deadline',
-        priority: 'high',
-        isRead: false,
-        createdAt: new Date('2024-03-01T09:15:00'),
-        projectId: '1',
-        projectName: 'ABC 제조공장 설비 구축',
-        actionUrl: '/projects/1',
-        metadata: { daysLeft: 3, taskName: '자재 발주' }
-      },
-      {
-        id: '3',
-        title: '회의 일정 알림',
-        message: '내일 오후 2시 프로젝트 중간 검토 회의가 있습니다.',
-        type: 'info',
-        category: 'meeting',
-        priority: 'medium',
-        isRead: false,
-        createdAt: new Date('2024-02-29T16:00:00'),
-        actionUrl: '/calendar',
-        metadata: { meetingTime: '2024-03-02T14:00:00', location: '회의실 A' }
-      },
-      {
-        id: '4',
-        title: '작업 완료 보고',
-        message: '레이저 가공 작업이 완료되었습니다.',
-        type: 'success',
-        category: 'project',
-        priority: 'medium',
-        isRead: true,
-        createdAt: new Date('2024-02-29T14:30:00'),
-        projectId: '1',
-        projectName: 'ABC 제조공장 설비 구축',
-        actionUrl: '/projects/1',
-        sender: '정수진',
-        metadata: { stage: '레이저', completionRate: 100 }
-      },
-      {
-        id: '5',
-        title: '새 댓글',
-        message: 'XYZ 물류센터 건설 프로젝트에 새 댓글이 등록되었습니다.',
-        type: 'info',
-        category: 'project',
-        priority: 'low',
-        isRead: true,
-        createdAt: new Date('2024-02-29T11:20:00'),
-        projectId: '2',
-        projectName: 'XYZ 물류센터 건설',
-        actionUrl: '/projects/2/logs',
-        sender: '송미래'
-      },
-      {
-        id: '6',
-        title: '시스템 업데이트',
-        message: '시스템 유지보수가 완료되었습니다.',
-        type: 'success',
-        category: 'system',
-        priority: 'low',
-        isRead: true,
-        createdAt: new Date('2024-02-28T23:00:00'),
-        metadata: { updateVersion: '1.2.3', downtime: '30분' }
-      },
-      {
-        id: '7',
-        title: '예산 초과 경고',
-        message: 'DEF 생산라인 확장 프로젝트의 예산이 90%에 도달했습니다.',
-        type: 'error',
-        category: 'project',
-        priority: 'high',
-        isRead: false,
-        createdAt: new Date('2024-02-28T15:45:00'),
-        projectId: '3',
-        projectName: 'DEF 생산라인 확장',
-        actionUrl: '/projects/3',
-        metadata: { budgetUsed: 90, budgetRemaining: 10 }
-      },
-      {
-        id: '8',
-        title: '문서 승인 완료',
-        message: '품질관리 시스템 계약서가 승인되었습니다.',
-        type: 'success',
-        category: 'approval',
-        priority: 'medium',
-        isRead: false,
-        createdAt: new Date('2024-02-28T13:20:00'),
-        projectId: '4',
-        projectName: 'GHI 품질관리 시스템',
-        actionUrl: '/projects/4',
-        sender: '관리자'
-      }
-    ]
-
-    setTimeout(() => {
-      setNotifications(mockNotifications.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()))
-      setLoading(false)
-    }, 1000)
-  }, [])
-
-  // 필터링 로직
-  useEffect(() => {
-    let filtered = notifications
+  // 필터링된 알림 목록
+  const filteredNotifications = useMemo(() => {
+    let filtered = [...notifications]
 
     // 읽음/안읽음 필터
     if (filterType === 'unread') {
-      filtered = filtered.filter(n => !n.isRead)
+      filtered = filtered.filter(n => !n.is_read)
     } else if (filterType === 'read') {
-      filtered = filtered.filter(n => n.isRead)
+      filtered = filtered.filter(n => n.is_read)
     }
 
-    setFilteredNotifications(filtered)
+    return filtered
   }, [notifications, filterType])
 
-  // 안읽은 알림 수
-  const unreadCount = notifications.filter(n => !n.isRead).length
-
-  // 알림 읽음 처리
-  const markAsRead = (notificationId: string) => {
-    setNotifications(prev => prev.map(notification =>
-      notification.id === notificationId
-        ? { ...notification, isRead: true }
-        : notification
-    ))
+  // 새로고침 처리
+  const handleRefresh = async () => {
+    setIsRefreshing(true)
+    try {
+      await refreshNotifications()
+      message.success('알림을 새로고침했습니다')
+    } catch (err) {
+      message.error('새로고침에 실패했습니다')
+    } finally {
+      setIsRefreshing(false)
+    }
   }
 
-  // 알림 삭제
-  const deleteNotification = (notificationId: string) => {
+  // 알림 클릭 처리
+  const handleNotificationClick = async (notification: Notification) => {
+    // 읽지 않은 알림이면 읽음 처리
+    if (!notification.is_read) {
+      try {
+        await markAsRead(notification.id)
+      } catch (err) {
+        console.error('Failed to mark as read:', err)
+      }
+    }
+
+    // 관련 페이지로 이동
+    if (notification.related_type === 'project' && notification.related_id) {
+      router.push(`/projects/${notification.related_id}`)
+    } else if (notification.related_type === 'approval_request' && notification.related_id) {
+      // 승인 요청 관련 페이지로 이동
+      router.push(`/projects/${notification.related_id}/approval`)
+    }
+  }
+
+  // 알림 삭제 처리
+  const handleDeleteNotification = async (notificationId: string) => {
     Modal.confirm({
       title: '알림 삭제',
       content: '이 알림을 삭제하시겠습니까?',
-      onOk: () => {
-        setNotifications(prev => prev.filter(n => n.id !== notificationId))
-        setSelectedNotifications(prev => prev.filter(id => id !== notificationId))
-        message.success('알림이 삭제되었습니다')
+      onOk: async () => {
+        try {
+          await deleteNotification(notificationId)
+          setSelectedNotifications(prev => prev.filter(id => id !== notificationId))
+          message.success('알림이 삭제되었습니다')
+        } catch (err) {
+          message.error('알림 삭제에 실패했습니다')
+        }
       }
     })
   }
 
   // 선택된 알림 삭제
-  const deleteSelectedNotifications = () => {
+  const handleDeleteSelectedNotifications = () => {
     if (selectedNotifications.length === 0) {
       message.warning('삭제할 알림을 선택하세요')
       return
@@ -265,22 +160,25 @@ export default function NotificationsPage() {
     Modal.confirm({
       title: '알림 삭제',
       content: `선택한 ${selectedNotifications.length}개의 알림을 삭제하시겠습니까?`,
-      onOk: () => {
-        setNotifications(prev => prev.filter(n => !selectedNotifications.includes(n.id)))
-        setSelectedNotifications([])
-        message.success('선택한 알림들이 삭제되었습니다')
+      onOk: async () => {
+        try {
+          await deleteMultipleNotifications(selectedNotifications)
+          setSelectedNotifications([])
+          message.success('선택한 알림들이 삭제되었습니다')
+        } catch (err) {
+          message.error('알림 삭제에 실패했습니다')
+        }
       }
     })
   }
 
-  // 알림 클릭 처리
-  const handleNotificationClick = (notification: Notification) => {
-    if (!notification.isRead) {
-      markAsRead(notification.id)
-    }
-
-    if (notification.actionUrl) {
-      router.push(notification.actionUrl)
+  // 모든 알림 읽음 처리
+  const handleMarkAllAsRead = async () => {
+    try {
+      await markAllAsRead()
+      message.success('모든 알림을 읽음 처리했습니다')
+    } catch (err) {
+      message.error('읽음 처리에 실패했습니다')
     }
   }
 
@@ -303,9 +201,9 @@ export default function NotificationsPage() {
   }
 
   // 시간 포맷팅
-  const formatTime = (date: Date) => {
+  const formatTime = (dateString: string) => {
     const now = moment()
-    const notificationTime = moment(date)
+    const notificationTime = moment(dateString)
     
     if (now.diff(notificationTime, 'minutes') < 60) {
       return `${now.diff(notificationTime, 'minutes')}분 전`
@@ -350,17 +248,34 @@ export default function NotificationsPage() {
               <Option value="unread">안읽음</Option>
               <Option value="read">읽음</Option>
             </Select>
+            
+            {unreadCount > 0 && (
+              <Button
+                icon={<CheckSquareOutlined />}
+                onClick={handleMarkAllAsRead}
+              >
+                모두 읽음 처리
+              </Button>
+            )}
           </Space>
 
           {/* 액션 버튼 */}
           <Space>
+            <Button
+              icon={<ReloadOutlined />}
+              onClick={handleRefresh}
+              loading={isRefreshing}
+            >
+              새로고침
+            </Button>
+            
             {selectedNotifications.length > 0 && (
               <>
                 <Text type="secondary">{selectedNotifications.length}개 선택됨</Text>
                 <Button 
                   danger
                   icon={<DeleteOutlined />}
-                  onClick={deleteSelectedNotifications}
+                  onClick={handleDeleteSelectedNotifications}
                 >
                   선택 삭제
                 </Button>
@@ -372,9 +287,18 @@ export default function NotificationsPage() {
 
       {/* 알림 목록 */}
       <Card>
-        {filteredNotifications.length === 0 ? (
+        {loading ? (
+          <div className="flex justify-center py-8">
+            <Spin size="large" />
+          </div>
+        ) : error ? (
           <Empty
-            description="알림이 없습니다"
+            description={error}
+            image={Empty.PRESENTED_IMAGE_SIMPLE}
+          />
+        ) : filteredNotifications.length === 0 ? (
+          <Empty
+            description={filterType === 'unread' ? '읽지 않은 알림이 없습니다' : filterType === 'read' ? '읽은 알림이 없습니다' : '알림이 없습니다'}
             image={Empty.PRESENTED_IMAGE_SIMPLE}
           />
         ) : (
@@ -384,7 +308,7 @@ export default function NotificationsPage() {
               <label className="flex items-center gap-2">
                 <input
                   type="checkbox"
-                  checked={selectedNotifications.length === filteredNotifications.length}
+                  checked={selectedNotifications.length === filteredNotifications.length && filteredNotifications.length > 0}
                   onChange={toggleSelectAll}
                   className="rounded"
                 />
@@ -399,7 +323,7 @@ export default function NotificationsPage() {
               renderItem={(notification) => (
                 <List.Item
                   key={notification.id}
-                  className={`notification-item ${!notification.isRead ? 'unread' : ''} ${selectedNotifications.includes(notification.id) ? 'selected' : ''}`}
+                  className={`notification-item ${!notification.is_read ? 'unread' : ''} ${selectedNotifications.includes(notification.id) ? 'selected' : ''}`}
                   actions={[
                     <Tooltip title="삭제" key="delete">
                       <Button
@@ -408,7 +332,7 @@ export default function NotificationsPage() {
                         icon={<DeleteOutlined />}
                         onClick={(e) => {
                           e.stopPropagation()
-                          deleteNotification(notification.id)
+                          handleDeleteNotification(notification.id)
                         }}
                       />
                     </Tooltip>
@@ -430,7 +354,7 @@ export default function NotificationsPage() {
 
                     {/* 아이콘 */}
                     <div className="notification-icon">
-                      {notificationIcons[notification.type]}
+                      {typeIcons[notification.type]}
                     </div>
 
                     {/* 메인 컨텐츠 */}
@@ -440,22 +364,19 @@ export default function NotificationsPage() {
                           <Text strong className="notification-title">
                             {notification.title}
                           </Text>
-                          {!notification.isRead && (
+                          {!notification.is_read && (
                             <Badge status="processing" />
                           )}
                         </div>
                         <Space size="small">
                           <Tag 
-                            color={categoryColors[notification.category]}
-                            icon={categoryIcons[notification.category]}
+                            color={typeColors[notification.type]}
+                            icon={typeIcons[notification.type]}
                           >
-                            {categoryLabels[notification.category]}
+                            {typeLabels[notification.type]}
                           </Tag>
-                          {notification.priority === 'high' && (
-                            <Tag color="red">긴급</Tag>
-                          )}
                           <Text type="secondary" className="notification-time">
-                            {formatTime(notification.createdAt)}
+                            {formatTime(notification.created_at)}
                           </Text>
                         </Space>
                       </div>
@@ -465,19 +386,29 @@ export default function NotificationsPage() {
                           {notification.message}
                         </Text>
                         
-                        {notification.projectName && (
+                        {/* 관련 정보 표시 */}
+                        {notification.related_type === 'project' && notification.related_id && (
                           <div className="notification-project">
                             <ProjectOutlined className="mr-1" />
-                            <Text type="secondary">{notification.projectName}</Text>
+                            <Text type="secondary">프로젝트 관련</Text>
                           </div>
                         )}
                         
-                        {notification.sender && (
-                          <div className="notification-sender">
-                            <UserOutlined className="mr-1" />
-                            <Text type="secondary">{notification.sender}</Text>
-                          </div>
-                        )}
+                        {/* 발송 상태 표시 */}
+                        <div className="notification-meta">
+                          <Space size="small">
+                            {notification.kakao_sent && (
+                              <Tag color="green" icon={<CheckOutlined />}>
+                                카카오톡 발송
+                              </Tag>
+                            )}
+                            {notification.email_sent && (
+                              <Tag color="blue" icon={<CheckOutlined />}>
+                                이메일 발송
+                              </Tag>
+                            )}
+                          </Space>
+                        </div>
                       </div>
                     </div>
                   </div>

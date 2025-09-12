@@ -13,7 +13,7 @@ import {
   ReloadOutlined,
   PaperClipOutlined,
   DownloadOutlined,
-  DeleteOutlined,
+  // DeleteOutlined, // 삭제 기능 제거
 } from '@ant-design/icons'
 import { formatDistanceToNow } from 'date-fns'
 import { ko } from 'date-fns/locale'
@@ -108,7 +108,7 @@ export default function PendingApprovals({
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [processing, setProcessing] = useState<string | null>(null)
-  const [deletingId, setDeletingId] = useState<string | null>(null)
+  // const [deletingId, setDeletingId] = useState<string | null>(null) // 삭제 기능 제거
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize] = useState(limit)  // 페이지당 항목 수
   const [rejectModalVisible, setRejectModalVisible] = useState(false)
@@ -307,49 +307,8 @@ export default function PendingApprovals({
     }
   }
 
-  // 승인 항목 삭제 (관리자만)
-  const handleDelete = async (id: string, type: ApprovalType) => {
-    console.log('handleDelete called:', { id, type, userData });
-    
-    if (!user || userData?.role !== 'admin') {
-      message.error('관리자만 삭제할 수 있습니다.')
-      return
-    }
-
-    setDeletingId(id)
-    try {
-      let success = false
-      
-      if (type === 'user') {
-        console.log('Deleting user approval:', id);
-        // 사용자 승인 요청 삭제 - users 테이블에서 해당 사용자 삭제
-        success = await approvalService.deleteUser(id, user.id)
-      } else if (type === 'project') {
-        console.log('Deleting project approval:', id);
-        // 프로젝트 승인 요청 삭제
-        success = await approvalService.deleteApprovalRequest(id, user.id)
-      }
-
-      console.log('Delete result:', success);
-
-      if (success) {
-        message.success('삭제가 완료되었습니다.')
-        // 전체 목록과 현재 페이지 목록에서 제거
-        setAllApprovals(prev => prev.filter(item => item.id !== id))
-        setApprovals(prev => prev.filter(item => item.id !== id))
-        
-        // 새로고침하여 전체 활동 로그도 업데이트
-        await loadApprovals()
-      } else {
-        message.error('삭제 처리에 실패했습니다.')
-      }
-    } catch (error) {
-      console.error('삭제 실패:', error)
-      message.error('삭제 처리 중 오류가 발생했습니다.')
-    } finally {
-      setDeletingId(null)
-    }
-  }
+  // 승인 항목 삭제 기능 제거 - 관리자도 삭제 불가
+  // 승인 대기 중인 항목은 승인 또는 거절로만 처리 가능
 
   // 상세 보기
   const handleView = (approval: ApprovalItem) => {
@@ -373,7 +332,7 @@ export default function PendingApprovals({
   const renderApprovalItem = (approval: ApprovalItem) => {
     const config = typeConfig[approval.type]
     const isProcessing = processing === approval.id
-    const isDeleting = deletingId === approval.id
+    // const isDeleting = deletingId === approval.id // 삭제 기능 제거
     const isReceivedRequest = approval.requestType === 'received'  // 내가 받은 요청인지 확인
     const isAdmin = userData?.role === 'admin'
 
@@ -419,23 +378,7 @@ export default function PendingApprovals({
       >
         거절
       </Button>,
-      // 관리자인 경우 삭제 버튼 추가
-      isAdmin && (
-        <Button
-          danger
-          icon={<DeleteOutlined />}
-          size="small"
-          onClick={(e) => {
-            e.stopPropagation()
-            handleDelete(approval.id, approval.type)
-          }}
-          loading={isDeleting}
-          disabled={isDeleting || isProcessing}
-          key="delete"
-        >
-          삭제
-        </Button>
-      ),
+      // 삭제 버튼 제거 - 관리자도 삭제 불가
     ].filter(Boolean) : showActions && !isReceivedRequest ? [
       // 내가 보낸 요청인 경우 상세 보기 버튼만 표시
       <Tooltip title="상세 보기" key="view">
@@ -450,23 +393,7 @@ export default function PendingApprovals({
         />
       </Tooltip>,
       <Tag color="blue" key="status">대기중</Tag>,
-      // 관리자인 경우 삭제 버튼 추가
-      isAdmin && (
-        <Button
-          danger
-          icon={<DeleteOutlined />}
-          size="small"
-          onClick={(e) => {
-            e.stopPropagation()
-            handleDelete(approval.id, approval.type)
-          }}
-          loading={isDeleting}
-          disabled={isDeleting}
-          key="delete"
-        >
-          삭제
-        </Button>
-      ),
+      // 삭제 버튼 제거 - 관리자도 삭제 불가
     ].filter(Boolean) : undefined
 
     return (
