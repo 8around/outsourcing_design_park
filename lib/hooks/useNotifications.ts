@@ -10,8 +10,6 @@ export interface UseNotificationsReturn {
   markAsRead: (notificationId: string) => Promise<void>
   markMultipleAsRead: (notificationIds: string[]) => Promise<void>
   markAllAsRead: () => Promise<void>
-  deleteNotification: (notificationId: string) => Promise<void>
-  deleteMultipleNotifications: (notificationIds: string[]) => Promise<void>
   refreshNotifications: () => Promise<void>
 }
 
@@ -26,8 +24,6 @@ export function useNotifications(): UseNotificationsReturn {
     markAsRead: storeMarkAsRead,
     markMultipleAsRead: storeMarkMultipleAsRead,
     markAllAsRead: storeMarkAllAsRead,
-    deleteNotification: storeDeleteNotification,
-    deleteMultipleNotifications: storeDeleteMultipleNotifications,
     subscribeToNotifications,
     unsubscribe
   } = useNotificationStore()
@@ -56,16 +52,6 @@ export function useNotifications(): UseNotificationsReturn {
     }
   }, [user?.id, storeMarkAllAsRead])
 
-  // 알림 삭제 (스토어 함수 래핑)
-  const deleteNotification = useCallback(async (notificationId: string) => {
-    await storeDeleteNotification(notificationId)
-  }, [storeDeleteNotification])
-
-  // 여러 알림 삭제 (스토어 함수 래핑)
-  const deleteMultipleNotifications = useCallback(async (notificationIds: string[]) => {
-    await storeDeleteMultipleNotifications(notificationIds)
-  }, [storeDeleteMultipleNotifications])
-
   // 초기 로드 및 실시간 구독
   useEffect(() => {
     if (user?.id) {
@@ -90,8 +76,6 @@ export function useNotifications(): UseNotificationsReturn {
     markAsRead,
     markMultipleAsRead,
     markAllAsRead,
-    deleteNotification,
-    deleteMultipleNotifications,
     refreshNotifications
   }
 }

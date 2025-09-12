@@ -20,8 +20,6 @@ interface NotificationState {
   markAsRead: (notificationId: string) => Promise<void>
   markMultipleAsRead: (notificationIds: string[]) => Promise<void>
   markAllAsRead: (userId: string) => Promise<void>
-  deleteNotification: (notificationId: string) => Promise<void>
-  deleteMultipleNotifications: (notificationIds: string[]) => Promise<void>
   
   // Real-time subscription
   subscribeToNotifications: (userId: string) => void
@@ -139,53 +137,6 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
     }
   },
   
-  deleteNotification: async (notificationId: string) => {
-    try {
-      await notificationService.deleteNotification(notificationId)
-      
-      const { notifications, unreadCount } = get()
-      
-      // 삭제된 알림이 읽지 않은 상태였는지 확인
-      const deletedNotification = notifications.find(n => n.id === notificationId)
-      const wasUnread = deletedNotification && !deletedNotification.is_read
-      
-      const updatedNotifications = notifications.filter(n => n.id !== notificationId)
-      const newUnreadCount = wasUnread ? Math.max(0, unreadCount - 1) : unreadCount
-      
-      set({ 
-        notifications: updatedNotifications,
-        unreadCount: newUnreadCount
-      })
-    } catch (err) {
-      console.error('Error deleting notification:', err)
-      throw new Error('알림 삭제에 실패했습니다')
-    }
-  },
-  
-  deleteMultipleNotifications: async (notificationIds: string[]) => {
-    try {
-      await notificationService.deleteMultipleNotifications(notificationIds)
-      
-      const { notifications, unreadCount } = get()
-      
-      // 삭제된 알림 중 읽지 않은 알림 개수 계산
-      const deletedUnreadCount = notifications.filter(
-        n => !n.is_read && notificationIds.includes(n.id)
-      ).length
-      
-      const updatedNotifications = notifications.filter(
-        n => !notificationIds.includes(n.id)
-      )
-      
-      set({ 
-        notifications: updatedNotifications,
-        unreadCount: Math.max(0, unreadCount - deletedUnreadCount)
-      })
-    } catch (err) {
-      console.error('Error deleting notifications:', err)
-      throw new Error('알림 삭제에 실패했습니다')
-    }
-  },
   
   subscribeToNotifications: (userId: string) => {
     if (!userId) return

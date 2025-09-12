@@ -22,7 +22,6 @@ import {
 import {
   BellOutlined,
   CheckOutlined,
-  DeleteOutlined,
   FilterOutlined,
   SettingOutlined,
   ExclamationCircleOutlined,
@@ -77,8 +76,6 @@ export default function NotificationsPage() {
     markAsRead,
     markMultipleAsRead,
     markAllAsRead,
-    deleteNotification,
-    deleteMultipleNotifications,
     refreshNotifications
   } = useNotifications()
   
@@ -133,44 +130,7 @@ export default function NotificationsPage() {
     }
   }
 
-  // 알림 삭제 처리
-  const handleDeleteNotification = async (notificationId: string) => {
-    Modal.confirm({
-      title: '알림 삭제',
-      content: '이 알림을 삭제하시겠습니까?',
-      onOk: async () => {
-        try {
-          await deleteNotification(notificationId)
-          setSelectedNotifications(prev => prev.filter(id => id !== notificationId))
-          message.success('알림이 삭제되었습니다')
-        } catch (err) {
-          message.error('알림 삭제에 실패했습니다')
-        }
-      }
-    })
-  }
 
-  // 선택된 알림 삭제
-  const handleDeleteSelectedNotifications = () => {
-    if (selectedNotifications.length === 0) {
-      message.warning('삭제할 알림을 선택하세요')
-      return
-    }
-
-    Modal.confirm({
-      title: '알림 삭제',
-      content: `선택한 ${selectedNotifications.length}개의 알림을 삭제하시겠습니까?`,
-      onOk: async () => {
-        try {
-          await deleteMultipleNotifications(selectedNotifications)
-          setSelectedNotifications([])
-          message.success('선택한 알림들이 삭제되었습니다')
-        } catch (err) {
-          message.error('알림 삭제에 실패했습니다')
-        }
-      }
-    })
-  }
 
   // 모든 알림 읽음 처리
   const handleMarkAllAsRead = async () => {
@@ -270,16 +230,7 @@ export default function NotificationsPage() {
             </Button>
             
             {selectedNotifications.length > 0 && (
-              <>
-                <Text type="secondary">{selectedNotifications.length}개 선택됨</Text>
-                <Button 
-                  danger
-                  icon={<DeleteOutlined />}
-                  onClick={handleDeleteSelectedNotifications}
-                >
-                  선택 삭제
-                </Button>
-              </>
+              <Text type="secondary">{selectedNotifications.length}개 선택됨</Text>
             )}
           </Space>
         </div>
@@ -324,19 +275,6 @@ export default function NotificationsPage() {
                 <List.Item
                   key={notification.id}
                   className={`notification-item ${!notification.is_read ? 'unread' : ''} ${selectedNotifications.includes(notification.id) ? 'selected' : ''}`}
-                  actions={[
-                    <Tooltip title="삭제" key="delete">
-                      <Button
-                        type="text"
-                        danger
-                        icon={<DeleteOutlined />}
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          handleDeleteNotification(notification.id)
-                        }}
-                      />
-                    </Tooltip>
-                  ]}
                 >
                   <div className="notification-content" onClick={() => handleNotificationClick(notification)}>
                     {/* 체크박스 */}
