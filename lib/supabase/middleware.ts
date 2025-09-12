@@ -61,6 +61,13 @@ export async function updateSession(request: NextRequest) {
     "/calendar",
     "/notifications",
   ];
+  
+  // Admin 전용 경로 정의
+  const adminOnlyPaths = [
+    "/admin/users",
+    "/admin/reports",
+    "/admin/settings"
+  ];
   const authPaths = ["/login", "/signup", "/reset-password"];
   const pathname = request.nextUrl.pathname;
 
@@ -114,11 +121,11 @@ export async function updateSession(request: NextRequest) {
       }
 
       // Admin 경로 접근 권한 체크
-      if (pathname.startsWith("/admin")) {
+      if (pathname.startsWith("/admin") || adminOnlyPaths.some(path => pathname.startsWith(path))) {
         if (userData.role !== "admin") {
           // 일반 사용자가 admin 경로에 접근하려는 경우
           const url = request.nextUrl.clone();
-          url.pathname = "/dashboard";
+          url.pathname = "/";
           url.searchParams.set("message", "unauthorized");
           return NextResponse.redirect(url);
         }
