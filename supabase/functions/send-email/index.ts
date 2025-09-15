@@ -100,9 +100,6 @@ async function sendProjectApprovalRequest(data: any) {
             이 이메일은 프로젝트 현장 관리 시스템에서 자동으로 발송되었습니다.
           </p>
         </div>
-        <div class="footer">
-          <p>© 2024 프로젝트 현장 관리 시스템</p>
-        </div>
       </div>
     </body>
     </html>
@@ -166,9 +163,6 @@ async function sendProjectApprovalResult(data: any) {
           <p style="margin-top: 20px; font-size: 14px; color: #666;">
             이 이메일은 프로젝트 현장 관리 시스템에서 자동으로 발송되었습니다.
           </p>
-        </div>
-        <div class="footer">
-          <p>© 2024 프로젝트 현장 관리 시스템</p>
         </div>
       </div>
     </body>
@@ -239,9 +233,6 @@ async function sendNewSignupNotification(data: any) {
           <p>사용자 승인 관리 페이지에서 승인 또는 거절할 수 있습니다.</p>
           <a href="${Deno.env.get('NEXT_PUBLIC_APP_URL') || 'http://localhost:3000'}/admin/users" class="button">사용자 관리 페이지로 이동</a>
         </div>
-        <div class="footer">
-          <p>© 2024 프로젝트 현장 관리 시스템</p>
-        </div>
       </div>
     </body>
     </html>
@@ -285,9 +276,6 @@ function getApprovalTemplate(userName: string): string {
           <a href="${Deno.env.get('NEXT_PUBLIC_APP_URL') || 'http://localhost:3000'}/login" class="button">로그인하기</a>
           <p style="margin-top: 20px;">문의사항이 있으시면 관리자에게 연락해주세요.</p>
         </div>
-        <div class="footer">
-          <p>© 2024 프로젝트 현장 관리 시스템</p>
-        </div>
       </div>
     </body>
     </html>
@@ -325,9 +313,6 @@ function getRejectionTemplate(userName: string, reason?: string): string {
           ` : ''}
           <p>자세한 사항은 관리자에게 문의해주시기 바랍니다.</p>
           <p style="margin-top: 20px;">감사합니다.</p>
-        </div>
-        <div class="footer">
-          <p>© 2024 프로젝트 현장 관리 시스템</p>
         </div>
       </div>
     </body>
