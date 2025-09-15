@@ -52,8 +52,8 @@ export default function DashboardPage() {
             <Button
               icon={<CloudServerOutlined />}
               onClick={() => {
-                // NAS 서버 URL은 환경변수나 설정에서 가져오도록 수정 필요
-                const nasUrl = process.env.NEXT_PUBLIC_NAS_URL || 'http://nas.example.com'
+                // NAS 서버 고정 IP 주소
+                const nasUrl = 'http://192.168.2.63'
                 window.open(nasUrl, '_blank')
               }}
               size="middle"
