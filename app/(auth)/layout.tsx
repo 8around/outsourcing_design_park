@@ -52,13 +52,6 @@ export default function AuthLayout({
             {children}
           </div>
         </div>
-        
-        {/* Footer */}
-        <div className="text-center mt-8 opacity-75">
-          <p className="text-sm text-gray-500">
-            © 2024 프로젝트 현장 관리 솔루션. All rights reserved.
-          </p>
-        </div>
       </div>
       
       {/* Floating Decorative Elements */}
