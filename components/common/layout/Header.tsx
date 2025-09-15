@@ -1,12 +1,13 @@
 'use client'
 
 import React from 'react'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { useAuth } from '@/lib/hooks/useAuth'
 import {
   SearchOutlined,
   UserOutlined,
   MenuOutlined,
+  LogoutOutlined,
 } from '@ant-design/icons'
 import { Button, Avatar, Input, Dropdown, Space, Typography } from 'antd'
 import type { MenuProps } from 'antd'
@@ -31,7 +32,7 @@ const getPageTitle = (pathname: string): string => {
   if (pathname === '/notifications' || pathname.startsWith('/notifications')) return '알림'
   if (pathname.startsWith('/admin/users')) return '사용자 관리'
   if (pathname.startsWith('/admin/reports')) return '리포트'
-  if (pathname.startsWith('/settings')) return '설정'
+  if (pathname.startsWith('/profile')) return '프로필'
   return '대시보드'
 }
 
@@ -42,7 +43,8 @@ export default function Header({
   sidebarWidth = 280
 }: HeaderProps) {
   const pathname = usePathname()
-  const { user } = useAuth()
+  const router = useRouter()
+  const { user, signOut } = useAuth()
   
   // 사이드바 너비 계산
   const sidebarOffset = showMobileMenuButton ? 0 : (collapsed ? 80 : sidebarWidth)
@@ -60,18 +62,23 @@ export default function Header({
     {
       key: 'logout',
       label: '로그아웃',
-      icon: <UserOutlined />,
+      icon: <LogoutOutlined />,
       danger: true,
     },
   ]
 
-  const handleUserMenuClick: MenuProps['onClick'] = ({ key }) => {
+  const handleUserMenuClick: MenuProps['onClick'] = async ({ key }) => {
     switch (key) {
       case 'profile':
-        console.log('프로필 클릭')
+        router.push('/profile')
         break
       case 'logout':
-        console.log('로그아웃 클릭')
+        try {
+          await signOut()
+          router.push('/login')
+        } catch (error) {
+          console.error('로그아웃 실패:', error)
+        }
         break
     }
   }

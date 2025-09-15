@@ -261,10 +261,10 @@ export default function Sidebar({ collapsed, onCollapse, className }: SidebarPro
         <div
           className="group flex items-center px-4 py-3 rounded-lg cursor-pointer
                      transition-all duration-200 hover:bg-gray-50 text-gray-700 hover:text-gray-900"
-          onClick={() => router.push('/settings')}
+          onClick={() => router.push('/profile')}
         >
-          <SettingOutlined className="w-5 h-5 mr-3 text-gray-500 group-hover:text-gray-700" />
-          {!collapsed && <span className="font-medium">설정</span>}
+          <UserOutlined className="w-5 h-5 mr-3 text-gray-500 group-hover:text-gray-700" />
+          {!collapsed && <span className="font-medium">프로필</span>}
         </div>
         
         <div

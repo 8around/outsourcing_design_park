@@ -69,7 +69,7 @@ projectAdminManagment/
 │   │   │   │   └── page.tsx
 │   │   │   ├── reports/                # 리포트 관리
 │   │   │   │   └── page.tsx
-│   │   │   └── settings/               # 시스템 설정
+│   │   │   └── profile/                # 사용자 프로필 설정
 │   │   │       └── page.tsx
 │   │   │
 │   │   ├── notifications/              # 알림 센터
@@ -372,6 +372,16 @@ projectAdminManagment/
   - 승인 상태별 로그인 메시지
   - 이메일 알림 시스템
   - Role별 라우트 보호
+
+### 사용자 프로필 설정 (✅ 구현 완료)
+- **페이지**: `app/(dashboard)/profile`
+- **컴포넌트**: 기존 설정 페이지 컴포넌트 활용
+- **서비스**: `lib/services/auth.service.ts` (updateUserProfile 메서드)
+- **기능**:
+  - 사용자 이름 및 전화번호 변경
+  - 이메일 표시 (변경 불가)
+  - 프로필 정보 실시간 업데이트
+  - 사이드바 프로필 아이콘 및 텍스트 통일
 
 ### 프로젝트 관리
 - **페이지**: `app/(dashboard)/projects/*`
