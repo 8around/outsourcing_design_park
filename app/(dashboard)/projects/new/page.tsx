@@ -41,7 +41,7 @@ export default function NewProjectPage() {
   const router = useRouter()
   const { user } = useAuth()
   const [loading, setLoading] = useState(false)
-  const [users, setUsers] = useState<any[]>([])
+  const [users, setUsers] = useState<Record<string, unknown>[]>([])
   
   // 폼 데이터
   const [formData, setFormData] = useState({

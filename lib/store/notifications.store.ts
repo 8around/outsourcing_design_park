@@ -7,7 +7,7 @@ interface NotificationState {
   unreadCount: number
   loading: boolean
   error: string | null
-  subscription: any | null
+  subscription: (() => void) | null
   
   // Actions
   setNotifications: (notifications: Notification[]) => void

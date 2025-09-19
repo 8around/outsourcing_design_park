@@ -85,7 +85,7 @@ export default function ProcessStagesForm({
     }
   }, [initialStages]);
 
-  const handleStageChange = (index: number, field: keyof ProcessStageData, value: any) => {
+  const handleStageChange = (index: number, field: keyof ProcessStageData, value: string | dayjs.Dayjs | undefined) => {
     const newStages = [...stages];
     if (field === 'start_date' || field === 'end_date') {
       newStages[index] = {

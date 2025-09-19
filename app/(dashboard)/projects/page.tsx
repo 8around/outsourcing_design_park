@@ -67,7 +67,7 @@ export default function ProjectsPage() {
 
       setProjects(response.data)
       setTotalProjects(response.total)
-    } catch (error: any) {
+    } catch (error: unknown) {
       message.error('프로젝트 목록을 불러오는데 실패했습니다.')
       console.error(error)
     } finally {

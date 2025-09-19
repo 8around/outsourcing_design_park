@@ -1,8 +1,10 @@
 // 이 파일은 서버 사이드에서만 실행되어야 함
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 let resend: any = null;
 
 // 서버 사이드에서만 Resend 초기화
 if (typeof window === 'undefined') {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   const { Resend } = require('resend');
   resend = new Resend(process.env.RESEND_API_KEY || 'dummy_key_for_dev');
 }

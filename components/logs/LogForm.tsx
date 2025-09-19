@@ -53,7 +53,7 @@ export default function LogForm({ projectId, onSuccess, onCancel, isModal = fals
         category: formData.category,
         content: formData.content.trim(),
         author_id: user.id,
-        author_name: (user as any).name || user.email || '알 수 없음'
+        author_name: (user as { name?: string }).name || user.email || '알 수 없음'
       })
 
       toast.success('로그가 성공적으로 생성되었습니다.')
@@ -126,7 +126,7 @@ export default function LogForm({ projectId, onSuccess, onCancel, isModal = fals
         {/* 작성자 정보 표시 */}
         <div className="bg-gray-50 rounded-md p-3">
           <p className="text-sm text-gray-600">
-            <span className="font-medium">작성자:</span> {(user as any)?.name || user?.email || '알 수 없음'}
+            <span className="font-medium">작성자:</span> {(user as { name?: string })?.name || user?.email || '알 수 없음'}
           </p>
         </div>
 

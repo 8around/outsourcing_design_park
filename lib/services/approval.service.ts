@@ -606,13 +606,13 @@ export class ApprovalService {
    * 현재 사용자의 승인 대기 목록 조회
    */
   async getPendingApprovalsForUser(userId: string): Promise<{
-    userApprovals: any[];
-    projectApprovals: any[];
+    userApprovals: Record<string, unknown>[];
+    projectApprovals: Record<string, unknown>[];
     total: number;
   }> {
     try {
       // 1. 사용자 승인 대기 목록 (관리자인 경우만)
-      let userApprovals: any[] = [];
+      let userApprovals: Record<string, unknown>[] = [];
       const { data: currentUser } = await this.supabase
         .from('users')
         .select('role')

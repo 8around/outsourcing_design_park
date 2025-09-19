@@ -563,8 +563,8 @@ class LogService {
           if (uploadError.message) {
             console.error('에러 메시지:', uploadError.message)
           }
-          if ((uploadError as any).statusCode) {
-            console.error('상태 코드:', (uploadError as any).statusCode)
+          if ((uploadError as { statusCode?: number }).statusCode) {
+            console.error('상태 코드:', (uploadError as { statusCode?: number }).statusCode)
           }
           throw uploadError
         }

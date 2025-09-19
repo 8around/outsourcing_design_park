@@ -11,7 +11,6 @@ import {
   SyncOutlined,
   ExclamationCircleOutlined,
   EditOutlined,
-  CalendarOutlined,
   RightOutlined
 } from '@ant-design/icons'
 import { PROCESS_STAGES, type ProcessStage, type ProcessStatus, type ProcessStageName } from '@/types/project'
@@ -81,7 +80,7 @@ export default function ProcessStages({
   }
 
   // 공정 단계 업데이트
-  const handleUpdateStage = async (values: any) => {
+  const handleUpdateStage = async (values: Record<string, unknown>) => {
     if (!selectedStage) return
 
     try {

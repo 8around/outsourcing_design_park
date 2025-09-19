@@ -52,9 +52,9 @@ interface ProjectData {
     name: string
     email: string
   }
-  process_stages?: any[]
-  project_images?: any[]
-  favorites?: any[]
+  process_stages?: Record<string, unknown>[]
+  project_images?: Record<string, unknown>[]
+  favorites?: Record<string, unknown>[]
 }
 
 export default function ProjectDetailPage() {
@@ -63,8 +63,8 @@ export default function ProjectDetailPage() {
   const { user, userData } = useAuth()
   const [loading, setLoading] = useState(true)
   const [project, setProject] = useState<ProjectData | null>(null)
-  const [salesManager, setSalesManager] = useState<any>(null)
-  const [siteManager, setSiteManager] = useState<any>(null)
+  const [salesManager, setSalesManager] = useState<Record<string, unknown> | null>(null)
+  const [siteManager, setSiteManager] = useState<Record<string, unknown> | null>(null)
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
   const [showLogForm, setShowLogForm] = useState(false)
   const [users, setUsers] = useState<User[]>([])

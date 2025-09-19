@@ -139,7 +139,7 @@ export default function GlobalLogFeed({
         log_type: log.log_type,
         approval_status: log.approval_status || undefined,
         attachments: log.attachments && log.attachments.length > 0 
-          ? log.attachments.map((att: any) => ({
+          ? log.attachments.map((att: Record<string, unknown>) => ({
               id: att.id,
               file_path: att.file_path,
               file_name: att.file_name,

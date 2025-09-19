@@ -58,7 +58,7 @@ export default function EditProjectPage() {
   const { user, userData } = useAuth()
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [users, setUsers] = useState<any[]>([])
+  const [users, setUsers] = useState<Record<string, unknown>[]>([])
   const [existingImages, setExistingImages] = useState<ProjectImage[]>([])
   const [deletedImageIds, setDeletedImageIds] = useState<string[]>([])
   const [showLogForm, setShowLogForm] = useState(false)
