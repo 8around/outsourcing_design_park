@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/client'
 import { emailClientService } from '@/lib/services/email.client.service'
+import { kakaoClientService } from '@/lib/services/kakao.client.service'
 import type { 
   CreateLogRequest, 
   CreateApprovalRequestLog, 
@@ -126,21 +127,21 @@ class LogService {
       await this.uploadAttachments(historyLog.id, data.attachments, data.requester_id)
     }
 
-    // 4. 승인자 이메일 정보 가져오기
+    // 4. 승인자 정보 가져오기 (이메일과 전화번호 포함)
     const { data: approverData } = await supabase
       .from('users')
-      .select('email')
+      .select('email, phone')
       .eq('id', data.approver_id)
       .single()
 
-    // 5. 프로젝트 정보 가져오기 (프로젝트명 포함)
+    // 5. 프로젝트 정보 가져오기 (프로젝트명과 제품명 포함)
     const { data: projectData } = await supabase
       .from('projects')
-      .select('site_name')
+      .select('site_name, product_name')
       .eq('id', data.project_id)
       .single()
 
-    // 6. 이메일 발송
+    // 6. 이메일 발송 (기존)
     if (approverData?.email) {
       try {
         await emailClientService.sendProjectApprovalRequest(
@@ -155,6 +156,30 @@ class LogService {
       } catch (error) {
         // 이메일 발송 실패해도 승인 요청은 생성되도록 처리
         console.error('승인 요청 이메일 발송 실패:', error)
+      }
+    }
+
+    // 7. 카카오톡 알림톡 발송 (신규)
+    if (approverData?.phone && kakaoClientService.canSendKakao(approverData.phone)) {
+      try {
+        await kakaoClientService.sendProjectApprovalRequest(
+          approverData.phone,
+          data.requester_name,
+          projectData?.site_name || '프로젝트',
+          projectData?.product_name || '제품',
+          data.category || '승인요청',
+          data.memo
+        )
+        console.log('승인 요청 카카오톡 발송 성공')
+      } catch (error) {
+        // 카카오톡 발송 실패해도 승인 요청은 생성되도록 처리
+        console.error('승인 요청 카카오톡 발송 실패:', error)
+      }
+    } else {
+      if (!approverData?.phone) {
+        console.log('승인자 전화번호가 없어 카카오톡 발송을 건너뜁니다.')
+      } else {
+        console.log('유효하지 않은 전화번호로 카카오톡 발송을 건너뜁니다:', approverData.phone)
       }
     }
 

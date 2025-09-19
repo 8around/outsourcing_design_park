@@ -219,12 +219,12 @@ projectAdminManagment/
 │   │   ├── auth.service.ts          # 인증 서비스 (구현됨 - 승인 체크 포함)
 │   │   ├── approval.service.ts      # 승인 워크플로우 서비스 (구현됨)
 │   │   ├── email.service.ts         # 이메일 발송 서비스 (구현됨)
+│   │   ├── kakao.client.service.ts  # 카카오톡 클라이언트 서비스 (구현됨)
 │   │   ├── projects.service.ts      # 프로젝트 관리 서비스
-│   │   ├── logs.service.ts          # 로그 관리 서비스
+│   │   ├── logs.service.ts          # 로그 관리 서비스 (카카오톡 발송 추가됨)
 │   │   ├── notification.service.ts  # 알림 서비스
 │   │   ├── storage.service.ts       # 파일 스토리지 서비스
-│   │   ├── report.service.ts        # 리포트 생성 서비스
-│   │   └── kakao.service.ts         # 카카오톡 알림 서비스
+│   │   └── report.service.ts        # 리포트 생성 서비스
 │   │
 │   ├── hooks/                        # React Hooks
 │   │   ├── useAuth.ts               # 인증 관련 커스텀 훅 (구현됨)
@@ -256,6 +256,8 @@ projectAdminManagment/
 │
 ├── supabase/                         # Supabase 설정
 │   ├── functions/                   # Edge Functions
+│   │   ├── send-kakao/              # 카카오톡 알림톡 발송 (구현됨)
+│   │   │   └── index.ts             # SOLAPI 연동 Edge Function
 │   │   ├── send-kakao-notification/
 │   │   │   └── index.ts
 │   │   ├── send-email/
@@ -272,6 +274,7 @@ projectAdminManagment/
 │   ├── project.ts                   # 프로젝트 타입 정의 (구현됨)
 │   ├── log.ts
 │   ├── approval.ts
+│   ├── kakao.ts                     # 카카오톡 알림톡 타입 정의 (구현됨)
 │   ├── notification.ts
 │   ├── database.ts                  # 데이터베이스 타입 정의 (구현됨)
 │   ├── api.ts
