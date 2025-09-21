@@ -26,6 +26,23 @@ export interface KakaoTemplateVariables {
   created_at: string
 }
 
+export interface KakaoRejectionVariables {
+  site_name: string
+  product_name: string
+  rejector_name: string
+  category: string
+  response_memo: string
+  rejected_at: string
+}
+
+export interface KakaoApprovalVariables {
+  site_name: string
+  product_name: string
+  approver_name: string
+  category: string
+  approved_at: string
+}
+
 export interface SolapiResponse {
   groupId: string
   messageId: string
@@ -34,11 +51,11 @@ export interface SolapiResponse {
 }
 
 export interface KakaoSendRequest {
-  type: 'project-approval-request'
+  type: 'project-approval-request' | 'project-approval-rejection' | 'project-approval-approved'
   data: {
     to: string
     templateId: string
-    variables: KakaoTemplateVariables
+    variables: KakaoTemplateVariables | KakaoRejectionVariables | KakaoApprovalVariables
   }
 }
 

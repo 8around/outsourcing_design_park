@@ -38,4 +38,4 @@ coverage/
 # Task files
 # tasks.json
 # tasks/ 
-/docs/*
+# /docs/*

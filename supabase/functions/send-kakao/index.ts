@@ -44,8 +44,24 @@ serve(async (req) => {
       SOLAPI_SECRET_KEY
     );
 
-    // 프로젝트 승인 요청 타입만 처리
+    // 프로젝트 승인 요청 타입 처리
     if (type === "project-approval-request") {
+      const result = await sendKakaoAlimtalk(data, messageService);
+      return new Response(JSON.stringify({ success: true, data: result }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // 프로젝트 승인 반려 타입 처리
+    if (type === "project-approval-rejection") {
+      const result = await sendKakaoAlimtalk(data, messageService);
+      return new Response(JSON.stringify({ success: true, data: result }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // 프로젝트 승인 완료 타입 처리
+    if (type === "project-approval-approved") {
       const result = await sendKakaoAlimtalk(data, messageService);
       return new Response(JSON.stringify({ success: true, data: result }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
