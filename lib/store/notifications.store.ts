@@ -1,13 +1,14 @@
 import { create } from 'zustand'
 import { notificationService } from '@/lib/services/notification.service'
 import type { Notification } from '@/lib/services/notification.service'
+import type { RealtimeChannel } from '@supabase/supabase-js'
 
 interface NotificationState {
   notifications: Notification[]
   unreadCount: number
   loading: boolean
   error: string | null
-  subscription: (() => void) | null
+  subscription: RealtimeChannel | null
   
   // Actions
   setNotifications: (notifications: Notification[]) => void

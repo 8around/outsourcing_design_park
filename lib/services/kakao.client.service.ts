@@ -62,7 +62,7 @@ class KakaoClientService {
       }
 
       // 응답 데이터 검증
-      if (!data || (!data.success && !data.messageId)) {
+      if (!data || !data.success) {
         throw new Error('카카오톡 발송 응답이 올바르지 않습니다.')
       }
 

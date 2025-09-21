@@ -29,7 +29,7 @@ export default function UserSelector({
 
   // 검색 필터링
   const filteredUsers = users.filter(user =>
-    user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (user.name?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false) ||
     user.email.toLowerCase().includes(searchTerm.toLowerCase())
   )
 

@@ -3,6 +3,7 @@
 import React, { useState, useRef } from 'react';
 import { Upload, X, Image as ImageIcon, ChevronLeft, ChevronRight } from 'lucide-react';
 import { message, Carousel } from 'antd';
+import type { CarouselRef } from 'antd/lib/carousel';
 import Image from 'next/image';
 
 interface UploadedImage {
@@ -30,7 +31,7 @@ export default function ImageUploader({
   const [totalSize, setTotalSize] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [dragActive, setDragActive] = useState(false);
-  const carouselRef = useRef<any>(null);
+  const carouselRef = useRef<CarouselRef>(null);
 
   const handleFileSelect = (files: FileList | null) => {
     if (!files) return;

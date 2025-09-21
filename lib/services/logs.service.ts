@@ -180,14 +180,13 @@ class LogService {
         )
         
         console.log('승인 요청 카카오톡 발송 성공:', {
-          messageId: kakaoSendResult?.messageId,
-          statusCode: kakaoSendResult?.statusCode,
-          recipientCount: kakaoSendResult?.recipientCount
+          success: kakaoSendResult?.success,
+          data: kakaoSendResult?.data
         })
       } catch (error) {
         // 카카오톡 발송 실패해도 승인 요청은 생성되도록 처리
         console.error('승인 요청 카카오톡 발송 실패:', {
-          error: error.message,
+          error: error instanceof Error ? error.message : String(error),
           approver: data.approver_name,
           phone: approverData.phone,
           project: projectData?.site_name
