@@ -10,6 +10,7 @@ import { toast } from 'react-hot-toast'
 import Link from 'next/link'
 import LogFormSimple from '@/components/logs/LogFormSimple'
 import LogList from '@/components/logs/LogList'
+import { Loading } from '@/components/common/ui/Loading'
 import type { AttachmentFile, LogCategory } from '@/types/log'
 import type { User } from '@/types/user'
 
@@ -69,6 +70,8 @@ export default function ProjectDetailPage() {
   const [showLogForm, setShowLogForm] = useState(false)
   const [users, setUsers] = useState<User[]>([])
   const [refreshLogs, setRefreshLogs] = useState(0)
+  const [isApprovalLoading, setIsApprovalLoading] = useState(false)
+  const [loadingMessage, setLoadingMessage] = useState('승인 요청을 처리하고 있습니다...')
 
   // 프로젝트 정보 가져오기
   useEffect(() => {
@@ -147,8 +150,22 @@ export default function ProjectDetailPage() {
     if (!user || !project) return
 
     try {
+      // 승인 요청인 경우 전체 화면 로딩 시작
       if (data.approvalRequestTo) {
-        // 승인 요청 로그 생성 (선택한 카테고리 포함)
+        setIsApprovalLoading(true)
+        setLoadingMessage('승인 요청을 생성하고 있습니다...')
+      }
+
+      if (data.approvalRequestTo) {
+        // 단계별 로딩 메시지 업데이트
+        setLoadingMessage('이메일 발송 중...')
+        
+        // 약간의 딜레이 후 카카오톡 발송 메시지로 변경
+        setTimeout(() => {
+          setLoadingMessage('카카오톡 알림을 발송하고 있습니다...')
+        }, 1000)
+
+        // 승인 요청 로그 생성 (카카오톡 발송까지 대기)
         await logService.createApprovalRequestLog({
           project_id: project.id,
           memo: data.content,
@@ -159,9 +176,11 @@ export default function ProjectDetailPage() {
           attachments: data.attachments,
           category: data.category as LogCategory  // 선택한 카테고리 전달
         })
+        
+        setLoadingMessage('작업을 완료하고 있습니다...')
         toast.success('승인 요청이 생성되었습니다.')
       } else {
-        // 일반 로그 생성
+        // 일반 로그 생성 (기존과 동일)
         await logService.createManualLog({
           project_id: project.id,
           category: data.category as LogCategory,
@@ -178,6 +197,12 @@ export default function ProjectDetailPage() {
     } catch (error) {
       console.error('로그 생성 실패:', error)
       toast.error('로그 생성에 실패했습니다.')
+    } finally {
+      // 승인 요청인 경우 로딩 종료
+      if (data.approvalRequestTo) {
+        setIsApprovalLoading(false)
+        setLoadingMessage('승인 요청을 처리하고 있습니다...')
+      }
     }
   }
 
@@ -238,7 +263,17 @@ export default function ProjectDetailPage() {
   const isOwner = user?.id === project.created_by
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-6xl">
+    <>
+      {/* 승인 요청 처리 중 전체 화면 로딩 */}
+      {isApprovalLoading && (
+        <Loading 
+          fullScreen={true}
+          message={loadingMessage}
+          size="large"
+        />
+      )}
+      
+      <div className="container mx-auto px-4 py-8 max-w-6xl">
       <div className="mb-8">
         <div className="flex justify-between items-start">
           <div>
@@ -551,5 +586,6 @@ export default function ProjectDetailPage() {
         </div>
       </div>
     </div>
+    </>
   )
 }

@@ -44,18 +44,37 @@ class KakaoClientService {
         }
       }
 
-      const { data, error } = await this.supabase.functions.invoke('send-kakao', {
+      // 타임아웃 설정 (30초)
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('카카오톡 발송 타임아웃 (30초)')), 30000)
+      )
+
+      const sendPromise = this.supabase.functions.invoke('send-kakao', {
         body: requestData
       })
+
+      const result = await Promise.race([sendPromise, timeoutPromise])
+      const { data, error } = result as { data: KakaoSendResponse | null; error: Error | null }
 
       if (error) {
         console.error('카카오톡 Edge Function 호출 실패:', error)
         throw new Error(`카카오톡 발송 실패: ${error.message}`)
       }
 
+      // 응답 데이터 검증
+      if (!data || (!data.success && !data.messageId)) {
+        throw new Error('카카오톡 발송 응답이 올바르지 않습니다.')
+      }
+
       return data as KakaoSendResponse
     } catch (error) {
-      console.error('카카오톡 발송 에러:', error)
+      console.error('카카오톡 발송 에러:', {
+        error: error instanceof Error ? error.message : error,
+        phone: approverPhone,
+        requester: requesterName,
+        site: siteName,
+        timestamp: new Date().toISOString()
+      })
       throw error
     }
   }

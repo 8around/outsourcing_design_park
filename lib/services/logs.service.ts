@@ -159,10 +159,18 @@ class LogService {
       }
     }
 
-    // 7. 카카오톡 알림톡 발송 (신규)
+    // 7. 카카오톡 알림톡 발송 (동기 처리로 로딩 완료까지 대기)
+    let kakaoSendResult = null
     if (approverData?.phone && kakaoClientService.canSendKakao(approverData.phone)) {
       try {
-        await kakaoClientService.sendProjectApprovalRequest(
+        console.log('카카오톡 발송 시작...', {
+          approver: data.approver_name,
+          phone: approverData.phone,
+          project: projectData?.site_name,
+          category: data.category
+        })
+        
+        kakaoSendResult = await kakaoClientService.sendProjectApprovalRequest(
           approverData.phone,
           data.requester_name,
           projectData?.site_name || '프로젝트',
@@ -170,16 +178,32 @@ class LogService {
           data.category || '승인요청',
           data.memo
         )
-        console.log('승인 요청 카카오톡 발송 성공')
+        
+        console.log('승인 요청 카카오톡 발송 성공:', {
+          messageId: kakaoSendResult?.messageId,
+          statusCode: kakaoSendResult?.statusCode,
+          recipientCount: kakaoSendResult?.recipientCount
+        })
       } catch (error) {
         // 카카오톡 발송 실패해도 승인 요청은 생성되도록 처리
-        console.error('승인 요청 카카오톡 발송 실패:', error)
+        console.error('승인 요청 카카오톡 발송 실패:', {
+          error: error.message,
+          approver: data.approver_name,
+          phone: approverData.phone,
+          project: projectData?.site_name
+        })
+        // 에러를 상위로 전파하지 않음 (승인 요청 생성은 유지)
       }
     } else {
       if (!approverData?.phone) {
-        console.log('승인자 전화번호가 없어 카카오톡 발송을 건너뜁니다.')
+        console.log('승인자 전화번호가 없어 카카오톡 발송을 건너뜁니다.', {
+          approver: data.approver_name
+        })
       } else {
-        console.log('유효하지 않은 전화번호로 카카오톡 발송을 건너뜁니다:', approverData.phone)
+        console.log('유효하지 않은 전화번호로 카카오톡 발송을 건너뜁니다:', {
+          approver: data.approver_name,
+          phone: approverData.phone
+        })
       }
     }
 
