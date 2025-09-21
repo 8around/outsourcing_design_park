@@ -16,7 +16,6 @@ import {
 } from 'antd'
 import {
   BellOutlined,
-  CheckOutlined,
   ExclamationCircleOutlined,
   InfoCircleOutlined,
   CheckCircleOutlined,
@@ -107,13 +106,8 @@ export default function NotificationsPage() {
       }
     }
 
-    // 관련 페이지로 이동
-    if (notification.related_type === 'project' && notification.related_id) {
-      router.push(`/projects/${notification.related_id}`)
-    } else if (notification.related_type === 'approval_request' && notification.related_id) {
-      // 승인 요청 관련 페이지로 이동
-      router.push(`/projects/${notification.related_id}/approval`)
-    }
+    // 대시보드로 이동
+    router.push('/dashboard')
   }
 
 
@@ -317,22 +311,6 @@ export default function NotificationsPage() {
                             <Text type="secondary">프로젝트 관련</Text>
                           </div>
                         )}
-                        
-                        {/* 발송 상태 표시 */}
-                        <div className="notification-meta">
-                          <Space size="small">
-                            {notification.kakao_sent && (
-                              <Tag color="green" icon={<CheckOutlined />}>
-                                카카오톡 발송
-                              </Tag>
-                            )}
-                            {notification.email_sent && (
-                              <Tag color="blue" icon={<CheckOutlined />}>
-                                이메일 발송
-                              </Tag>
-                            )}
-                          </Space>
-                        </div>
                       </div>
                     </div>
                   </div>

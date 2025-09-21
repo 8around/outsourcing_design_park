@@ -206,6 +206,27 @@ class LogService {
       }
     }
 
+    // 8. notifications 테이블에 알림 생성 (승인자에게)
+    try {
+      await supabase.from('notifications').insert({
+        user_id: data.approver_id,
+        title: '새로운 승인 요청',
+        message: `${data.requester_name}님이 프로젝트 승인을 요청했습니다: ${data.memo}`,
+        type: 'approval_request',
+        related_id: approvalRequest.id,
+        related_type: 'approval_request',
+        is_read: false,
+        kakao_sent: kakaoSendResult?.success || false,
+        kakao_sent_at: kakaoSendResult?.success ? new Date().toISOString() : null,
+        email_sent: !!approverData?.email,
+        email_sent_at: !!approverData?.email ? new Date().toISOString() : null
+      });
+      console.log('승인 요청 알림 생성 성공');
+    } catch (notificationError) {
+      console.error('알림 생성 실패:', notificationError);
+      // 알림 생성 실패해도 승인 요청은 유지
+    }
+
     return approvalRequest
   }
 
