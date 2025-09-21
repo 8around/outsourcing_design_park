@@ -25,6 +25,24 @@ export default function SignupForm({ onSubmit }: SignupFormProps) {
   const [error, setError] = useState<string | null>(null)
   const [passwordStrength, setPasswordStrength] = useState(0)
 
+  // 전화번호 포맷팅 함수
+  const formatPhoneNumber = (value: string): string => {
+    // 숫자만 추출
+    const numbers = value.replace(/[^\d]/g, '')
+    
+    // 최대 11자리로 제한
+    const limitedNumbers = numbers.slice(0, 11)
+    
+    // 길이에 따라 하이픈 추가
+    if (limitedNumbers.length <= 3) {
+      return limitedNumbers
+    } else if (limitedNumbers.length <= 7) {
+      return `${limitedNumbers.slice(0, 3)}-${limitedNumbers.slice(3)}`
+    } else {
+      return `${limitedNumbers.slice(0, 3)}-${limitedNumbers.slice(3, 7)}-${limitedNumbers.slice(7)}`
+    }
+  }
+
   // 비밀번호 강도 체크
   const checkPasswordStrength = (password: string): number => {
     let strength = 0
@@ -54,6 +72,11 @@ export default function SignupForm({ onSubmit }: SignupFormProps) {
   const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const password = e.target.value
     setPasswordStrength(checkPasswordStrength(password))
+  }
+
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const formatted = formatPhoneNumber(e.target.value)
+    form.setFieldsValue({ phone: formatted })
   }
 
   const handleSubmit = async (values: SignupFormData) => {
@@ -150,8 +173,8 @@ export default function SignupForm({ onSubmit }: SignupFormProps) {
           rules={[
             { required: true, message: '전화번호를 입력해주세요!' },
             { 
-              pattern: /^01[016789]-?\d{3,4}-?\d{4}$/, 
-              message: '올바른 전화번호 형식이 아닙니다! (예: 010-1234-5678)' 
+              pattern: /^010-\d{4}-\d{4}$/, 
+              message: '올바른 전화번호 형식이 아닙니다! (010-1234-5678)' 
             }
           ]}
           className="mb-4"
@@ -160,6 +183,8 @@ export default function SignupForm({ onSubmit }: SignupFormProps) {
             prefix={<PhoneOutlined className="text-gray-400 mr-1" />}
             placeholder="010-1234-5678"
             autoComplete="tel"
+            maxLength={13}
+            onChange={handlePhoneChange}
             className="h-11 px-4 text-gray-900 bg-white border-gray-200 hover:border-primary-400 focus:border-primary-600 rounded-soft transition-smooth"
           />
         </Form.Item>
