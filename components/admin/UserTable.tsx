@@ -94,7 +94,7 @@ export default function UserTable({
       {
         title: '상태',
         key: 'status',
-        render: (_: any, record: User) => {
+        render: (_: unknown, record: User) => {
           if (record.is_approved) {
             return <Badge status="success" text="승인됨" />;
           } else if (record.approved_at) {
@@ -108,7 +108,7 @@ export default function UserTable({
           { text: '승인됨', value: 'approved' },
           { text: '거절됨', value: 'rejected' },
         ],
-        onFilter: (value: any, record: User): boolean => {
+        onFilter: (value: React.Key | boolean, record: User): boolean => {
           if (value === 'pending') return !record.is_approved && !record.approved_at;
           if (value === 'approved') return !!record.is_approved;
           if (value === 'rejected') return !record.is_approved && !!record.approved_at;
@@ -122,7 +122,7 @@ export default function UserTable({
       title: '작업',
       key: 'actions',
       width: 200,
-      render: (_: any, record: User) => {
+      render: (_: unknown, record: User) => {
         const actions = [];
         
         // 상세보기 버튼 (모든 상태에서 표시)

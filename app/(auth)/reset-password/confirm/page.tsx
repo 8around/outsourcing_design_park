@@ -27,7 +27,7 @@ export default function ResetPasswordConfirmPage() {
         if (!data.session) {
           setError('유효하지 않은 접근입니다. 메일의 링크를 통해 다시 시도해주세요.')
         }
-      } catch (e) {
+      } catch {
         setError('세션 확인 중 오류가 발생했습니다.')
       } finally {
         setReady(true)

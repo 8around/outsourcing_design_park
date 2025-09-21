@@ -1,6 +1,5 @@
 import { Suspense } from 'react';
 import UsersManagement from '@/components/admin/UsersManagement';
-import { Spin } from 'antd';
 
 export default function AdminUsersPage() {
   return (

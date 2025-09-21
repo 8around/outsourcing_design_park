@@ -1,12 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-
-interface User {
-  id: string
-  name: string
-  email: string
-}
+import type { User } from '@/types/user'
 
 interface UserSelectorProps {
   label: string
@@ -34,7 +29,7 @@ export default function UserSelector({
 
   // 검색 필터링
   const filteredUsers = users.filter(user =>
-    user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (user.name?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false) ||
     user.email.toLowerCase().includes(searchTerm.toLowerCase())
   )
 

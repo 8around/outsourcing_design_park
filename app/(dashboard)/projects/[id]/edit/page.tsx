@@ -14,7 +14,7 @@ import LogList from '@/components/logs/LogList'
 import type { AttachmentFile, LogCategory } from '@/types/log'
 import type { User } from '@/types/user'
 import { toast } from 'react-hot-toast'
-import { PlusIcon } from '@heroicons/react/24/outline'
+import Image from 'next/image'
 import type { ProcessStageName } from '@/types/project'
 
 // 공정 단계 정의
@@ -58,7 +58,7 @@ export default function EditProjectPage() {
   const { user, userData } = useAuth()
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [users, setUsers] = useState<any[]>([])
+  const [users, setUsers] = useState<User[]>([])
   const [existingImages, setExistingImages] = useState<ProjectImage[]>([])
   const [deletedImageIds, setDeletedImageIds] = useState<string[]>([])
   const [showLogForm, setShowLogForm] = useState(false)
@@ -91,6 +91,7 @@ export default function EditProjectPage() {
     if (params.id) {
       fetchProjectData()
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params.id])
 
   const fetchUsers = async () => {
@@ -103,7 +104,7 @@ export default function EditProjectPage() {
         .order('name')
 
       if (error) throw error
-      setUsers(data || [])
+      setUsers((data || []) as User[])
     } catch (error) {
       console.error('사용자 목록 조회 실패:', error)
       toast.error('사용자 목록을 불러올 수 없습니다.')
@@ -562,10 +563,12 @@ export default function EditProjectPage() {
                       deletedImageIds.includes(image.id) ? 'border-red-500 opacity-50' : 'border-gray-200'
                     }`}
                   >
-                    <img
+                    <Image
                       src={image.image_url}
                       alt={image.image_name}
-                      className="w-full h-full object-cover"
+                      fill
+                      className="object-cover"
+                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                     />
                     <button
                       type="button"

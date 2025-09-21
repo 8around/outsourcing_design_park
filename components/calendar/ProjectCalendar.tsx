@@ -39,7 +39,7 @@ import timeGridPlugin from '@fullcalendar/timegrid'
 import interactionPlugin from '@fullcalendar/interaction'
 import listPlugin from '@fullcalendar/list'
 import koLocale from '@fullcalendar/core/locales/ko'
-import { EventClickArg, EventDropArg } from '@fullcalendar/core'
+import { EventClickArg, EventDropArg, EventContentArg } from '@fullcalendar/core'
 import { DateClickArg } from '@fullcalendar/interaction'
 import { createClient } from '@/lib/supabase/client'
 import { Project, ProcessStage, PROCESS_STAGES } from '@/types/project'
@@ -216,7 +216,7 @@ export default function ProjectCalendar() {
   // 이벤트 클릭 핸들러
   const handleEventClick = useCallback((clickInfo: EventClickArg) => {
     const event = clickInfo.event
-    const extendedProps = event.extendedProps as any
+    const extendedProps = event.extendedProps as Record<string, unknown>
     
     setSelectedEvent({
       id: event.id,
@@ -227,7 +227,7 @@ export default function ProjectCalendar() {
       backgroundColor: event.backgroundColor || statusColors.normal,
       borderColor: event.borderColor || statusColors.normal,
       textColor: '#FFFFFF',
-      extendedProps: extendedProps
+      extendedProps: extendedProps as CalendarEvent['extendedProps']
     })
     setEventModalVisible(true)
   }, [])
@@ -296,7 +296,7 @@ export default function ProjectCalendar() {
   }, [draggedEvent, supabase, fetchProjects])
 
   // 커스텀 이벤트 렌더링
-  const renderEventContent = useCallback((eventInfo: any) => {
+  const renderEventContent = useCallback((eventInfo: EventContentArg) => {
     const isUrgent = eventInfo.event.extendedProps.isUrgent
     
     return (

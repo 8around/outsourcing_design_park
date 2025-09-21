@@ -254,7 +254,7 @@ export default function LogFormSimple({
       {/* 작성자 정보 표시 */}
       <div className="bg-gray-50 rounded-md p-3">
         <p className="text-sm text-gray-600">
-          <span className="font-medium">작성자:</span> {(user as any)?.name || user?.email || '알 수 없음'}
+          <span className="font-medium">작성자:</span> {(user as { name?: string })?.name || user?.email || '알 수 없음'}
         </p>
         {formData.approvalRequestTo && (
           <p className="text-sm text-gray-600 mt-1">

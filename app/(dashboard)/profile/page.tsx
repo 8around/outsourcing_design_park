@@ -23,7 +23,7 @@ export default function SettingsPage() {
       if (!user?.id) return
 
       const supabase = createClient()
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from('users')
         .select('name, phone')
         .eq('id', user.id)
@@ -55,7 +55,7 @@ export default function SettingsPage() {
       } else {
         setError(result.error || '프로필 업데이트에 실패했습니다.')
       }
-    } catch (err) {
+    } catch {
       setError('예상치 못한 오류가 발생했습니다.')
     } finally {
       setLoading(false)

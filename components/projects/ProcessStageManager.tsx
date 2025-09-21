@@ -309,7 +309,7 @@ export default function ProcessStageManager({
           <div className="ml-3">
             <p className="text-sm text-blue-700">
               각 공정을 클릭하여 상태, 일정, 지연 사유 등을 설정할 수 있습니다.
-              최소 하나 이상의 공정이 '진행중' 또는 '완료' 상태여야 합니다.
+              최소 하나 이상의 공정이 &apos;진행중&apos; 또는 &apos;완료&apos; 상태여야 합니다.
             </p>
             <p className="text-sm text-blue-700 mt-1 font-semibold">
               ⚠️ 계약과 준공일 단계의 시작일/종료일은 반드시 입력해야 합니다.

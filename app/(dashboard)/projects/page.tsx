@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { 
   Card, Row, Col, Button, Input, Select, Space, Typography, Empty, 
-  Skeleton, Tag, Progress, message, Modal, Badge, Tooltip, Pagination 
+  Skeleton, Tag, Progress, message, Modal, Tooltip, Pagination 
 } from 'antd'
 import {
   ProjectOutlined,
@@ -16,7 +16,6 @@ import {
   TeamOutlined,
   EditOutlined,
   EyeOutlined,
-  ExclamationCircleOutlined,
   ReloadOutlined,
   UserOutlined,
   CalendarOutlined,
@@ -29,7 +28,6 @@ import ImageCarousel from '@/components/projects/ImageCarousel'
 const { Title, Text } = Typography
 const { Search } = Input
 const { Option } = Select
-const { confirm } = Modal
 
 export default function ProjectsPage() {
   const router = useRouter()
@@ -67,7 +65,7 @@ export default function ProjectsPage() {
 
       setProjects(response.data)
       setTotalProjects(response.total)
-    } catch (error: any) {
+    } catch (error: unknown) {
       message.error('프로젝트 목록을 불러오는데 실패했습니다.')
       console.error(error)
     } finally {
@@ -83,7 +81,7 @@ export default function ProjectsPage() {
       const isFavorite = await projectService.toggleFavorite(projectId)
       message.success(isFavorite ? '즐겨찾기에 추가되었습니다.' : '즐겨찾기에서 제거되었습니다.')
       fetchProjects(true)
-    } catch (error) {
+    } catch {
       message.error('즐겨찾기 처리에 실패했습니다.')
     }
   }
@@ -131,6 +129,7 @@ export default function ProjectsPage() {
 
   useEffect(() => {
     fetchProjects()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchTerm, selectedStage, showUrgentOnly, showFavoritesOnly, currentPage])
 
   return (

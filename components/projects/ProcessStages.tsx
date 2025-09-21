@@ -11,14 +11,22 @@ import {
   SyncOutlined,
   ExclamationCircleOutlined,
   EditOutlined,
-  CalendarOutlined,
   RightOutlined
 } from '@ant-design/icons'
 import { PROCESS_STAGES, type ProcessStage, type ProcessStatus, type ProcessStageName } from '@/types/project'
 import { projectService } from '@/lib/services/projects.service'
-import dayjs from 'dayjs'
+import dayjs, { type Dayjs } from 'dayjs'
 
 const { Title, Text } = Typography
+
+interface StageFormValues {
+  status: ProcessStatus
+  delay_reason?: string
+  start_date?: Dayjs
+  end_date?: Dayjs
+  actual_start_date?: Dayjs
+  actual_end_date?: Dayjs
+}
 const { TextArea } = Input
 
 interface ProcessStagesProps {
@@ -81,7 +89,7 @@ export default function ProcessStages({
   }
 
   // 공정 단계 업데이트
-  const handleUpdateStage = async (values: any) => {
+  const handleUpdateStage = async (values: StageFormValues) => {
     if (!selectedStage) return
 
     try {

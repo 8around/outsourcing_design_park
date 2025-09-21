@@ -139,13 +139,13 @@ export default function GlobalLogFeed({
         log_type: log.log_type,
         approval_status: log.approval_status || undefined,
         attachments: log.attachments && log.attachments.length > 0 
-          ? log.attachments.map((att: any) => ({
-              id: att.id,
-              file_path: att.file_path,
-              file_name: att.file_name,
-              file_size: att.file_size,
-              mime_type: att.mime_type
-            }))
+          ? log.attachments.map((att: Record<string, unknown>) => ({
+              id: att.id as string,
+              file_path: att.file_path as string,
+              file_name: att.file_name as string,
+              file_size: att.file_size as number,
+              mime_type: att.mime_type as string
+            } as AttachmentInfo))
           : undefined,
       }))
 

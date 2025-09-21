@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useMemo } from 'react'
 import { 
   Card, 
   Button, 
@@ -8,32 +8,19 @@ import {
   Typography, 
   Badge,
   List,
-  Avatar,
   Tag,
-  Tooltip,
-  Switch,
   Select,
-  Divider,
   Empty,
   message,
-  Modal,
   Spin
 } from 'antd'
 import {
   BellOutlined,
   CheckOutlined,
-  FilterOutlined,
-  SettingOutlined,
   ExclamationCircleOutlined,
   InfoCircleOutlined,
-  WarningOutlined,
   CheckCircleOutlined,
-  ClockCircleOutlined,
-  UserOutlined,
   ProjectOutlined,
-  CalendarOutlined,
-  FileTextOutlined,
-  TeamOutlined,
   ReloadOutlined,
   CheckSquareOutlined
 } from '@ant-design/icons'
@@ -74,7 +61,6 @@ export default function NotificationsPage() {
     loading,
     error,
     markAsRead,
-    markMultipleAsRead,
     markAllAsRead,
     refreshNotifications
   } = useNotifications()
@@ -103,7 +89,7 @@ export default function NotificationsPage() {
     try {
       await refreshNotifications()
       message.success('알림을 새로고침했습니다')
-    } catch (err) {
+    } catch {
       message.error('새로고침에 실패했습니다')
     } finally {
       setIsRefreshing(false)
@@ -116,8 +102,8 @@ export default function NotificationsPage() {
     if (!notification.is_read) {
       try {
         await markAsRead(notification.id)
-      } catch (err) {
-        console.error('Failed to mark as read:', err)
+      } catch {
+        console.error('Failed to mark as read')
       }
     }
 

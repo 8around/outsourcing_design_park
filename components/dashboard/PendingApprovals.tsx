@@ -133,15 +133,15 @@ export default function PendingApprovals({
           ...approval,
           memo: undefined, // 사용자 승인은 메모가 없음
           attachments: undefined, // 사용자 승인은 첨부파일이 없음
-          requestType: approval.requestType || 'received' as const
-        })),
+          requestType: (approval.requestType || 'received') as 'sent' | 'received'
+        } as ApprovalItem)),
         ...response.projectApprovals.map(approval => ({
             ...approval,
             memo: approval.description, // 프로젝트 승인의 설명을 메모로 사용
             category: approval.category, // 로그 카테고리 포함
             attachments: approval.attachments || [], // 첨부파일 포함 (빈 배열로 기본값 설정)
-            requestType: approval.requestType || 'received' as const
-          }))
+            requestType: (approval.requestType || 'received') as 'sent' | 'received'
+          } as ApprovalItem))
       ]
 
       // 생성 시간 기준으로 정렬
