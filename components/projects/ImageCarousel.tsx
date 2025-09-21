@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { LeftOutlined, RightOutlined } from '@ant-design/icons'
 import { Button } from 'antd'
+import Image from 'next/image'
 
 interface ImageCarouselProps {
   images: string[]
@@ -43,11 +44,13 @@ export default function ImageCarousel({
         className={`relative overflow-hidden ${className}`} 
         style={{ height }}
       >
-        <img 
+        <Image 
           src={images[0]}
           alt={alt}
-          className="w-full h-full object-contain"
+          fill
+          className="object-contain"
           style={{ backgroundColor: '#f0f0f0' }}
+          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
         />
       </div>
     )
@@ -61,14 +64,17 @@ export default function ImageCarousel({
     >
       {/* 이미지 컨테이너 */}
       <div className="relative w-full h-full">
-        <img 
+        <Image 
           key={currentIndex} // key 추가로 이미지 변경 시 리렌더링 보장
           src={images[currentIndex]}
           alt={`${alt} - ${currentIndex + 1}`}
-          className="w-full h-full object-contain transition-opacity duration-300"
+          fill
+          className="object-contain transition-opacity duration-300"
           style={{ backgroundColor: '#f0f0f0' }}
+          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
           onError={(e) => {
-            e.currentTarget.src = 'https://via.placeholder.com/400x300/CCCCCC/666666?text=Image+Not+Found'
+            const img = e.currentTarget as HTMLImageElement;
+            img.src = 'https://via.placeholder.com/400x300/CCCCCC/666666?text=Image+Not+Found'
           }}
         />
       </div>

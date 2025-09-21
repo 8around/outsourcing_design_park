@@ -9,6 +9,7 @@ import ImageUploader from '@/components/projects/ImageUploader'
 import ProcessStageManager from '@/components/projects/ProcessStageManager'
 import UserSelector from '@/components/projects/UserSelector'
 import { toast } from 'react-hot-toast'
+import type { User } from '@/types/user'
 
 // 공정 단계 정의
 const PROCESS_STAGES = [
@@ -39,9 +40,9 @@ interface ProcessStage {
 
 export default function NewProjectPage() {
   const router = useRouter()
-  const { user } = useAuth()
+  const { } = useAuth()
   const [loading, setLoading] = useState(false)
-  const [users, setUsers] = useState<Record<string, unknown>[]>([])
+  const [users, setUsers] = useState<User[]>([])
   
   // 폼 데이터
   const [formData, setFormData] = useState({
@@ -88,7 +89,7 @@ export default function NewProjectPage() {
         .order('name')
 
       if (error) throw error
-      setUsers(data || [])
+      setUsers((data || []) as User[])
     } catch (error) {
       console.error('사용자 목록 조회 실패:', error)
       toast.error('사용자 목록을 불러올 수 없습니다.')

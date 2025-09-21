@@ -6,7 +6,6 @@ import { createClient } from '@/lib/supabase/client';
 import { useAuthStore } from '@/lib/store/auth.store';
 import { ReportConfiguration } from '@/components/reports/ReportConfiguration';
 import { ReportHistoryList } from '@/components/reports/ReportHistoryList';
-import { Tabs, Tab } from '@/components/common/ui/Tabs';
 import { Loading } from '@/components/common/ui/Loading';
 import { Alert } from '@/components/common/ui/Alert';
 
@@ -19,6 +18,7 @@ export default function ReportsPage() {
 
   useEffect(() => {
     checkAdminAccess();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   const checkAdminAccess = async () => {

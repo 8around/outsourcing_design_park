@@ -1,12 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-
-interface User {
-  id: string
-  name: string
-  email: string
-}
+import type { User } from '@/types/user'
 
 interface UserSelectorProps {
   label: string

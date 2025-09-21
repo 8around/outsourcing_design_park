@@ -8,6 +8,7 @@ import { projectService } from '@/lib/services/projects.service'
 import { logService } from '@/lib/services/logs.service'
 import { toast } from 'react-hot-toast'
 import Link from 'next/link'
+import Image from 'next/image'
 import LogFormSimple from '@/components/logs/LogFormSimple'
 import LogList from '@/components/logs/LogList'
 import { Loading } from '@/components/common/ui/Loading'
@@ -53,8 +54,21 @@ interface ProjectData {
     name: string
     email: string
   }
-  process_stages?: Record<string, unknown>[]
-  project_images?: Record<string, unknown>[]
+  process_stages?: {
+    id: string
+    stage_name: string
+    stage_order: number
+    status: string
+    start_date?: string
+    end_date?: string
+    delay_reason?: string
+  }[]
+  project_images?: {
+    id: string
+    image_url: string
+    image_name: string
+    display_order: number
+  }[]
   favorites?: Record<string, unknown>[]
 }
 
@@ -79,6 +93,7 @@ export default function ProjectDetailPage() {
       fetchProjectDetail()
       fetchUsers()
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params.id])
 
   const fetchProjectDetail = async () => {
@@ -491,10 +506,12 @@ export default function ProjectDetailPage() {
             {/* 메인 이미지 뷰어 */}
             <div className="mb-4">
               <div className="relative aspect-video bg-gray-100 rounded-lg overflow-hidden">
-                <img
-                  src={project.project_images[currentImageIndex]?.image_url}
-                  alt={project.project_images[currentImageIndex]?.image_name}
-                  className="w-full h-full object-contain"
+                <Image
+                  src={project.project_images[currentImageIndex]?.image_url || ''}
+                  alt={project.project_images[currentImageIndex]?.image_name || ''}
+                  fill
+                  className="object-contain"
+                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                 />
                 
                 {/* 이미지 네비게이션 */}
@@ -541,10 +558,12 @@ export default function ProjectDetailPage() {
                       currentImageIndex === index ? 'border-blue-500' : 'border-transparent'
                     } hover:border-blue-400 transition-colors`}
                   >
-                    <img
+                    <Image
                       src={image.image_url}
                       alt={image.image_name}
-                      className="w-full h-full object-cover"
+                      fill
+                      className="object-cover"
+                      sizes="150px"
                     />
                   </button>
                 ))}

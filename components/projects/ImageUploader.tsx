@@ -30,7 +30,7 @@ export default function ImageUploader({
   const [totalSize, setTotalSize] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [dragActive, setDragActive] = useState(false);
-  const carouselRef = useRef<HTMLDivElement>(null);
+  const carouselRef = useRef<any>(null);
 
   const handleFileSelect = (files: FileList | null) => {
     if (!files) return;

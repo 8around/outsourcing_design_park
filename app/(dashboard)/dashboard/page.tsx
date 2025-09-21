@@ -1,7 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Card, Row, Col, Button, Typography, message } from 'antd'
+import { Row, Col, Button, Typography } from 'antd'
 import {
   ProjectOutlined,
   CalendarOutlined,
