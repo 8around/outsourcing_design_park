@@ -275,7 +275,7 @@ export default function ProjectDetailPage() {
     )
   }
 
-  const isOwner = user?.id === project.created_by
+  const canEdit = user?.id === project.created_by || userData?.role === 'admin'
 
   return (
     <>
@@ -307,7 +307,7 @@ export default function ProjectDetailPage() {
             >
               목록으로
             </Link>
-            {isOwner && (
+            {canEdit && (
               <>
                 <Link
                   href={`/projects/${project.id}/edit`}

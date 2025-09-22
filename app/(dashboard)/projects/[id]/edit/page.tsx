@@ -123,8 +123,11 @@ export default function EditProjectPage() {
         return
       }
 
-      // 권한 체크
-      if (projectData.created_by !== user?.id) {
+      // 권한 체크 (작성자 또는 관리자)
+      const isOwner = projectData.created_by === user?.id
+      const isAdmin = userData?.role === 'admin'
+
+      if (!isOwner && !isAdmin) {
         toast.error('프로젝트 수정 권한이 없습니다.')
         router.push(`/projects/${projectId}`)
         return
