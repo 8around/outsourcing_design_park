@@ -148,12 +148,12 @@ export class ApprovalService {
           `귀하의 계정이 승인되었습니다. 이제 시스템을 이용하실 수 있습니다.`
         );
 
-        // 이메일 발송 (클라이언트 사이드에서 Edge Function 호출)
-        await emailClientService.sendUserApprovalEmail(
-          userData.email,
-          userData.name,
-          "approved"
-        );
+        // 이메일 발송 기능 제거됨 - 사용자 승인 이메일은 더 이상 발송하지 않음
+        // await emailClientService.sendUserApprovalEmail(
+        //   userData.email,
+        //   userData.name,
+        //   "approved"
+        // );
       }
 
       return true;
@@ -225,13 +225,13 @@ export class ApprovalService {
 
         await this.createApprovalNotification(userId, "rejected", message);
 
-        // 이메일 발송 (클라이언트 사이드에서 Edge Function 호출)
-        await emailClientService.sendUserApprovalEmail(
-          userData.email,
-          userData.name,
-          "rejected",
-          reason
-        );
+        // 이메일 발송 기능 제거됨 - 사용자 거절 이메일은 더 이상 발송하지 않음
+        // await emailClientService.sendUserApprovalEmail(
+        //   userData.email,
+        //   userData.name,
+        //   "rejected",
+        //   reason
+        // );
       }
 
       return true;
@@ -454,14 +454,24 @@ export class ApprovalService {
           ? `${projectData.site_name} - ${projectData.product_name}`
           : "프로젝트";
 
-        await emailClientService.sendProjectApprovalResult(
-          requesterData.email,
-          approverName,
-          projectName,
-          requestData.project_id,
-          status,
-          responseMemo
-        );
+        if (status === "approved") {
+          await emailClientService.sendProjectApprovalApproved(
+            requesterData.email,
+            approverName,
+            projectName,
+            requestData.project_id,
+            logData?.category || "승인요청"
+          );
+        } else {
+          await emailClientService.sendProjectApprovalRejected(
+            requesterData.email,
+            approverName,
+            projectName,
+            requestData.project_id,
+            logData?.category || "승인요청",
+            responseMemo
+          );
+        }
       }
 
       // 7-1. 카카오톡 알림톡 발송 (승인 완료의 경우)
@@ -727,17 +737,17 @@ export class ApprovalService {
 
       await this.supabase.from("notifications").insert(notifications);
 
-      // 관리자들에게 이메일 발송
-      const adminEmails = admins
-        .map((admin) => admin.email)
-        .filter(Boolean) as string[];
-      if (adminEmails.length > 0 && newUserEmail) {
-        await emailClientService.sendNewSignupNotification(
-          adminEmails,
-          newUserName,
-          newUserEmail
-        );
-      }
+      // 관리자들에게 이메일 발송 기능 제거됨 - 신규 가입 알림 이메일은 더 이상 발송하지 않음
+      // const adminEmails = admins
+      //   .map((admin) => admin.email)
+      //   .filter(Boolean) as string[];
+      // if (adminEmails.length > 0 && newUserEmail) {
+      //   await emailClientService.sendNewSignupNotification(
+      //     adminEmails,
+      //     newUserName,
+      //     newUserEmail
+      //   );
+      // }
     } catch (error) {
       console.error("Error notifying admins:", error);
     }
