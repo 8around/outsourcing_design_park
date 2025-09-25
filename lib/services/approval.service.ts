@@ -1,7 +1,6 @@
 import { createClient } from "@/lib/supabase/client";
 import { Database } from "@/lib/database/types/supabase";
 import { emailClientService } from "@/lib/services/email.client.service";
-import { logService } from "@/lib/services/logs.service";
 import { kakaoClientService } from "@/lib/services/kakao.client.service";
 
 type User = Database["public"]["Tables"]["users"]["Row"];
@@ -285,91 +284,6 @@ export class ApprovalService {
   }
 
   /**
-   * 프로젝트 승인 요청 생성
-   */
-  async createApprovalRequest(
-    projectId: string,
-    requesterId: string,
-    requesterName: string,
-    approverId: string,
-    approverName: string,
-    memo: string,
-    projectName?: string,
-    category?: string
-  ): Promise<boolean> {
-    try {
-      // 1. approval_requests 테이블에 승인 요청 생성
-      const { data: approvalData, error: approvalError } = await this.supabase
-        .from("approval_requests")
-        .insert({
-          project_id: projectId,
-          requester_id: requesterId,
-          requester_name: requesterName,
-          approver_id: approverId,
-          approver_name: approverName,
-          memo: memo,
-          status: "pending",
-        })
-        .select()
-        .single();
-
-      if (approvalError) {
-        console.error("Error creating approval request:", approvalError);
-        throw approvalError;
-      }
-
-      // 2. 승인 요청 로그 생성
-      try {
-        await logService.createApprovalRequestLog({
-          project_id: projectId,
-          requester_id: requesterId,
-          requester_name: requesterName,
-          approver_id: approverId,
-          approver_name: approverName,
-          memo: memo,
-        });
-      } catch (logError) {
-        console.error("Error creating approval request log:", logError);
-        // 로그 생성 실패는 승인 요청 생성을 막지 않음
-      }
-
-      // 3. 승인자 이메일 조회
-      const { data: approverData } = await this.supabase
-        .from("users")
-        .select("email")
-        .eq("id", approverId)
-        .single();
-
-      // 4. 이메일 발송
-      if (approverData?.email) {
-        await emailClientService.sendProjectApprovalRequest(
-          approverData.email,
-          requesterName,
-          projectName || "프로젝트",
-          projectId,
-          memo,
-          category || "일반"
-        );
-      }
-
-      // 5. 알림 생성 (승인자에게)
-      await this.createProjectNotification(
-        approverId,
-        'approval_request',
-        '새로운 승인 요청',
-        `${requesterName}님이 프로젝트 승인을 요청했습니다: ${memo}`,
-        approvalData.id,
-        'approval_request'
-      );
-
-      return true;
-    } catch (error) {
-      console.error("Error in createApprovalRequest:", error);
-      return false;
-    }
-  }
-
-  /**
    * 프로젝트 승인 요청 응답 처리
    */
   async respondToApprovalRequest(
@@ -460,7 +374,7 @@ export class ApprovalService {
             approverName,
             projectName,
             requestData.project_id,
-            logData?.category || "승인요청"
+            logData?.category || "승인"
           );
         } else {
           await emailClientService.sendProjectApprovalRejected(
@@ -468,7 +382,7 @@ export class ApprovalService {
             approverName,
             projectName,
             requestData.project_id,
-            logData?.category || "승인요청",
+            logData?.category || "반려",
             responseMemo
           );
         }
@@ -482,17 +396,18 @@ export class ApprovalService {
         kakaoClientService.canSendKakao(requesterData.phone)
       ) {
         try {
-          kakaoApprovedResult = await kakaoClientService.sendProjectApprovalApproved(
-            requesterData.phone,
-            approverName,
-            projectData?.site_name || "현장",
-            projectData?.product_name || "프로젝트",
-            logData?.category || "승인요청"
-          );
-          console.log('승인 완료 카카오톡 발송 성공');
+          kakaoApprovedResult =
+            await kakaoClientService.sendProjectApprovalApproved(
+              requesterData.phone,
+              approverName,
+              projectData?.site_name || "현장",
+              projectData?.product_name || "프로젝트",
+              logData?.category || "승인요청"
+            );
+          console.log("승인 완료 카카오톡 발송 성공");
         } catch (error) {
           // 카카오톡 발송 실패해도 승인은 정상 처리
-          console.error('승인 완료 카카오톡 발송 실패:', error);
+          console.error("승인 완료 카카오톡 발송 실패:", error);
         }
       }
 
@@ -504,14 +419,15 @@ export class ApprovalService {
         kakaoClientService.canSendKakao(requesterData.phone)
       ) {
         try {
-          kakaoRejectedResult = await kakaoClientService.sendProjectApprovalRejection(
-            requesterData.phone,
-            approverName,
-            projectData?.site_name || "현장",
-            projectData?.product_name || "프로젝트",
-            logData?.category || "승인요청", // history_logs에서 조회한 카테고리 사용
-            responseMemo
-          );
+          kakaoRejectedResult =
+            await kakaoClientService.sendProjectApprovalRejection(
+              requesterData.phone,
+              approverName,
+              projectData?.site_name || "현장",
+              projectData?.product_name || "프로젝트",
+              logData?.category || "승인요청", // history_logs에서 조회한 카테고리 사용
+              responseMemo
+            );
           console.log("승인 반려 카카오톡 발송 성공");
         } catch (error) {
           // 카카오톡 발송 실패해도 승인 반려는 정상 처리
@@ -521,18 +437,26 @@ export class ApprovalService {
 
       // 8. 알림 생성 (요청자에게)
       const statusText = status === "approved" ? "승인" : "반려";
-      const title = status === "approved" ? "승인 요청 승인됨" : "승인 요청 반려됨";
-      
+      const title =
+        status === "approved" ? "승인 요청 승인됨" : "승인 요청 반려됨";
+
       await this.createProjectNotification(
         requestData.requester_id,
-        'approval_response',
+        "approval_response",
         title,
         `${approverName}님이 프로젝트 승인 요청을 ${statusText}했습니다: ${responseMemo}`,
         requestId,
-        'approval_request',
-        status === "approved" ? kakaoApprovedResult?.success : kakaoRejectedResult?.success,
-        status === "approved" ? kakaoApprovedResult?.success ? new Date().toISOString() : null : 
-                                kakaoRejectedResult?.success ? new Date().toISOString() : null
+        "approval_request",
+        status === "approved"
+          ? kakaoApprovedResult?.success
+          : kakaoRejectedResult?.success,
+        status === "approved"
+          ? kakaoApprovedResult?.success
+            ? new Date().toISOString()
+            : null
+          : kakaoRejectedResult?.success
+            ? new Date().toISOString()
+            : null
       );
 
       return true;
@@ -656,11 +580,11 @@ export class ApprovalService {
    */
   private async createProjectNotification(
     userId: string,
-    type: 'approval_request' | 'approval_response',
+    type: "approval_request" | "approval_response",
     title: string,
     message: string,
     relatedId?: string,
-    relatedType?: 'project' | 'approval_request',
+    relatedType?: "project" | "approval_request",
     kakaoSent?: boolean,
     kakaoSentAt?: string | null,
     emailSent?: boolean,
@@ -678,7 +602,7 @@ export class ApprovalService {
         kakao_sent: kakaoSent || false,
         kakao_sent_at: kakaoSentAt || null,
         email_sent: emailSent || false,
-        email_sent_at: emailSentAt || null
+        email_sent_at: emailSentAt || null,
       });
     } catch (error) {
       console.error("Error creating project notification:", error);

@@ -83,21 +83,21 @@ export function ReportHistoryList() {
     }
   };
 
-  const handleDelete = async (historyId: string) => {
-    if (!confirm('이 발송 내역을 삭제하시겠습니까?')) {
-      return;
-    }
+  // const handleDelete = async (historyId: string) => {
+  //   if (!confirm('이 발송 내역을 삭제하시겠습니까?')) {
+  //     return;
+  //   }
 
-    try {
-      await reportService.deleteReportHistory(historyId);
-      setMessage({ type: 'success', text: '발송 내역이 삭제되었습니다.' });
-      await loadHistory();
-      await loadStatistics();
-    } catch (error) {
-      console.error('Error deleting history:', error);
-      setMessage({ type: 'error', text: '발송 내역 삭제에 실패했습니다.' });
-    }
-  };
+  //   try {
+  //     await reportService.deleteReportHistory(historyId);
+  //     setMessage({ type: 'success', text: '발송 내역이 삭제되었습니다.' });
+  //     await loadHistory();
+  //     await loadStatistics();
+  //   } catch (error) {
+  //     console.error('Error deleting history:', error);
+  //     setMessage({ type: 'error', text: '발송 내역 삭제에 실패했습니다.' });
+  //   }
+  // };
 
   const handleDownload = (fileUrl: string, fileName: string) => {
     // Open the file URL in a new tab for download
@@ -290,12 +290,12 @@ export function ReportHistoryList() {
                           재발송
                         </button>
                       )}
-                      <button
+                      {/* <button
                         onClick={() => handleDelete(item.id)}
                         className="text-red-600 hover:text-red-800"
                       >
                         삭제
-                      </button>
+                      </button> */}
                     </div>
                   </td>
                 </tr>

@@ -54,23 +54,20 @@ serve(async (req) => {
 
 // 프로젝트 승인 요청 이메일
 async function sendProjectApprovalRequest(data: any) {
-  const {
-    approverEmail,
-    requesterName,
-    projectName,
-    projectId,
-    memo,
-    category,
-  } = data;
+  const { approverEmail, requesterName, projectName, memo, category } = data;
 
   // projectName을 현장명과 제품명으로 분리
-  const [siteName, productName] = projectName.includes(' - ')
-    ? projectName.split(' - ')
-    : [projectName, ''];
+  const [siteName, productName] = projectName.includes(" - ")
+    ? projectName.split(" - ")
+    : [projectName, ""];
 
-  const createdAt = new Date().toLocaleString('ko-KR', {
-    year: 'numeric', month: '2-digit', day: '2-digit',
-    hour: '2-digit', minute: '2-digit', hour12: false
+  const createdAt = new Date().toLocaleString("ko-KR", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
   });
 
   const html = `
@@ -97,8 +94,7 @@ async function sendProjectApprovalRequest(data: any) {
         <div class="content">
           <h2>승인이 필요한 항목이 있습니다</h2>
           <div class="project-info">
-            <p><strong>현장명:</strong> ${siteName}</p>
-            ${productName ? `<p><strong>제품명:</strong> ${productName}</p>` : ''}
+            <p><strong>프로젝트:</strong> ${siteName}-${productName}</p>
             <p><strong>요청자:</strong> ${requesterName}</p>
             <p><strong>카테고리:</strong> ${category}</p>
             <p><strong>요청 시간:</strong> ${createdAt}</p>
@@ -108,7 +104,6 @@ async function sendProjectApprovalRequest(data: any) {
             <p>${memo || "메모 없음"}</p>
           </div>
           <p>아래 버튼을 클릭하여 승인 대기 목록을 확인하고 처리해주세요.</p>
-          <a href="${Deno.env.get("NEXT_PUBLIC_APP_URL") || "http://localhost:3000"}/" class="button">승인 대기 목록 확인</a>
           <p style="margin-top: 20px; font-size: 14px; color: #666;">
             이 이메일은 프로젝트 현장 관리 시스템에서 자동으로 발송되었습니다.
           </p>
@@ -121,7 +116,7 @@ async function sendProjectApprovalRequest(data: any) {
   const { data: emailData, error } = await resend.emails.send({
     from: fromEmail,
     to: approverEmail,
-    subject: `[승인 요청] ${siteName}${productName ? ` - ${productName}` : ''} - ${category}`,
+    subject: `[승인 요청] ${siteName}${productName ? ` - ${productName}` : ""} - ${category}`,
     html,
   });
 
@@ -131,16 +126,21 @@ async function sendProjectApprovalRequest(data: any) {
 
 // 프로젝트 승인 완료 이메일
 async function sendProjectApprovalApproved(data: any) {
-  const { requesterEmail, approverName, projectName, projectId, category } = data;
+  const { requesterEmail, approverName, projectName, projectId, category } =
+    data;
 
   // projectName을 현장명과 제품명으로 분리
-  const [siteName, productName] = projectName.includes(' - ')
-    ? projectName.split(' - ')
-    : [projectName, ''];
+  const [siteName, productName] = projectName.includes(" - ")
+    ? projectName.split(" - ")
+    : [projectName, ""];
 
-  const approvedAt = new Date().toLocaleString('ko-KR', {
-    year: 'numeric', month: '2-digit', day: '2-digit',
-    hour: '2-digit', minute: '2-digit', hour12: false
+  const approvedAt = new Date().toLocaleString("ko-KR", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
   });
 
   const html = `
@@ -166,17 +166,11 @@ async function sendProjectApprovalApproved(data: any) {
         <div class="content">
           <h2>요청하신 항목이 승인되었습니다</h2>
           <div class="project-info">
-            <p><strong>현장명:</strong> ${siteName}</p>
-            ${productName ? `<p><strong>제품명:</strong> ${productName}</p>` : ''}
+            <p><strong>프로젝트:</strong> ${siteName}-${productName}</p>
             <p><strong>승인자:</strong> ${approverName}</p>
             <p><strong>카테고리:</strong> ${category}</p>
             <p><strong>승인 시간:</strong> ${approvedAt}</p>
           </div>
-          <p>프로젝트 상세 페이지에서 자세한 내용을 확인하실 수 있습니다.</p>
-          <a href="${Deno.env.get("NEXT_PUBLIC_APP_URL") || "http://localhost:3000"}/projects/${projectId}" class="button">프로젝트 보기</a>
-          <p style="margin-top: 20px; font-size: 14px; color: #666;">
-            이 이메일은 프로젝트 현장 관리 시스템에서 자동으로 발송되었습니다.
-          </p>
         </div>
       </div>
     </body>
@@ -186,7 +180,7 @@ async function sendProjectApprovalApproved(data: any) {
   const { data: emailData, error } = await resend.emails.send({
     from: fromEmail,
     to: requesterEmail,
-    subject: `[승인] ${siteName}${productName ? ` - ${productName}` : ''}`,
+    subject: `[승인] ${siteName}${productName ? ` - ${productName}` : ""}`,
     html,
   });
 
@@ -196,16 +190,27 @@ async function sendProjectApprovalApproved(data: any) {
 
 // 프로젝트 승인 반려 이메일
 async function sendProjectApprovalRejected(data: any) {
-  const { requesterEmail, approverName, projectName, projectId, memo, category } = data;
+  const {
+    requesterEmail,
+    approverName,
+    projectName,
+    projectId,
+    memo,
+    category,
+  } = data;
 
   // projectName을 현장명과 제품명으로 분리
-  const [siteName, productName] = projectName.includes(' - ')
-    ? projectName.split(' - ')
-    : [projectName, ''];
+  const [siteName, productName] = projectName.includes(" - ")
+    ? projectName.split(" - ")
+    : [projectName, ""];
 
-  const rejectedAt = new Date().toLocaleString('ko-KR', {
-    year: 'numeric', month: '2-digit', day: '2-digit',
-    hour: '2-digit', minute: '2-digit', hour12: false
+  const rejectedAt = new Date().toLocaleString("ko-KR", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
   });
 
   const html = `
@@ -232,23 +237,21 @@ async function sendProjectApprovalRejected(data: any) {
         <div class="content">
           <h2>요청하신 항목이 반려되었습니다</h2>
           <div class="project-info">
-            <p><strong>현장명:</strong> ${siteName}</p>
-            ${productName ? `<p><strong>제품명:</strong> ${productName}</p>` : ''}
+            <p><strong>프로젝트:</strong> ${siteName}-${productName}</p>
             <p><strong>반려자:</strong> ${approverName}</p>
             <p><strong>카테고리:</strong> ${category}</p>
             <p><strong>반려 시간:</strong> ${rejectedAt}</p>
           </div>
-          ${memo ? `
+          ${
+            memo
+              ? `
             <div class="memo-box">
               <strong>반려 사유:</strong>
               <p>${memo}</p>
             </div>
-          ` : ''}
-          <p>프로젝트 상세 페이지에서 자세한 내용을 확인하실 수 있습니다.</p>
-          <a href="${Deno.env.get("NEXT_PUBLIC_APP_URL") || "http://localhost:3000"}/projects/${projectId}" class="button">프로젝트 보기</a>
-          <p style="margin-top: 20px; font-size: 14px; color: #666;">
-            이 이메일은 프로젝트 현장 관리 시스템에서 자동으로 발송되었습니다.
-          </p>
+          `
+              : ""
+          }
         </div>
       </div>
     </body>
@@ -258,11 +261,10 @@ async function sendProjectApprovalRejected(data: any) {
   const { data: emailData, error } = await resend.emails.send({
     from: fromEmail,
     to: requesterEmail,
-    subject: `[반려] ${siteName}${productName ? ` - ${productName}` : ''}`,
+    subject: `[반려] ${siteName}${productName ? ` - ${productName}` : ""}`,
     html,
   });
 
   if (error) throw error;
   return emailData;
 }
-

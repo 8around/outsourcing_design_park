@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { reportService } from '@/lib/services/report.service';
-import { WeeklyReportConfig, DAYS_OF_WEEK } from '@/types/report';
+import { WeeklyReportConfig } from '@/types/report';
 import { Loading } from '@/components/common/ui/Loading';
 import { Alert } from '@/components/common/ui/Alert';
 
@@ -16,12 +16,7 @@ export function ReportConfiguration() {
 
   // Form state
   const [formData, setFormData] = useState({
-    is_enabled: true,
-    send_day_of_week: 1, // Monday
-    send_hour: 9,
-    send_minute: 0,
-    recipient_emails: [''],
-    report_title_template: '프로젝트 현장 관리 주간 리포트 - {date_range}'
+    recipient_emails: ['']
   });
 
   useEffect(() => {
@@ -32,16 +27,11 @@ export function ReportConfiguration() {
     try {
       setIsLoading(true);
       const data = await reportService.getReportConfig();
-      
+
       if (data) {
         setConfig(data);
         setFormData({
-          is_enabled: data.is_enabled,
-          send_day_of_week: data.send_day_of_week,
-          send_hour: data.send_hour,
-          send_minute: data.send_minute,
-          recipient_emails: data.recipient_emails.length > 0 ? data.recipient_emails : [''],
-          report_title_template: data.report_title_template
+          recipient_emails: data.recipient_emails.length > 0 ? data.recipient_emails : ['']
         });
       }
     } catch (error) {
@@ -54,7 +44,7 @@ export function ReportConfiguration() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Validate emails
     const validEmails = formData.recipient_emails.filter(email => email.trim() !== '');
     if (validEmails.length === 0) {
@@ -65,12 +55,16 @@ export function ReportConfiguration() {
     try {
       setIsSaving(true);
       setMessage(null);
-      
+
       await reportService.upsertReportConfig({
-        ...formData,
-        recipient_emails: validEmails
+        is_enabled: true, // 항상 활성화
+        send_day_of_week: 1, // 월요일 고정
+        send_hour: 9, // 오전 9시 고정
+        send_minute: 0, // 0분 고정
+        recipient_emails: validEmails,
+        report_title_template: '프로젝트 현장 관리 주간 리포트 - {date_range}' // 고정 템플릿
       });
-      
+
       setMessage({ type: 'success', text: '설정이 저장되었습니다.' });
       await loadConfig(); // Reload config
     } catch (error) {
@@ -109,7 +103,7 @@ export function ReportConfiguration() {
       setIsTesting(true);
       setMessage(null);
       const result = await reportService.testEmailSending(testEmail);
-      
+
       if (result.success) {
         setMessage({ type: 'success', text: result.message });
         setTestEmail('');
@@ -138,93 +132,20 @@ export function ReportConfiguration() {
         />
       )}
 
+      {/* 고정된 설정 정보 표시 */}
+      <div className="bg-blue-50 p-4 rounded-md mb-6">
+        <div className="flex items-center space-x-2 mb-2">
+          <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <h3 className="text-sm font-medium text-blue-800">자동 발송 설정</h3>
+        </div>
+        <p className="text-sm text-blue-800 mb-2">
+          📅 주간 리포트는 <strong>매주 월요일 오전 9시</strong>에 자동 발송됩니다.
+        </p>
+      </div>
+
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* 활성화 여부 */}
-        <div>
-          <label className="flex items-center space-x-3">
-            <input
-              type="checkbox"
-              checked={formData.is_enabled}
-              onChange={(e) => setFormData({ ...formData, is_enabled: e.target.checked })}
-              className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-            />
-            <span className="text-sm font-medium text-gray-700">
-              주간 리포트 자동 발송 활성화
-            </span>
-          </label>
-        </div>
-
-        {/* 발송 시간 설정 */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              발송 요일
-            </label>
-            <select
-              value={formData.send_day_of_week}
-              onChange={(e) => setFormData({ ...formData, send_day_of_week: Number(e.target.value) })}
-              className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-            >
-              {DAYS_OF_WEEK.map(day => (
-                <option key={day.value} value={day.value}>
-                  {day.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              발송 시간 (시)
-            </label>
-            <select
-              value={formData.send_hour}
-              onChange={(e) => setFormData({ ...formData, send_hour: Number(e.target.value) })}
-              className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-            >
-              {Array.from({ length: 24 }, (_, i) => (
-                <option key={i} value={i}>
-                  {String(i).padStart(2, '0')}시
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              발송 시간 (분)
-            </label>
-            <select
-              value={formData.send_minute}
-              onChange={(e) => setFormData({ ...formData, send_minute: Number(e.target.value) })}
-              className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-            >
-              {[0, 15, 30, 45].map(minute => (
-                <option key={minute} value={minute}>
-                  {String(minute).padStart(2, '0')}분
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        {/* 리포트 제목 템플릿 */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            리포트 제목 템플릿
-          </label>
-          <input
-            type="text"
-            value={formData.report_title_template}
-            onChange={(e) => setFormData({ ...formData, report_title_template: e.target.value })}
-            className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-            placeholder="프로젝트 현장 관리 주간 리포트 - {date_range}"
-          />
-          <p className="mt-1 text-sm text-gray-500">
-            {'{date_range}'} 변수는 실제 날짜 범위로 자동 치환됩니다.
-          </p>
-        </div>
-
         {/* 수신자 이메일 */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
