@@ -85,9 +85,10 @@ interface SidebarProps {
   collapsed: boolean
   onCollapse: (collapsed: boolean) => void
   className?: string
+  isMobile?: boolean
 }
 
-export default function Sidebar({ collapsed, onCollapse, className }: SidebarProps) {
+export default function Sidebar({ collapsed, onCollapse, className, isMobile = false }: SidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
   const { user, userData, signOut } = useAuth()
@@ -188,12 +189,13 @@ export default function Sidebar({ collapsed, onCollapse, className }: SidebarPro
 
   return (
     <>
-    <div 
+    <div
       className={`fixed left-0 top-0 h-full bg-white border-r border-gray-200 flex flex-col ${className || ''}`}
       style={{
         width: collapsed ? '80px' : '280px',
-        transition: 'width 0.2s ease',
-        zIndex: 1000, // Increased z-index to ensure sidebar is always on top
+        transform: isMobile && collapsed ? 'translateX(-100%)' : 'translateX(0)',
+        transition: 'transform 0.3s ease, width 0.2s ease',
+        zIndex: 1050, // Higher than overlay (999)
         display: 'flex',
         flexDirection: 'column',
         height: '100vh',

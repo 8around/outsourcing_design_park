@@ -148,14 +148,6 @@ export default function UserDetailModal({
           {user.phone || '-'}
         </Descriptions.Item>
         
-        <Descriptions.Item label="부서">
-          {user.department || '-'}
-        </Descriptions.Item>
-        
-        <Descriptions.Item label="직책">
-          {user.position || '-'}
-        </Descriptions.Item>
-        
         <Descriptions.Item label="상태">
           {getUserStatus()}
         </Descriptions.Item>

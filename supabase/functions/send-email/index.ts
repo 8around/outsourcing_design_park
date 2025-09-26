@@ -103,7 +103,6 @@ async function sendProjectApprovalRequest(data: any) {
             <strong>요청 메모:</strong>
             <p>${memo || "메모 없음"}</p>
           </div>
-          <p>아래 버튼을 클릭하여 승인 대기 목록을 확인하고 처리해주세요.</p>
           <p style="margin-top: 20px; font-size: 14px; color: #666;">
             이 이메일은 프로젝트 현장 관리 시스템에서 자동으로 발송되었습니다.
           </p>
