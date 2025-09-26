@@ -61,13 +61,10 @@ export default function UsersManagement() {
   const loadUsers = useCallback(async (status: UserStatus) => {
     setLoading(true);
     try {
-      console.log(`Loading users with status: ${status}`);
       const data = await approvalService.getUsersByStatus(status);
-      console.log(`Received ${data.length} users for status ${status}:`, data);
       
       // Filter out the current admin user to avoid showing themselves in the list
       const filteredData = data.filter(u => u.id !== user?.id);
-      console.log(`After filtering out current user, ${filteredData.length} users remaining`);
       
       setUsers(filteredData);
     } catch (error) {
@@ -138,11 +135,6 @@ export default function UsersManagement() {
     if (!selectedUser || !user?.id) return;
 
     try {
-      console.log('Attempting to reject user:', {
-        selectedUserId: selectedUser.id,
-        adminId: user.id,
-        reason: rejectReason.trim() || undefined
-      });
 
       const success = await approvalService.rejectUser(
         selectedUser.id, 

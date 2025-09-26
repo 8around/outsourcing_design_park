@@ -34,7 +34,6 @@ export class ApprovalService {
   async getUsersByStatus(
     status: "pending" | "approved" | "rejected"
   ): Promise<User[]> {
-    console.log(`Fetching users with status: ${status}`);
     let query = this.supabase.from("users").select("*");
 
     switch (status) {
@@ -58,7 +57,6 @@ export class ApprovalService {
       throw error;
     }
 
-    console.log(`Found ${data?.length || 0} ${status} users:`, data);
     return data || [];
   }
 
@@ -67,7 +65,6 @@ export class ApprovalService {
    */
   async approveUser(userId: string, adminId: string): Promise<boolean> {
     try {
-      console.log("Approving user:", { userId, adminId });
 
       // For re-approval cases, we need to ensure the update actually changes something
       // First check if this is a re-approval (user was previously rejected)
@@ -81,7 +78,6 @@ export class ApprovalService {
         currentUser && !currentUser.is_approved && currentUser.approved_at;
 
       if (isReApproval) {
-        console.log("Re-approval detected, using two-step update process");
 
         // Step 1: Clear the approval fields to ensure the next update will detect changes
         const { error: clearError } = await this.supabase
@@ -130,7 +126,6 @@ export class ApprovalService {
         throw new Error("Failed to update user - no rows affected");
       }
 
-      console.log("User approval update successful:", updateData);
 
       // 2. 사용자 정보 조회 (알림용)
       const { data: userData } = await this.supabase
@@ -171,7 +166,6 @@ export class ApprovalService {
     reason?: string
   ): Promise<boolean> {
     try {
-      console.log("Rejecting user:", { userId, adminId, reason });
 
       // 1. 사용자 정보 업데이트
       // Add a small delay to ensure updated_at is different from any existing timestamp
@@ -207,7 +201,6 @@ export class ApprovalService {
         throw new Error("Failed to update user - no rows affected");
       }
 
-      console.log("User rejection update successful:", updateData);
 
       // 2. 사용자 정보 조회 (알림용)
       const { data: userData } = await this.supabase
@@ -404,7 +397,6 @@ export class ApprovalService {
               projectData?.product_name || "프로젝트",
               logData?.category || "승인요청"
             );
-          console.log("승인 완료 카카오톡 발송 성공");
         } catch (error) {
           // 카카오톡 발송 실패해도 승인은 정상 처리
           console.error("승인 완료 카카오톡 발송 실패:", error);
@@ -428,7 +420,6 @@ export class ApprovalService {
               logData?.category || "승인요청", // history_logs에서 조회한 카테고리 사용
               responseMemo
             );
-          console.log("승인 반려 카카오톡 발송 성공");
         } catch (error) {
           // 카카오톡 발송 실패해도 승인 반려는 정상 처리
           console.error("승인 반려 카카오톡 발송 실패:", error);
@@ -497,7 +488,6 @@ export class ApprovalService {
     adminId: string
   ): Promise<boolean> {
     try {
-      console.log("deleteApprovalRequest called:", { requestId, adminId });
 
       // 승인 요청 정보 조회
       const { data: requestData, error: fetchError } = await this.supabase
@@ -506,8 +496,6 @@ export class ApprovalService {
         .eq("id", requestId)
         .single();
 
-      console.log("Approval request data:", requestData);
-      console.log("Fetch error:", fetchError);
 
       if (fetchError || !requestData) {
         console.error("Error fetching approval request:", fetchError);

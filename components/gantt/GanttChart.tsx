@@ -263,23 +263,19 @@ export function GanttChart({
   }, [projects, expandedProjects])
 
   const handleTaskClick = (task: Task) => {
-    console.log('Task clicked:', task)
     setSelectedTask(task)
     onTaskClick?.(task)
   }
 
   const handleTaskDoubleClick = (task: Task) => {
-    console.log('Task double clicked:', task)
     onTaskDoubleClick?.(task)
   }
 
   const handleDateChange = (task: Task) => {
-    console.log('Date changed:', task)
     onDateChange?.(task)
   }
 
   const handleProgressChange = (task: Task) => {
-    console.log('Progress changed:', task)
     onProgressChange?.(task)
   }
 

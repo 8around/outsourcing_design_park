@@ -33,7 +33,6 @@ export async function GET(request: NextRequest) {
 
     if (!error) {
       // 이메일 인증 성공
-      console.log("Email verification successful (PKCE flow)");
 
       // 세션 유지가 목적이 아닌 이메일 확인만 필요하므로 즉시 로그아웃
       try {
@@ -72,7 +71,6 @@ export async function GET(request: NextRequest) {
 
     if (!error) {
       // 이메일 인증 성공
-      console.log("Email verification successful (Magic Link flow)");
 
       // 세션 유지가 목적이 아닌 이메일 확인만 필요하므로 즉시 로그아웃
       try {

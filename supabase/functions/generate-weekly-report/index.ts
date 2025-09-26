@@ -36,7 +36,6 @@ serve(async (req) => {
         body = { trigger: "cron" };
       }
     } catch (error) {
-      console.log("Body parsing error, using default:", error);
       body = { trigger: "cron" };
     }
     const isTestMode = body.test === true;
@@ -63,7 +62,6 @@ serve(async (req) => {
     }
 
     // 테스트 모드가 아닌 경우 항상 실행 (cron job으로 제어)
-    console.log(isTestMode ? "Running in test mode" : "Running via cron job schedule");
 
     // 3. 주간 데이터 수집
     const endDate = new Date();
@@ -89,7 +87,6 @@ serve(async (req) => {
     }
 
     if (!logs || logs.length === 0) {
-      console.log("No logs found for the period");
       return new Response(
         JSON.stringify({
           success: false,

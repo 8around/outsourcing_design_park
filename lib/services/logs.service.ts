@@ -21,17 +21,6 @@ class LogService {
   ): Promise<HistoryLogWithAttachments> {
     const supabase = createClient();
 
-    console.log("createManualLog 호출:", {
-      hasAttachments: !!(data.attachments && data.attachments.length > 0),
-      attachmentCount: data.attachments?.length || 0,
-      attachments: data.attachments?.map((a) => ({
-        fileName: a.file_name,
-        fileSize: a.file_size,
-        mimeType: a.mime_type,
-        hasFile: !!a.file,
-        fileType: a.file?.constructor?.name,
-      })),
-    });
 
     // 로그 생성
     const { data: log, error: logError } = await supabase
@@ -52,19 +41,16 @@ class LogService {
       throw new Error("로그 생성에 실패했습니다.");
     }
 
-    console.log("로그 생성 성공:", log.id);
 
     // 첨부파일이 있으면 업로드
     let attachments = [];
     if (data.attachments && data.attachments.length > 0) {
-      console.log("첨부파일 업로드 시작...");
       try {
         attachments = await this.uploadAttachments(
           log.id,
           data.attachments,
           data.author_id
         );
-        console.log("첨부파일 업로드 완료:", attachments.length);
       } catch (error) {
         console.error("첨부파일 업로드 중 오류:", error);
         // 첨부파일 업로드 실패해도 로그는 생성되도록 처리
@@ -165,7 +151,6 @@ class LogService {
           data.memo,
           data.category || "승인요청"
         );
-        console.log("승인 요청 이메일 발송 성공");
       } catch (error) {
         // 이메일 발송 실패해도 승인 요청은 생성되도록 처리
         console.error("승인 요청 이메일 발송 실패:", error);
@@ -179,12 +164,6 @@ class LogService {
       kakaoClientService.canSendKakao(approverData.phone)
     ) {
       try {
-        console.log("카카오톡 발송 시작...", {
-          approver: data.approver_name,
-          phone: approverData.phone,
-          project: projectData?.site_name,
-          category: data.category,
-        });
 
         kakaoSendResult = await kakaoClientService.sendProjectApprovalRequest(
           approverData.phone,
@@ -195,10 +174,6 @@ class LogService {
           data.memo
         );
 
-        console.log("승인 요청 카카오톡 발송 성공:", {
-          success: kakaoSendResult?.success,
-          data: kakaoSendResult?.data,
-        });
       } catch (error) {
         // 카카오톡 발송 실패해도 승인 요청은 생성되도록 처리
         console.error("승인 요청 카카오톡 발송 실패:", {
@@ -211,14 +186,7 @@ class LogService {
       }
     } else {
       if (!approverData?.phone) {
-        console.log("승인자 전화번호가 없어 카카오톡 발송을 건너뜁니다.", {
-          approver: data.approver_name,
-        });
       } else {
-        console.log("유효하지 않은 전화번호로 카카오톡 발송을 건너뜁니다:", {
-          approver: data.approver_name,
-          phone: approverData.phone,
-        });
       }
     }
 
@@ -239,7 +207,6 @@ class LogService {
         email_sent: !!approverData?.email,
         email_sent_at: !!approverData?.email ? new Date().toISOString() : null,
       });
-      console.log("승인 요청 알림 생성 성공");
     } catch (notificationError) {
       console.error("알림 생성 실패:", notificationError);
       // 알림 생성 실패해도 승인 요청은 유지
@@ -492,7 +459,6 @@ class LogService {
   async deleteLog(logId: string, userId: string) {
     const supabase = createClient();
 
-    console.log("Deleting log:", logId, "by user:", userId);
 
     // 1. 먼저 이 로그와 연결된 승인 요청이 있는지 확인
     // history_log_id 컬럼이 제거되었으므로 다른 방식으로 확인
@@ -512,12 +478,10 @@ class LogService {
         .eq("approver_id", logData.target_user_id)
         .eq("status", "pending");
 
-      console.log("Related approval requests:", approvalRequests);
 
       // 연결된 승인 요청이 있으면 먼저 삭제
       if (approvalRequests && approvalRequests.length > 0) {
         for (const request of approvalRequests) {
-          console.log("Deleting approval request:", request.id);
           const { error: approvalDeleteError } = await supabase
             .from("approval_requests")
             .delete()
@@ -542,7 +506,6 @@ class LogService {
 
     // 4. 첨부파일이 있으면 스토리지에서도 삭제
     if (attachments && attachments.length > 0) {
-      console.log("Deleting attachments:", attachments);
       const filePaths = attachments.map((a) => a.file_path);
 
       const { error: storageError } = await supabase.storage
@@ -582,7 +545,6 @@ class LogService {
       throw new Error("로그 삭제에 실패했습니다.");
     }
 
-    console.log("Log deleted successfully");
     return { id: logId };
   }
 
@@ -618,11 +580,6 @@ class LogService {
     const supabase = createClient();
     const uploadedAttachments = [];
 
-    console.log("uploadAttachments 시작:", {
-      logId,
-      attachmentCount: attachments.length,
-      userId,
-    });
 
     for (const attachment of attachments) {
       try {
@@ -639,19 +596,6 @@ class LogService {
         );
         const uniqueFileName = `${logId}/${Date.now()}_${safeFileName}`;
 
-        console.log("파일 업로드 시작:", {
-          originalName: attachment.file_name,
-          safeFileName: uniqueFileName,
-          fileSize: attachment.file_size,
-          mimeType: attachment.mime_type,
-          fileType: attachment.file.constructor.name,
-          fileInstance: attachment.file instanceof File,
-          fileProperties: {
-            name: attachment.file.name,
-            size: attachment.file.size,
-            type: attachment.file.type,
-          },
-        });
 
         // File 객체를 Blob으로 변환 (브라우저 호환성 향상)
         const fileBlob = new Blob([attachment.file], {
@@ -681,7 +625,6 @@ class LogService {
           throw uploadError;
         }
 
-        console.log("파일 업로드 성공:", uploadData);
 
         // DB에 첨부파일 정보 저장
         const { data: attachmentRecord, error: dbError } = await supabase
@@ -718,11 +661,6 @@ class LogService {
       }
     }
 
-    console.log("첨부파일 업로드 완료:", {
-      총_파일수: attachments.length,
-      성공한_파일수: uploadedAttachments.length,
-      실패한_파일수: attachments.length - uploadedAttachments.length,
-    });
 
     return uploadedAttachments;
   }

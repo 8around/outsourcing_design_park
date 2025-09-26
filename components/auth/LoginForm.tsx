@@ -31,7 +31,6 @@ export default function LoginForm({ onSubmit }: LoginFormProps) {
       } else {
         // 임시: 개발용 로그인 시뮬레이션
         await new Promise(resolve => setTimeout(resolve, 1500))
-        console.log('로그인 시도:', values)
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : '로그인 중 오류가 발생했습니다.')
