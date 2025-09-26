@@ -258,7 +258,7 @@ export class ReportService {
         "generate-weekly-report",
         {
           body: {
-            test: false, // 테스트 모드 활성화
+            test: true, // 테스트 모드 활성화
             emails: [testEmail], // 테스트 이메일 주소 배열
           },
         }
