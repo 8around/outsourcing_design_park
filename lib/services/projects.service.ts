@@ -425,7 +425,6 @@ export class ProjectService {
         .single();
 
       if (!currentStage) {
-        console.log('진행 중인 공정이 없습니다.');
         return null;
       }
 
@@ -444,7 +443,6 @@ export class ProjectService {
         .single();
 
       if (!nextStage) {
-        console.log('모든 공정이 완료되었습니다.');
         return null;
       }
 

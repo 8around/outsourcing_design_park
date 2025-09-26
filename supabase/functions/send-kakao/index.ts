@@ -102,11 +102,6 @@ async function sendKakaoAlimtalk(data: any, messageService: any) {
     throw new Error("SOLAPI API 키가 설정되지 않았습니다.");
   }
 
-  console.log("Sending Kakao message via SOLAPI SDK:", {
-    to: formatPhoneNumber(to),
-    templateId,
-    variables,
-  });
 
   // SOLAPI SDK를 사용한 카카오톡 알림톡 발송 (간소화된 버전)
   const result = await messageService.sendOne({
@@ -120,7 +115,6 @@ async function sendKakaoAlimtalk(data: any, messageService: any) {
     },
   });
 
-  console.log("Kakao message sent successfully via SDK:", result);
   return result;
 }
 

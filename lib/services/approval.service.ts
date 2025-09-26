@@ -1,7 +1,6 @@
 import { createClient } from "@/lib/supabase/client";
 import { Database } from "@/lib/database/types/supabase";
 import { emailClientService } from "@/lib/services/email.client.service";
-import { logService } from "@/lib/services/logs.service";
 import { kakaoClientService } from "@/lib/services/kakao.client.service";
 
 type User = Database["public"]["Tables"]["users"]["Row"];
@@ -35,7 +34,6 @@ export class ApprovalService {
   async getUsersByStatus(
     status: "pending" | "approved" | "rejected"
   ): Promise<User[]> {
-    console.log(`Fetching users with status: ${status}`);
     let query = this.supabase.from("users").select("*");
 
     switch (status) {
@@ -59,7 +57,6 @@ export class ApprovalService {
       throw error;
     }
 
-    console.log(`Found ${data?.length || 0} ${status} users:`, data);
     return data || [];
   }
 
@@ -68,7 +65,6 @@ export class ApprovalService {
    */
   async approveUser(userId: string, adminId: string): Promise<boolean> {
     try {
-      console.log("Approving user:", { userId, adminId });
 
       // For re-approval cases, we need to ensure the update actually changes something
       // First check if this is a re-approval (user was previously rejected)
@@ -82,7 +78,6 @@ export class ApprovalService {
         currentUser && !currentUser.is_approved && currentUser.approved_at;
 
       if (isReApproval) {
-        console.log("Re-approval detected, using two-step update process");
 
         // Step 1: Clear the approval fields to ensure the next update will detect changes
         const { error: clearError } = await this.supabase
@@ -131,7 +126,6 @@ export class ApprovalService {
         throw new Error("Failed to update user - no rows affected");
       }
 
-      console.log("User approval update successful:", updateData);
 
       // 2. 사용자 정보 조회 (알림용)
       const { data: userData } = await this.supabase
@@ -148,12 +142,12 @@ export class ApprovalService {
           `귀하의 계정이 승인되었습니다. 이제 시스템을 이용하실 수 있습니다.`
         );
 
-        // 이메일 발송 (클라이언트 사이드에서 Edge Function 호출)
-        await emailClientService.sendUserApprovalEmail(
-          userData.email,
-          userData.name,
-          "approved"
-        );
+        // 이메일 발송 기능 제거됨 - 사용자 승인 이메일은 더 이상 발송하지 않음
+        // await emailClientService.sendUserApprovalEmail(
+        //   userData.email,
+        //   userData.name,
+        //   "approved"
+        // );
       }
 
       return true;
@@ -172,7 +166,6 @@ export class ApprovalService {
     reason?: string
   ): Promise<boolean> {
     try {
-      console.log("Rejecting user:", { userId, adminId, reason });
 
       // 1. 사용자 정보 업데이트
       // Add a small delay to ensure updated_at is different from any existing timestamp
@@ -208,7 +201,6 @@ export class ApprovalService {
         throw new Error("Failed to update user - no rows affected");
       }
 
-      console.log("User rejection update successful:", updateData);
 
       // 2. 사용자 정보 조회 (알림용)
       const { data: userData } = await this.supabase
@@ -225,13 +217,13 @@ export class ApprovalService {
 
         await this.createApprovalNotification(userId, "rejected", message);
 
-        // 이메일 발송 (클라이언트 사이드에서 Edge Function 호출)
-        await emailClientService.sendUserApprovalEmail(
-          userData.email,
-          userData.name,
-          "rejected",
-          reason
-        );
+        // 이메일 발송 기능 제거됨 - 사용자 거절 이메일은 더 이상 발송하지 않음
+        // await emailClientService.sendUserApprovalEmail(
+        //   userData.email,
+        //   userData.name,
+        //   "rejected",
+        //   reason
+        // );
       }
 
       return true;
@@ -281,91 +273,6 @@ export class ApprovalService {
       return "rejected";
     } else {
       return "pending";
-    }
-  }
-
-  /**
-   * 프로젝트 승인 요청 생성
-   */
-  async createApprovalRequest(
-    projectId: string,
-    requesterId: string,
-    requesterName: string,
-    approverId: string,
-    approverName: string,
-    memo: string,
-    projectName?: string,
-    category?: string
-  ): Promise<boolean> {
-    try {
-      // 1. approval_requests 테이블에 승인 요청 생성
-      const { data: approvalData, error: approvalError } = await this.supabase
-        .from("approval_requests")
-        .insert({
-          project_id: projectId,
-          requester_id: requesterId,
-          requester_name: requesterName,
-          approver_id: approverId,
-          approver_name: approverName,
-          memo: memo,
-          status: "pending",
-        })
-        .select()
-        .single();
-
-      if (approvalError) {
-        console.error("Error creating approval request:", approvalError);
-        throw approvalError;
-      }
-
-      // 2. 승인 요청 로그 생성
-      try {
-        await logService.createApprovalRequestLog({
-          project_id: projectId,
-          requester_id: requesterId,
-          requester_name: requesterName,
-          approver_id: approverId,
-          approver_name: approverName,
-          memo: memo,
-        });
-      } catch (logError) {
-        console.error("Error creating approval request log:", logError);
-        // 로그 생성 실패는 승인 요청 생성을 막지 않음
-      }
-
-      // 3. 승인자 이메일 조회
-      const { data: approverData } = await this.supabase
-        .from("users")
-        .select("email")
-        .eq("id", approverId)
-        .single();
-
-      // 4. 이메일 발송
-      if (approverData?.email) {
-        await emailClientService.sendProjectApprovalRequest(
-          approverData.email,
-          requesterName,
-          projectName || "프로젝트",
-          projectId,
-          memo,
-          category || "일반"
-        );
-      }
-
-      // 5. 알림 생성 (승인자에게)
-      await this.createProjectNotification(
-        approverId,
-        'approval_request',
-        '새로운 승인 요청',
-        `${requesterName}님이 프로젝트 승인을 요청했습니다: ${memo}`,
-        approvalData.id,
-        'approval_request'
-      );
-
-      return true;
-    } catch (error) {
-      console.error("Error in createApprovalRequest:", error);
-      return false;
     }
   }
 
@@ -454,14 +361,24 @@ export class ApprovalService {
           ? `${projectData.site_name} - ${projectData.product_name}`
           : "프로젝트";
 
-        await emailClientService.sendProjectApprovalResult(
-          requesterData.email,
-          approverName,
-          projectName,
-          requestData.project_id,
-          status,
-          responseMemo
-        );
+        if (status === "approved") {
+          await emailClientService.sendProjectApprovalApproved(
+            requesterData.email,
+            approverName,
+            projectName,
+            requestData.project_id,
+            logData?.category || "승인"
+          );
+        } else {
+          await emailClientService.sendProjectApprovalRejected(
+            requesterData.email,
+            approverName,
+            projectName,
+            requestData.project_id,
+            logData?.category || "반려",
+            responseMemo
+          );
+        }
       }
 
       // 7-1. 카카오톡 알림톡 발송 (승인 완료의 경우)
@@ -472,17 +389,17 @@ export class ApprovalService {
         kakaoClientService.canSendKakao(requesterData.phone)
       ) {
         try {
-          kakaoApprovedResult = await kakaoClientService.sendProjectApprovalApproved(
-            requesterData.phone,
-            approverName,
-            projectData?.site_name || "현장",
-            projectData?.product_name || "프로젝트",
-            logData?.category || "승인요청"
-          );
-          console.log('승인 완료 카카오톡 발송 성공');
+          kakaoApprovedResult =
+            await kakaoClientService.sendProjectApprovalApproved(
+              requesterData.phone,
+              approverName,
+              projectData?.site_name || "현장",
+              projectData?.product_name || "프로젝트",
+              logData?.category || "승인요청"
+            );
         } catch (error) {
           // 카카오톡 발송 실패해도 승인은 정상 처리
-          console.error('승인 완료 카카오톡 발송 실패:', error);
+          console.error("승인 완료 카카오톡 발송 실패:", error);
         }
       }
 
@@ -494,15 +411,15 @@ export class ApprovalService {
         kakaoClientService.canSendKakao(requesterData.phone)
       ) {
         try {
-          kakaoRejectedResult = await kakaoClientService.sendProjectApprovalRejection(
-            requesterData.phone,
-            approverName,
-            projectData?.site_name || "현장",
-            projectData?.product_name || "프로젝트",
-            logData?.category || "승인요청", // history_logs에서 조회한 카테고리 사용
-            responseMemo
-          );
-          console.log("승인 반려 카카오톡 발송 성공");
+          kakaoRejectedResult =
+            await kakaoClientService.sendProjectApprovalRejection(
+              requesterData.phone,
+              approverName,
+              projectData?.site_name || "현장",
+              projectData?.product_name || "프로젝트",
+              logData?.category || "승인요청", // history_logs에서 조회한 카테고리 사용
+              responseMemo
+            );
         } catch (error) {
           // 카카오톡 발송 실패해도 승인 반려는 정상 처리
           console.error("승인 반려 카카오톡 발송 실패:", error);
@@ -511,18 +428,26 @@ export class ApprovalService {
 
       // 8. 알림 생성 (요청자에게)
       const statusText = status === "approved" ? "승인" : "반려";
-      const title = status === "approved" ? "승인 요청 승인됨" : "승인 요청 반려됨";
-      
+      const title =
+        status === "approved" ? "승인 요청 승인됨" : "승인 요청 반려됨";
+
       await this.createProjectNotification(
         requestData.requester_id,
-        'approval_response',
+        "approval_response",
         title,
         `${approverName}님이 프로젝트 승인 요청을 ${statusText}했습니다: ${responseMemo}`,
         requestId,
-        'approval_request',
-        status === "approved" ? kakaoApprovedResult?.success : kakaoRejectedResult?.success,
-        status === "approved" ? kakaoApprovedResult?.success ? new Date().toISOString() : null : 
-                                kakaoRejectedResult?.success ? new Date().toISOString() : null
+        "approval_request",
+        status === "approved"
+          ? kakaoApprovedResult?.success
+          : kakaoRejectedResult?.success,
+        status === "approved"
+          ? kakaoApprovedResult?.success
+            ? new Date().toISOString()
+            : null
+          : kakaoRejectedResult?.success
+            ? new Date().toISOString()
+            : null
       );
 
       return true;
@@ -563,7 +488,6 @@ export class ApprovalService {
     adminId: string
   ): Promise<boolean> {
     try {
-      console.log("deleteApprovalRequest called:", { requestId, adminId });
 
       // 승인 요청 정보 조회
       const { data: requestData, error: fetchError } = await this.supabase
@@ -572,8 +496,6 @@ export class ApprovalService {
         .eq("id", requestId)
         .single();
 
-      console.log("Approval request data:", requestData);
-      console.log("Fetch error:", fetchError);
 
       if (fetchError || !requestData) {
         console.error("Error fetching approval request:", fetchError);
@@ -646,11 +568,11 @@ export class ApprovalService {
    */
   private async createProjectNotification(
     userId: string,
-    type: 'approval_request' | 'approval_response',
+    type: "approval_request" | "approval_response",
     title: string,
     message: string,
     relatedId?: string,
-    relatedType?: 'project' | 'approval_request',
+    relatedType?: "project" | "approval_request",
     kakaoSent?: boolean,
     kakaoSentAt?: string | null,
     emailSent?: boolean,
@@ -668,7 +590,7 @@ export class ApprovalService {
         kakao_sent: kakaoSent || false,
         kakao_sent_at: kakaoSentAt || null,
         email_sent: emailSent || false,
-        email_sent_at: emailSentAt || null
+        email_sent_at: emailSentAt || null,
       });
     } catch (error) {
       console.error("Error creating project notification:", error);
@@ -727,17 +649,17 @@ export class ApprovalService {
 
       await this.supabase.from("notifications").insert(notifications);
 
-      // 관리자들에게 이메일 발송
-      const adminEmails = admins
-        .map((admin) => admin.email)
-        .filter(Boolean) as string[];
-      if (adminEmails.length > 0 && newUserEmail) {
-        await emailClientService.sendNewSignupNotification(
-          adminEmails,
-          newUserName,
-          newUserEmail
-        );
-      }
+      // 관리자들에게 이메일 발송 기능 제거됨 - 신규 가입 알림 이메일은 더 이상 발송하지 않음
+      // const adminEmails = admins
+      //   .map((admin) => admin.email)
+      //   .filter(Boolean) as string[];
+      // if (adminEmails.length > 0 && newUserEmail) {
+      //   await emailClientService.sendNewSignupNotification(
+      //     adminEmails,
+      //     newUserName,
+      //     newUserEmail
+      //   );
+      // }
     } catch (error) {
       console.error("Error notifying admins:", error);
     }

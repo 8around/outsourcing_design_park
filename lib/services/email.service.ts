@@ -31,7 +31,6 @@ export class EmailService {
     try {
       // 클라이언트 사이드에서는 실행하지 않음
       if (typeof window !== 'undefined' || !resend) {
-        console.log('Email service is not available on client side');
         return false;
       }
 
@@ -76,7 +75,6 @@ export class EmailService {
     try {
       // 클라이언트 사이드에서는 실행하지 않음
       if (typeof window !== 'undefined' || !resend) {
-        console.log('Email service is not available on client side');
         return false;
       }
 
@@ -119,7 +117,6 @@ export class EmailService {
     try {
       // 클라이언트 사이드에서는 실행하지 않음
       if (typeof window !== 'undefined' || !resend) {
-        console.log('Email service is not available on client side');
         return false;
       }
 
@@ -163,7 +160,6 @@ export class EmailService {
     try {
       // 클라이언트 사이드에서는 실행하지 않음
       if (typeof window !== 'undefined' || !resend) {
-        console.log('Email service is not available on client side');
         return false;
       }
 
