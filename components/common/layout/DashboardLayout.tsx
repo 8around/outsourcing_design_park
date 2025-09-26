@@ -16,7 +16,7 @@ interface DashboardLayoutProps {
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const [collapsed, setCollapsed] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
-  
+
   const sidebarWidth = 280
   const collapsedWidth = 80
 
@@ -57,6 +57,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           collapsed={collapsed}
           onCollapse={handleCollapse}
           className={isMobile ? 'mobile-sidebar' : ''}
+          isMobile={isMobile}
         />
 
         {/* 메인 레이아웃 */}
@@ -75,6 +76,8 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             collapsed={collapsed}
             onCollapse={handleCollapse}
             sidebarWidth={sidebarWidth}
+            showMobileMenuButton={isMobile}
+            onMobileMenuToggle={() => setCollapsed(!collapsed)}
           />
 
           {/* 메인 콘텐츠 */}
@@ -83,6 +86,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             style={{
               marginTop: '72px', // 헤더 높이
               padding: '24px',
+              paddingBottom: '24px',
               minHeight: 'calc(100vh - 72px)',
               background: 'var(--background-secondary)',
               position: 'relative',
@@ -135,6 +139,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           />
         )}
 
+
         <style jsx>{`
           .dashboard-layout {
             background: var(--background-secondary);
@@ -175,7 +180,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             .main-content {
               padding: 16px;
             }
-            
+
             .content-wrapper {
               padding: 16px;
               min-height: calc(100vh - 120px);
@@ -187,7 +192,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             .main-content {
               padding: 12px;
             }
-            
+
             .content-wrapper {
               padding: 12px;
               min-height: calc(100vh - 108px);

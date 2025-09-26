@@ -329,31 +329,46 @@ export default function GlobalLogFeed({
             />
           }
           title={
-            <Space>
-              <Text strong>{log.author_name}</Text>
-              {actionText && <Text type="secondary">{actionText}</Text>}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              flexWrap: 'nowrap',
+              whiteSpace: 'nowrap',
+              overflowX: 'auto',
+              scrollbarWidth: 'none',
+              msOverflowStyle: 'none'
+            }}>
+              <Text strong style={{ flexShrink: 0 }}>{log.author_name}</Text>
+              {actionText && <Text type="secondary" style={{ flexShrink: 0 }}>{actionText}</Text>}
               {log.target_user_name && (
                 <>
-                  <Text type="secondary">→</Text>
-                  <Text strong>{log.target_user_name}</Text>
+                  <Text type="secondary" style={{ flexShrink: 0 }}>→</Text>
+                  <Text strong style={{ flexShrink: 0 }}>{log.target_user_name}</Text>
                 </>
               )}
-              <Tag color={config.color}>{config.label}</Tag>
+              <Tag color={config.color} style={{ flexShrink: 0 }}>{config.label}</Tag>
               {log.approval_status === 'approved' && (
-                <Tag color="green">승인됨</Tag>
+                <Tag color="green" style={{ flexShrink: 0 }}>승인됨</Tag>
               )}
               {log.approval_status === 'rejected' && (
-                <Tag color="red">거절됨</Tag>
+                <Tag color="red" style={{ flexShrink: 0 }}>거절됨</Tag>
               )}
               {log.attachments && log.attachments.length > 0 && (
-                <Tag 
-                  icon={<PaperClipOutlined />} 
+                <Tag
+                  icon={<PaperClipOutlined />}
                   color="blue"
+                  style={{ flexShrink: 0 }}
                 >
                   첨부 {log.attachments.length}
                 </Tag>
               )}
-            </Space>
+              <style jsx>{`
+                div::-webkit-scrollbar {
+                  display: none;
+                }
+              `}</style>
+            </div>
           }
           description={
             <div className="space-y-1">
@@ -543,11 +558,16 @@ export default function GlobalLogFeed({
           background-color: #fafafa;
         }
 
+        /* 로그 제목 영역 스크롤바 숨김 */
+        .global-log-feed :global(.ant-list-item-meta-title) {
+          overflow-x: visible;
+        }
+
         @media (max-width: 768px) {
           .global-log-feed :global(.ant-card-body) {
             max-height: 400px;
           }
-          
+
           .log-list :global(.ant-list-item) {
             padding: 12px 16px;
           }
@@ -555,6 +575,7 @@ export default function GlobalLogFeed({
           .pagination-container {
             padding: 12px;
           }
+
         }
       `}</style>
     </Card>
