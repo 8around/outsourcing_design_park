@@ -406,25 +406,42 @@ export default function PendingApprovals({
       >
         <List.Item.Meta
           title={
-            <Space>
-              <Text strong>{approval.title}</Text>
-              <Tag color={config.color}>{config.label}</Tag>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              flexWrap: 'nowrap',
+              whiteSpace: 'nowrap',
+              overflowX: 'auto',
+              scrollbarWidth: 'none',
+              msOverflowStyle: 'none'
+            }}>
+              <Text strong style={{ flexShrink: 0 }}>{approval.title}</Text>
+              <Tag color={config.color} style={{ flexShrink: 0 }}>{config.label}</Tag>
               {approval.priority === 'high' && (
-                <Tag color="red">긴급</Tag>
+                <Tag color="red" style={{ flexShrink: 0 }}>긴급</Tag>
               )}
               {approval.attachments && approval.attachments.length > 0 && (
-                <Tag 
-                  icon={<PaperClipOutlined />} 
+                <Tag
+                  icon={<PaperClipOutlined />}
                   color="blue"
+                  style={{ flexShrink: 0 }}
                 >
                   첨부 {approval.attachments.length}
                 </Tag>
               )}
-            </Space>
+              <style jsx>{`
+                div::-webkit-scrollbar {
+                  display: none;
+                }
+              `}</style>
+            </div>
           }
           description={
-            <div className="space-y-1">
-              <Text>{approval.description}</Text>
+            <div className="approval-description">
+              <Text style={{ wordBreak: 'keep-all', overflowWrap: 'break-word' }}>
+                {approval.description}
+              </Text>
               {approval.category && (
                 <div>
                   <Tag color={categoryColors[approval.category] || 'default'} className="mt-1">
@@ -434,36 +451,50 @@ export default function PendingApprovals({
               )}
               {approval.memo && (
                 <div className="mt-1">
-                  <Text type="secondary" className="text-xs">
+                  <Text type="secondary" className="text-xs" style={{
+                    wordBreak: 'keep-all',
+                    overflowWrap: 'break-word'
+                  }}>
                     메모: {approval.memo}
                   </Text>
                 </div>
               )}
-              <Space className="text-xs">
+              <div className="approval-meta-info" style={{
+                display: 'flex',
+                gap: '8px',
+                flexWrap: 'nowrap',
+                whiteSpace: 'nowrap',
+                overflowX: 'auto',
+                scrollbarWidth: 'none',
+                msOverflowStyle: 'none',
+                fontSize: '12px'
+              }}>
                 {approval.requestType === 'received' ? (
                   <>
-                    <Text type="secondary">
+                    <Text type="secondary" style={{ flexShrink: 0 }}>
                       요청자: {approval.requester_name}
                       {approval.requester_email && ` (${approval.requester_email})`}
                     </Text>
                   </>
                 ) : (
                   <>
-                    <Text type="secondary">
+                    <Text type="secondary" style={{ flexShrink: 0 }}>
                       승인자: {approval.approver_name || '관리자'}
                     </Text>
-                    <Text type="secondary">•</Text>
-                    <Tag color="orange" className="text-xs">내가 보낸 요청</Tag>
+                    <Text type="secondary" style={{ flexShrink: 0 }}>•</Text>
+                    <Tag color="orange" className="text-xs" style={{ flexShrink: 0 }}>
+                      내가 보낸 요청
+                    </Tag>
                   </>
                 )}
-                <Text type="secondary">•</Text>
-                <Text type="secondary">
-                  {formatDistanceToNow(new Date(approval.created_at), { 
-                    addSuffix: true, 
-                    locale: ko 
+                <Text type="secondary" style={{ flexShrink: 0 }}>•</Text>
+                <Text type="secondary" style={{ flexShrink: 0 }}>
+                  {formatDistanceToNow(new Date(approval.created_at), {
+                    addSuffix: true,
+                    locale: ko
                   })}
                 </Text>
-              </Space>
+              </div>
               {/* 첨부파일 표시 - 항상 보이기 */}
               {approval.attachments && approval.attachments.length > 0 && (
                 <div className="mt-3 pt-3 border-t border-gray-200">
@@ -628,14 +659,55 @@ export default function PendingApprovals({
           align-items: center;
         }
 
+        /* 스크롤바 숨김 처리 */
+        .pending-approvals :global(.ant-list-item-meta-title > div::-webkit-scrollbar) {
+          display: none;
+        }
+
+        .pending-approvals :global(.approval-meta-info::-webkit-scrollbar) {
+          display: none;
+        }
+
+        /* 설명 영역 스타일 */
+        .approval-description {
+          max-width: 100%;
+          word-break: keep-all;
+          overflow-wrap: break-word;
+        }
+
+        /* 모바일 전용 스타일 개선 */
         @media (max-width: 768px) {
           .approval-list :global(.ant-list-item) {
             padding: 12px 16px;
           }
 
+          .approval-list :global(.ant-list-item-meta) {
+            width: 100%;
+            overflow: hidden;
+          }
+
+          .approval-list :global(.ant-list-item-meta-title) {
+            width: 100%;
+            overflow: visible;
+          }
+
+          .approval-description {
+            max-width: 100%;
+            word-break: keep-all;
+            overflow-wrap: break-word;
+          }
+
+          .approval-meta-info {
+            width: 100%;
+            overflow-x: auto;
+          }
+
           .approval-list :global(.ant-list-item-action) {
             margin-top: 12px;
             margin-left: 0;
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
           }
         }
       `}</style>
