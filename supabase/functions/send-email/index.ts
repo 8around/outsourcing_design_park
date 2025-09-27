@@ -103,6 +103,9 @@ async function sendProjectApprovalRequest(data: any) {
             <strong>요청 메모:</strong>
             <p>${memo || "메모 없음"}</p>
           </div>
+          <div style="text-align: center; margin-top: 25px;">
+            <a href="https://pm.dpaworld.net" class="button" style="display: inline-block; padding: 12px 24px; background: #FF9800; color: white; text-decoration: none; border-radius: 5px; font-weight: bold;">시스템 바로가기</a>
+          </div>
           <p style="margin-top: 20px; font-size: 14px; color: #666;">
             이 이메일은 프로젝트 현장 관리 시스템에서 자동으로 발송되었습니다.
           </p>
@@ -169,6 +172,9 @@ async function sendProjectApprovalApproved(data: any) {
             <p><strong>승인자:</strong> ${approverName}</p>
             <p><strong>카테고리:</strong> ${category}</p>
             <p><strong>승인 시간:</strong> ${approvedAt}</p>
+          </div>
+          <div style="text-align: center; margin-top: 25px;">
+            <a href="https://pm.dpaworld.net" class="button" style="display: inline-block; padding: 12px 24px; background: #4CAF50; color: white; text-decoration: none; border-radius: 5px; font-weight: bold;">시스템 바로가기</a>
           </div>
         </div>
       </div>
@@ -251,6 +257,9 @@ async function sendProjectApprovalRejected(data: any) {
           `
               : ""
           }
+          <div style="text-align: center; margin-top: 25px;">
+            <a href="https://pm.dpaworld.net" class="button" style="display: inline-block; padding: 12px 24px; background: #f44336; color: white; text-decoration: none; border-radius: 5px; font-weight: bold;">시스템 바로가기</a>
+          </div>
         </div>
       </div>
     </body>

@@ -250,7 +250,10 @@ async function sendWeeklyReport(data: any) {
             </div>
           </div>
           <p>첨부된 Excel 파일에서 상세 내용을 확인하실 수 있습니다.</p>
-          <a href="${fileUrl}" class="button">리포트 다운로드</a>
+          <div style="text-align: center; margin: 20px 0;">
+            <a href="${fileUrl}" class="button" style="display: inline-block; padding: 12px 24px; background: #2196F3; color: white; text-decoration: none; border-radius: 5px; margin: 0 5px; font-weight: bold;">리포트 다운로드</a>
+            <a href="https://pm.dpaworld.net" class="button" style="display: inline-block; padding: 12px 24px; background: #4CAF50; color: white; text-decoration: none; border-radius: 5px; margin: 0 5px; font-weight: bold;">시스템 바로가기</a>
+          </div>
           <p style="margin-top: 20px; font-size: 14px; color: #666;">
             이 이메일은 프로젝트 현장 관리 시스템에서 자동으로 발송되었습니다.
           </p>
