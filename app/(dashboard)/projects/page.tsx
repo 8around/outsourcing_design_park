@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { 
-  Card, Row, Col, Button, Input, Select, Space, Typography, Empty, 
-  Skeleton, Tag, Progress, message, Modal, Tooltip, Pagination 
+import {
+  Card, Row, Col, Button, Input, Select, Typography, Empty,
+  Skeleton, Tag, Progress, message, Tooltip, Pagination,
+  Space
 } from 'antd'
 import {
   ProjectOutlined,
@@ -135,7 +136,7 @@ export default function ProjectsPage() {
   return (
     <div className="p-6">
       {/* 헤더 섹션 */}
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8 gap-4">
         <div>
           <Title level={2} className="mb-2">
             프로젝트 관리
@@ -144,23 +145,23 @@ export default function ProjectsPage() {
             전체 {totalProjects}개의 프로젝트
           </Text>
         </div>
-        <Space>
-          <Button 
+        <div className="flex gap-2">
+          <Button
             icon={<ReloadOutlined spin={refreshing} />}
             onClick={() => fetchProjects(true)}
             disabled={refreshing}
           >
             새로고침
           </Button>
-          <Button 
-            type="primary" 
+          <Button
+            type="primary"
             icon={<PlusOutlined />}
             size="large"
             onClick={() => router.push('/projects/new')}
           >
             새 프로젝트
           </Button>
-        </Space>
+        </div>
       </div>
 
       {/* 필터 및 검색 */}

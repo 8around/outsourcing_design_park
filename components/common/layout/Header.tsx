@@ -4,7 +4,6 @@ import React from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { useAuth } from '@/lib/hooks/useAuth'
 import {
-  SearchOutlined,
   UserOutlined,
   MenuOutlined,
   LogoutOutlined,
@@ -117,13 +116,6 @@ export default function Header({
 
       {/* 오른쪽 영역 */}
       <div className="flex items-center space-x-3">
-        {/* 검색 버튼 (모바일) */}
-        <Button
-          type="text"
-          icon={<SearchOutlined />}
-          className="md:hidden"
-          size="large"
-        />
 
         {/* 사용자 드롭다운 */}
         <Dropdown
