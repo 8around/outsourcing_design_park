@@ -1,36 +1,166 @@
 'use client'
 
-import React from 'react'
+import React, { useState } from 'react'
 import { Task } from 'gantt-task-react'
 import { Tag } from 'antd'
-import { 
-  CaretRightOutlined, 
+import {
+  CaretRightOutlined,
   CaretDownOutlined,
   FolderOutlined,
-  FileOutlined 
+  FileOutlined
 } from '@ant-design/icons'
+
+interface ColumnWidths {
+  project: number
+  progress: number
+  status: number
+}
+
+interface CustomTaskListHeaderProps {
+  columnWidths: ColumnWidths
+  onColumnResize: (columnKey: keyof ColumnWidths, newWidth: number) => void
+}
 
 interface CustomTaskListProps {
   tasks: (Task & { hasDateData?: boolean; hasChildren?: boolean })[]
   selectedTask?: Task | null
   onExpanderClick?: (task: Task) => void
   onClick?: (task: Task) => void
+  columnWidths: ColumnWidths
 }
 
-export const CustomTaskListHeader: React.FC = () => {
+export const CustomTaskListHeader: React.FC<CustomTaskListHeaderProps> = ({
+  columnWidths,
+  onColumnResize
+}) => {
+  const [resizingColumn, setResizingColumn] = useState<keyof ColumnWidths | null>(null)
+
+  // 컬럼 너비 제한 설정
+  const COLUMN_LIMITS = {
+    project: { min: 200, max: 600 },
+    progress: { min: 80, max: 200 },
+    status: { min: 80, max: 200 }
+  }
+
+  // 리사이저 마우스다운 핸들러
+  const handleResizerMouseDown = (columnKey: keyof ColumnWidths) => (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+
+    const startX = e.clientX
+    const startWidth = columnWidths[columnKey]
+    const limits = COLUMN_LIMITS[columnKey]
+
+    setResizingColumn(columnKey)
+
+    const handleMouseMove = (moveEvent: MouseEvent) => {
+      const diff = moveEvent.clientX - startX
+      const newWidth = Math.max(limits.min, Math.min(limits.max, startWidth + diff))
+      onColumnResize(columnKey, newWidth)
+    }
+
+    const handleMouseUp = () => {
+      document.removeEventListener('mousemove', handleMouseMove)
+      document.removeEventListener('mouseup', handleMouseUp)
+      document.body.style.cursor = ''
+      document.body.style.userSelect = ''
+      setResizingColumn(null)
+    }
+
+    document.body.style.cursor = 'col-resize'
+    document.body.style.userSelect = 'none'
+    document.addEventListener('mousemove', handleMouseMove)
+    document.addEventListener('mouseup', handleMouseUp)
+  }
+
+  // 리사이저 더블클릭 핸들러 - 개별 컬럼 기본 너비 복원
+  const handleResizerDoubleClick = (columnKey: keyof ColumnWidths) => (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+
+    const defaultWidths: ColumnWidths = {
+      project: 350,
+      progress: 100,
+      status: 100
+    }
+    onColumnResize(columnKey, defaultWidths[columnKey])
+  }
+
   return (
     <div className="gantt-task-list-header">
       <div className="gantt-task-list-header-row">
-        <div className="gantt-task-list-header-cell" style={{ minWidth: '350px' }}>
+        {/* 프로젝트/공정 단계 컬럼 */}
+        <div
+          className="gantt-task-list-header-cell column-header-cell"
+          style={{ width: `${columnWidths.project}px`, position: 'relative' }}
+        >
           프로젝트 / 공정 단계
+          <div
+            className={`column-resizer ${resizingColumn === 'project' ? 'resizing' : ''}`}
+            onMouseDown={handleResizerMouseDown('project')}
+            onDoubleClick={handleResizerDoubleClick('project')}
+            aria-label="프로젝트 컬럼 너비 조절"
+          />
         </div>
-        <div className="gantt-task-list-header-cell" style={{ width: '100px', textAlign: 'center' }}>
+
+        {/* 진행률 컬럼 */}
+        <div
+          className="gantt-task-list-header-cell column-header-cell"
+          style={{ width: `${columnWidths.progress}px`, textAlign: 'center', position: 'relative' }}
+        >
           진행률
+          <div
+            className={`column-resizer ${resizingColumn === 'progress' ? 'resizing' : ''}`}
+            onMouseDown={handleResizerMouseDown('progress')}
+            onDoubleClick={handleResizerDoubleClick('progress')}
+            aria-label="진행률 컬럼 너비 조절"
+          />
         </div>
-        <div className="gantt-task-list-header-cell" style={{ width: '100px', textAlign: 'center' }}>
+
+        {/* 상태 컬럼 */}
+        <div
+          className="gantt-task-list-header-cell column-header-cell"
+          style={{ width: `${columnWidths.status}px`, textAlign: 'center', position: 'relative' }}
+        >
           상태
+          <div
+            className={`column-resizer ${resizingColumn === 'status' ? 'resizing' : ''}`}
+            onMouseDown={handleResizerMouseDown('status')}
+            onDoubleClick={handleResizerDoubleClick('status')}
+            aria-label="상태 컬럼 너비 조절"
+          />
         </div>
       </div>
+
+      <style jsx>{`
+        .column-header-cell {
+          position: relative;
+        }
+
+        .column-resizer {
+          position: absolute;
+          right: 0;
+          top: 0;
+          width: 4px;
+          height: 100%;
+          cursor: col-resize;
+          background: transparent;
+          transition: background 0.2s;
+          z-index: 10;
+        }
+
+        .column-resizer:hover {
+          background: #1890ff;
+        }
+
+        .column-resizer.resizing {
+          background: #096dd9;
+        }
+
+        .column-resizer:active {
+          background: #096dd9;
+        }
+      `}</style>
     </div>
   )
 }
@@ -39,7 +169,8 @@ export const CustomTaskListTable: React.FC<CustomTaskListProps> = ({
   tasks,
   selectedTask,
   onExpanderClick,
-  onClick
+  onClick,
+  columnWidths
 }) => {
   // 공정 상태 한글 변환
   const getStatusText = (progress: number, task: Task) => {
@@ -85,7 +216,7 @@ export const CustomTaskListTable: React.FC<CustomTaskListProps> = ({
             onClick={() => onClick?.(task)}
           >
             {/* 프로젝트/공정 단계 이름 */}
-            <div className="gantt-task-list-cell" style={{ minWidth: '350px', display: 'flex', alignItems: 'center' }}>
+            <div className="gantt-task-list-cell" style={{ width: `${columnWidths.project}px`, display: 'flex', alignItems: 'center' }}>
               {isProjectTask && hasChildren && (
                 <span
                   className="gantt-task-list-expander"
@@ -125,7 +256,7 @@ export const CustomTaskListTable: React.FC<CustomTaskListProps> = ({
             </div>
 
             {/* 진행률 */}
-            <div className="gantt-task-list-cell" style={{ width: '100px', textAlign: 'center' }}>
+            <div className="gantt-task-list-cell" style={{ width: `${columnWidths.progress}px`, textAlign: 'center' }}>
               <span style={{ 
                 color: task.progress === 100 ? '#52c41a' : '#1890ff',
                 fontWeight: 500
@@ -135,7 +266,7 @@ export const CustomTaskListTable: React.FC<CustomTaskListProps> = ({
             </div>
 
             {/* 상태 */}
-            <div className="gantt-task-list-cell" style={{ width: '100px', textAlign: 'center' }}>
+            <div className="gantt-task-list-cell" style={{ width: `${columnWidths.status}px`, textAlign: 'center' }}>
               <Tag color={getStatusColor(task.progress, task)}>
                 {getStatusText(task.progress, task)}
               </Tag>

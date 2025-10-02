@@ -4,9 +4,7 @@ import React, { useMemo, useEffect, useState } from 'react'
 import { Gantt, Task, ViewMode } from 'gantt-task-react'
 import 'gantt-task-react/dist/index.css'
 import { Card, Spin, Alert, Pagination, Space, Typography, Button } from 'antd'
-import { 
-  DownOutlined, 
-  RightOutlined,
+import {
   ExpandOutlined,
   CompressOutlined
 } from '@ant-design/icons'
@@ -42,6 +40,11 @@ export function GanttChart({
   const [selectedTask, setSelectedTask] = useState<Task | null>(null)
   const [expandedProjects, setExpandedProjects] = useState<Set<string>>(new Set())
   const [isAllExpanded, setIsAllExpanded] = useState(true)
+  const [columnWidths, setColumnWidths] = useState({
+    project: 350,
+    progress: 100,
+    status: 100
+  })
 
   // 프로젝트 데이터 조회
   useEffect(() => {
@@ -311,6 +314,23 @@ export function GanttChart({
     }
   }
 
+  // 컬럼 너비 조절 함수
+  const handleColumnResize = (columnKey: keyof typeof columnWidths, newWidth: number) => {
+    setColumnWidths(prev => ({
+      ...prev,
+      [columnKey]: newWidth
+    }))
+  }
+
+  // 컬럼 너비 리셋 함수
+  const handleResetColumnWidths = () => {
+    setColumnWidths({
+      project: 350,
+      progress: 100,
+      status: 100
+    })
+  }
+
   // 로딩 상태
   if (loading) {
     return (
@@ -345,17 +365,26 @@ export function GanttChart({
     )
   }
 
+  // 동적 listCellWidth 계산
+  const totalListWidth = columnWidths.project + columnWidths.progress + columnWidths.status
+
   return (
     <div>
       <Card className="gantt-chart-container">
-        {/* 전체 펼치기/접기 버튼 */}
-        <div style={{ padding: '16px', borderBottom: '1px solid #f0f0f0' }}>
+        {/* 전체 펼치기/접기 버튼과 컬럼 리셋 버튼 */}
+        <div style={{ padding: '16px', borderBottom: '1px solid #f0f0f0', display: 'flex', gap: '8px' }}>
           <Button
             onClick={handleToggleAll}
             icon={isAllExpanded ? <CompressOutlined /> : <ExpandOutlined />}
             type="default"
           >
             {isAllExpanded ? '모두 접기' : '모두 펼치기'}
+          </Button>
+          <Button
+            onClick={handleResetColumnWidths}
+            type="default"
+          >
+            컬럼 너비 초기화
           </Button>
         </div>
         <div className="gantt-wrapper">
@@ -371,20 +400,26 @@ export function GanttChart({
           barCornerRadius={3}
           barFill={60}
           columnWidth={viewMode === ViewMode.Month ? 300 : viewMode === ViewMode.Week ? 250 : 65}
-          listCellWidth="550px"
+          listCellWidth={`${totalListWidth}px`}
           rowHeight={40}
           fontSize="14px"
           fontFamily="'Segoe UI', 'Noto Sans KR', sans-serif"
           todayColor="rgba(252, 248, 227, 0.5)"
           arrowColor="#1890ff"
           arrowIndent={20}
-          TaskListHeader={CustomTaskListHeader}
+          TaskListHeader={() => (
+            <CustomTaskListHeader
+              columnWidths={columnWidths}
+              onColumnResize={handleColumnResize}
+            />
+          )}
           TaskListTable={(props) => (
             <CustomTaskListTable
               {...props}
               selectedTask={selectedTask}
               onExpanderClick={handleExpanderClick}
               onClick={handleTaskClick}
+              columnWidths={columnWidths}
             />
           )}
         />
