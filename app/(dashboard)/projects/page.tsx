@@ -220,7 +220,7 @@ export default function ProjectsPage() {
       {loading ? (
         <Row gutter={[24, 24]}>
           {[1, 2, 3, 4, 5, 6].map(i => (
-            <Col xs={24} md={12} lg={8} key={i}>
+            <Col xs={24} md={12} lg={6} key={i}>
               <Card>
                 <Skeleton active />
               </Card>
@@ -243,9 +243,9 @@ export default function ProjectsPage() {
           {projects.map(project => {
             const progress = calculateProgress(project)
             const isFavorite = project.favorites && project.favorites.length > 0
-            
+
             return (
-              <Col xs={24} md={12} lg={8} key={project.id}>
+              <Col xs={24} md={12} lg={6} key={project.id}>
                 <Card
                   className="project-card cursor-pointer hover:shadow-lg transition-all h-full"
                   onClick={() => router.push(`/projects/${project.id}`)}
