@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation'
 import { Card, List, Avatar, Typography, Tag, Space, Button, Empty, Skeleton, message, Pagination, Select } from 'antd'
 import {
   FileTextOutlined,
-  UserOutlined,
   CheckCircleOutlined,
   ClockCircleOutlined,
   EditOutlined,
@@ -22,7 +21,6 @@ import { logService } from '@/lib/services/logs.service'
 import { projectService } from '@/lib/services/projects.service'
 import { useAuth } from '@/lib/hooks/useAuth'
 import UserSelectModal from '@/components/common/UserSelectModal'
-import type { HistoryLog } from '@/types/log'
 import type { User } from '@/types/user'
 
 const { Text, Title } = Typography

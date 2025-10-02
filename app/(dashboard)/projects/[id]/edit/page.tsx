@@ -22,17 +22,18 @@ const PROCESS_STAGES = [
   { name: 'contract', label: '계약', order: 1 },
   { name: 'design', label: '도면설계', order: 2 },
   { name: 'order', label: '발주', order: 3 },
-  { name: 'laser', label: '레이저', order: 4 },
+  { name: 'incoming', label: '입고', order: 4 },
   { name: 'welding', label: '용접', order: 5 },
   { name: 'plating', label: '도금', order: 6 },
   { name: 'painting', label: '도장', order: 7 },
-  { name: 'panel', label: '판넬', order: 8 },
-  { name: 'assembly', label: '조립', order: 9 },
-  { name: 'shipping', label: '출하', order: 10 },
-  { name: 'installation', label: '설치', order: 11 },
-  { name: 'certification', label: '인증기간', order: 12 },
-  { name: 'closing', label: '마감', order: 13 },
-  { name: 'completion', label: '준공일', order: 14 }
+  { name: 'grc_frp', label: 'GRC/FRP', order: 8 },
+  { name: 'panel', label: '판넬', order: 9 },
+  { name: 'fabrication', label: '제작조립', order: 10 },
+  { name: 'shipping', label: '출하', order: 11 },
+  { name: 'installation', label: '설치', order: 12 },
+  { name: 'certification', label: '인증기간', order: 13 },
+  { name: 'closing', label: '마감', order: 14 },
+  { name: 'completion', label: '준공일', order: 15 }
 ]
 
 interface ProcessStage {

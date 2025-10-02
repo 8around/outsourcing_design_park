@@ -99,7 +99,7 @@ export function ReportHistoryList() {
   //   }
   // };
 
-  const handleDownload = (fileUrl: string, fileName: string) => {
+  const handleDownload = (fileUrl: string) => {
     // Open the file URL in a new tab for download
     window.open(fileUrl, '_blank');
   };
@@ -276,7 +276,7 @@ export function ReportHistoryList() {
                     <div className="flex items-center space-x-2">
                       {item.file_url && (
                         <button
-                          onClick={() => handleDownload(item.file_url, item.file_name)}
+                          onClick={() => handleDownload(item.file_url)}
                           className="text-blue-600 hover:text-blue-800"
                         >
                           다운로드

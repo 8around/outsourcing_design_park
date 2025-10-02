@@ -460,7 +460,7 @@ export class ApprovalService {
   /**
    * 사용자 삭제 (관리자 전용 - 미승인 사용자 삭제용)
    */
-  async deleteUser(userId: string, adminId: string): Promise<boolean> {
+  async deleteUser(userId: string, _adminId: string): Promise<boolean> {
     try {
       // 사용자 삭제 (users 테이블)
       const { error } = await this.supabase
@@ -624,7 +624,7 @@ export class ApprovalService {
   async notifyAdminsOfNewSignup(
     newUserId: string,
     newUserName: string,
-    newUserEmail?: string
+    _newUserEmail?: string
   ): Promise<void> {
     try {
       // 모든 관리자 조회

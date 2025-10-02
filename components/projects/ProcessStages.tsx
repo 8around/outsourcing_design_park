@@ -131,17 +131,17 @@ export default function ProcessStages({
           await projectService.moveToNextStage(projectId)
           message.success('다음 단계로 진행되었습니다.')
           onUpdate?.()
-        } catch (error) {
+        } catch {
           message.error('다음 단계 진행에 실패했습니다.')
         }
       }
     })
   }
 
-  // 전체 진행률 계산
+  // 전체 진행률 계산 (15단계)
   const calculateOverallProgress = () => {
     const completedCount = stages.filter(s => s.status === 'completed').length
-    return Math.round((completedCount / 14) * 100)
+    return Math.round((completedCount / 15) * 100)
   }
 
   const overallProgress = calculateOverallProgress()

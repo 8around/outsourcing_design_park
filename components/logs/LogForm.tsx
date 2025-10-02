@@ -14,7 +14,9 @@ const LOG_CATEGORIES: { value: LogCategory; label: string }[] = [
   { value: '생산제작', label: '생산제작' },
   { value: '상하차', label: '상하차' },
   { value: '현장설치시공', label: '현장설치시공' },
-  { value: '설치인증', label: '설치인증' }
+  { value: '설치인증', label: '설치인증' },
+  { value: '설비', label: '설비' },
+  { value: '기타', label: '기타' }
 ]
 
 interface LogFormProps {

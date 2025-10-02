@@ -22,12 +22,13 @@ const STAGE_LABELS: Record<string, string> = {
   contract: '계약',
   design: '도면설계',
   order: '발주',
-  laser: '레이저',
+  incoming: '입고',
   welding: '용접',
   plating: '도금',
   painting: '도장',
+  grc_frp: 'GRC/FRP',
   panel: '판넬',
-  assembly: '조립',
+  fabrication: '제작조립',
   shipping: '출하',
   installation: '설치',
   certification: '인증기간',
@@ -96,7 +97,7 @@ export default function ProcessStageManager({
 
       {/* 공정 단계 목록 */}
       <div className="space-y-2">
-        {sortedStages.map((stage, index) => (
+        {sortedStages.map((stage) => (
           <div
             key={stage.stage_name}
             className="border border-gray-200 rounded-lg overflow-hidden"

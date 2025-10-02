@@ -94,17 +94,18 @@ export default function ProjectsPage() {
       contract: '#1890ff',
       design: '#52c41a',
       order: '#faad14',
-      laser: '#f5222d',
+      incoming: '#f5222d',
       welding: '#722ed1',
       plating: '#13c2c2',
       painting: '#eb2f96',
-      panel: '#fa8c16',
-      assembly: '#a0d911',
-      shipping: '#1890ff',
-      installation: '#52c41a',
-      certification: '#faad14',
-      closing: '#f5222d',
-      completion: '#722ed1'
+      grc_frp: '#fa8c16',
+      panel: '#a0d911',
+      fabrication: '#1890ff',
+      shipping: '#52c41a',
+      installation: '#faad14',
+      certification: '#f5222d',
+      closing: '#722ed1',
+      completion: '#13c2c2'
     }
     return stageColors[stage]
   }

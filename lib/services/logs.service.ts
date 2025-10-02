@@ -5,7 +5,6 @@ import type {
   CreateLogRequest,
   CreateApprovalRequestLog,
   CreateApprovalResponseLog,
-  HistoryLog,
   HistoryLogWithAttachments,
   AttachmentFile,
   LogFilter,
@@ -624,7 +623,7 @@ class LogService {
           type: attachment.mime_type,
         });
 
-        const { data: uploadData, error: uploadError } = await supabase.storage
+        const { error: uploadError } = await supabase.storage
           .from("log-attachments")
           .upload(uniqueFileName, fileBlob, {
             contentType: attachment.mime_type || "application/octet-stream",

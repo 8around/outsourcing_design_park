@@ -117,7 +117,7 @@ export default function NotificationsPage() {
     try {
       await markAllAsRead()
       message.success('모든 알림을 읽음 처리했습니다')
-    } catch (err) {
+    } catch {
       message.error('읽음 처리에 실패했습니다')
     }
   }

@@ -7,7 +7,6 @@ import { Loading } from '@/components/common/ui/Loading';
 import { Alert } from '@/components/common/ui/Alert';
 
 export function ReportConfiguration() {
-  const [config, setConfig] = useState<WeeklyReportConfig | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -29,7 +28,6 @@ export function ReportConfiguration() {
       const data = await reportService.getReportConfig();
 
       if (data) {
-        setConfig(data);
         setFormData({
           recipient_emails: data.recipient_emails.length > 0 ? data.recipient_emails : ['']
         });

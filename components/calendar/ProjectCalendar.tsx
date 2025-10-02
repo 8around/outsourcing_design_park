@@ -1,34 +1,24 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
-import { 
-  Card, 
-  Button, 
-  Space, 
-  Typography, 
+import {
+  Card,
+  Button,
+  Space,
+  Typography,
   Modal,
   Tag,
   Descriptions,
   Drawer,
   List,
-  Badge,
-  Tooltip,
-  message,
-  Spin,
-  Row,
-  Col,
-  Divider
+  message
 } from 'antd'
 import {
   CalendarOutlined,
   UserOutlined,
-  ClockCircleOutlined,
   ProjectOutlined,
   ExclamationCircleOutlined,
-  PlusOutlined,
-  EnvironmentOutlined,
-  PhoneOutlined,
-  ToolOutlined
+  PlusOutlined
 } from '@ant-design/icons'
 import { useRouter } from 'next/navigation'
 import moment from 'moment'
@@ -105,7 +95,6 @@ export default function ProjectCalendar() {
   
   const [loading, setLoading] = useState(true)
   const [projects, setProjects] = useState<Project[]>([])
-  const [events, setEvents] = useState<CalendarEvent[]>([])
   const [eventModalVisible, setEventModalVisible] = useState(false)
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null)
   const [currentView, setCurrentView] = useState('dayGridMonth')

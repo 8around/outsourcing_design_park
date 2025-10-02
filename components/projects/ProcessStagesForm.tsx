@@ -1,28 +1,29 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { DatePicker, Select, Input, Radio, message } from 'antd';
+import { DatePicker, Select, Input, Radio } from 'antd';
 import { CheckCircle, Clock, AlertCircle, Pause } from 'lucide-react';
-import dayjs, { Dayjs } from 'dayjs';
+import dayjs from 'dayjs';
 
 const { TextArea } = Input;
 
-// 14 공정 단계 정의
+// 15 공정 단계 정의
 export const PROCESS_STAGES = [
   { key: 'contract', label: '계약', order: 1 },
   { key: 'design', label: '도면설계', order: 2 },
   { key: 'order', label: '발주', order: 3 },
-  { key: 'laser', label: '레이저', order: 4 },
+  { key: 'incoming', label: '입고', order: 4 },
   { key: 'welding', label: '용접', order: 5 },
   { key: 'plating', label: '도금', order: 6 },
   { key: 'painting', label: '도장', order: 7 },
-  { key: 'panel', label: '판넬', order: 8 },
-  { key: 'assembly', label: '조립', order: 9 },
-  { key: 'shipping', label: '출하', order: 10 },
-  { key: 'installation', label: '설치', order: 11 },
-  { key: 'certification', label: '인증기간', order: 12 },
-  { key: 'closing', label: '마감', order: 13 },
-  { key: 'completion', label: '준공일', order: 14 }
+  { key: 'grc_frp', label: 'GRC/FRP', order: 8 },
+  { key: 'panel', label: '판넬', order: 9 },
+  { key: 'fabrication', label: '제작조립', order: 10 },
+  { key: 'shipping', label: '출하', order: 11 },
+  { key: 'installation', label: '설치', order: 12 },
+  { key: 'certification', label: '인증기간', order: 13 },
+  { key: 'closing', label: '마감', order: 14 },
+  { key: 'completion', label: '준공일', order: 15 }
 ] as const;
 
 // 상태 타입

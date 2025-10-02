@@ -14,7 +14,7 @@ export class EmailClientService {
     category: string
   ): Promise<{ success: boolean; error?: string }> {
     try {
-      const { data, error } = await this.supabase.functions.invoke('send-email', {
+      const { error } = await this.supabase.functions.invoke('send-email', {
         body: {
           type: 'project-approval-request',
           data: {
@@ -33,9 +33,9 @@ export class EmailClientService {
       return { success: true }
     } catch (error) {
       console.error('Error sending project approval request email:', error)
-      return { 
-        success: false, 
-        error: error instanceof Error ? error.message : '이메일 발송에 실패했습니다.' 
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : '이메일 발송에 실패했습니다.'
       }
     }
   }
@@ -51,7 +51,7 @@ export class EmailClientService {
     category: string
   ): Promise<{ success: boolean; error?: string }> {
     try {
-      const { data, error } = await this.supabase.functions.invoke('send-email', {
+      const { error } = await this.supabase.functions.invoke('send-email', {
         body: {
           type: 'project-approval-approved',
           data: {
@@ -88,7 +88,7 @@ export class EmailClientService {
     memo?: string
   ): Promise<{ success: boolean; error?: string }> {
     try {
-      const { data, error } = await this.supabase.functions.invoke('send-email', {
+      const { error } = await this.supabase.functions.invoke('send-email', {
         body: {
           type: 'project-approval-rejected',
           data: {

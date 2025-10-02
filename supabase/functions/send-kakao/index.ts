@@ -8,6 +8,8 @@ import { SolapiMessageService } from "npm:solapi@5.5.1";
 
 const SOLAPI_API_KEY = Deno.env.get("SOLAPI_API_KEY")!;
 const SOLAPI_SECRET_KEY = Deno.env.get("SOLAPI_SECRET_KEY")!;
+const SOLAPI_FROM_NUMBER = Deno.env.get("SOLAPI_FROM_NUMBER")!;
+const SOLAPI_PF_ID = Deno.env.get("SOLAPI_PF_ID")!;
 
 // CORS 헤더 설정
 const corsHeaders = {
@@ -102,14 +104,13 @@ async function sendKakaoAlimtalk(data: any, messageService: any) {
     throw new Error("SOLAPI API 키가 설정되지 않았습니다.");
   }
 
-
   // SOLAPI SDK를 사용한 카카오톡 알림톡 발송 (간소화된 버전)
   const result = await messageService.sendOne({
-    from: "010-5217-1768", // 발신번호 (사전 등록 필요)
+    from: SOLAPI_FROM_NUMBER, // 발신번호 (사전 등록 필요)
     to: formatPhoneNumber(to),
     type: "ATA", // 알림톡 타입
     kakaoOptions: {
-      pfId: "KA01PF250919013917706NRMNHh8buyY", // 플러스친구 ID
+      pfId: SOLAPI_PF_ID, // 플러스친구 ID
       templateId: templateId,
       variables: variables,
     },

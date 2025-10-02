@@ -35,7 +35,7 @@ export function GanttChart({
   const [error, setError] = useState<string | null>(null)
   const [projects, setProjects] = useState<Project[]>([])
   const [currentPage, setCurrentPage] = useState(1)
-  const [pageSize, setPageSize] = useState(3) // 한 페이지에 3개씩 표시
+  const [pageSize] = useState(3) // 한 페이지에 3개씩 표시
   const [total, setTotal] = useState(0)
   const [selectedTask, setSelectedTask] = useState<Task | null>(null)
   const [expandedProjects, setExpandedProjects] = useState<Set<string>>(new Set())
@@ -111,24 +111,18 @@ export function GanttChart({
     }
   }
 
-  // 날짜 계산 헬퍼
-  const addDaysToDate = (date: Date, days: number): Date => {
-    const newDate = new Date(date)
-    newDate.setDate(newDate.getDate() + days)
-    return newDate
-  }
-
   // 공정 단계 이름 매핑
   const PROCESS_STAGE_NAMES: Record<string, string> = {
     contract: '계약',
     design: '도면설계',
     order: '발주',
-    laser: '레이저',
+    incoming: '입고',
     welding: '용접',
     plating: '도금',
     painting: '도장',
+    grc_frp: 'GRC/FRP',
     panel: '판넬',
-    assembly: '조립',
+    fabrication: '제작조립',
     shipping: '출하',
     installation: '설치',
     certification: '인증기간',
@@ -141,8 +135,8 @@ export function GanttChart({
     if (!projects.length) return []
 
     const ganttTasks: Task[] = []
-    
-    projects.forEach((project, projectIndex) => {
+
+    projects.forEach((project) => {
       // 긴급 프로젝트 색상 설정
       const projectColor = project.is_urgent 
         ? { backgroundColor: '#ff4d4f', progressColor: '#a8071a', progressSelectedColor: '#5c0011' }

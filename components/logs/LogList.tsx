@@ -1,10 +1,9 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { createClient } from '@/lib/supabase/client'
 import { logService } from '@/lib/services/logs.service'
 import { useAuth } from '@/lib/hooks/useAuth'
-import { CalendarIcon, PaperClipIcon, UserIcon, CheckCircleIcon, XCircleIcon, TrashIcon, ArrowDownTrayIcon, ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline'
+import { CalendarIcon, PaperClipIcon, UserIcon, TrashIcon, ArrowDownTrayIcon, ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline'
 import { toast } from 'react-hot-toast'
 
 interface HistoryLog {

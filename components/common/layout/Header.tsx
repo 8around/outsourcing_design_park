@@ -8,11 +8,10 @@ import {
   MenuOutlined,
   LogoutOutlined,
 } from '@ant-design/icons'
-import { Button, Avatar, Input, Dropdown, Space, Typography } from 'antd'
+import { Button, Avatar, Dropdown, Typography } from 'antd'
 import type { MenuProps } from 'antd'
 
 const { Text } = Typography
-const { Search } = Input
 
 interface HeaderProps {
   onMobileMenuToggle?: () => void

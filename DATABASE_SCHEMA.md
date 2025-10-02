@@ -191,7 +191,7 @@ CREATE INDEX idx_process_stages_dates ON process_stages(start_date, end_date);
 **컬럼 설명:**
 - `id`: UUID 기본키, 공정 단계 고유 식별자
 - `project_id`: 연관된 프로젝트 ID, 외래키 참조
-- `stage_name`: 공정 단계명, 14단계 중 하나 (contract~completion)
+- `stage_name`: 공정 단계명, 15단계 중 하나 (contract → design → order → incoming → welding → plating → painting → grc_frp → panel → fabrication → shipping → installation → certification → closing → completion)
 - `stage_order`: 공정 순서, 간트차트 정렬 및 진행 순서 관리
 - `status`: 공정 상태, 진행중/완료/대기/지연 중 하나
 - `delay_reason`: 지연 사유, 지연 상태시 선택 입력 사항 (NULL 허용)
@@ -213,8 +213,9 @@ CREATE TABLE history_logs (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   project_id UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
   category TEXT NOT NULL CHECK (category IN (
-    '사양변경', '도면설계', '구매발주', '생산제작', 
-    '상하차', '현장설치시공', '설치인증', '승인요청', '승인처리'
+    '사양변경', '도면설계', '구매발주', '생산제작',
+    '상하차', '현장설치시공', '설치인증', '설비', '기타',
+    '승인요청', '승인처리'
   )),
   content TEXT NOT NULL,
   author_id UUID NOT NULL REFERENCES users(id),
