@@ -59,12 +59,7 @@ export function generateUniqueFileName(originalFileName: string, projectId: stri
   const timestamp = Date.now();
   const randomString = Math.random().toString(36).substring(2, 8);
   
-  // 원본 파일명에서 안전한 부분만 추출 (선택적)
-  const sanitizedName = sanitizeFileName(originalFileName);
-  const nameWithoutExt = sanitizedName.substring(0, sanitizedName.lastIndexOf('.'));
-  
-  // 고유 파일명 생성: projectId/timestamp-random-sanitizedName.extension
-  // 또는 더 간단하게: projectId/timestamp-random.extension
+  // 고유 파일명 생성: projectId/timestamp-random.extension
   return `${projectId}/${timestamp}-${randomString}${extension}`;
 }
 

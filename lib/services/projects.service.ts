@@ -174,22 +174,23 @@ export class ProjectService {
         await this.uploadProjectImages(project.id, images);
       }
 
-      // 3. 공정 단계 생성 (제공된 데이터 사용 또는 기본값)
+      // 3. 공정 단계 생성 (제공된 데이터 사용 또는 기본값 - 15단계)
       const stagesToInsert = processStages || [
         { project_id: project.id, stage_name: 'contract', stage_order: 1, status: 'in_progress' as ProcessStatus },
         { project_id: project.id, stage_name: 'design', stage_order: 2, status: 'waiting' as ProcessStatus },
         { project_id: project.id, stage_name: 'order', stage_order: 3, status: 'waiting' as ProcessStatus },
-        { project_id: project.id, stage_name: 'laser', stage_order: 4, status: 'waiting' as ProcessStatus },
+        { project_id: project.id, stage_name: 'incoming', stage_order: 4, status: 'waiting' as ProcessStatus },
         { project_id: project.id, stage_name: 'welding', stage_order: 5, status: 'waiting' as ProcessStatus },
         { project_id: project.id, stage_name: 'plating', stage_order: 6, status: 'waiting' as ProcessStatus },
         { project_id: project.id, stage_name: 'painting', stage_order: 7, status: 'waiting' as ProcessStatus },
-        { project_id: project.id, stage_name: 'panel', stage_order: 8, status: 'waiting' as ProcessStatus },
-        { project_id: project.id, stage_name: 'assembly', stage_order: 9, status: 'waiting' as ProcessStatus },
-        { project_id: project.id, stage_name: 'shipping', stage_order: 10, status: 'waiting' as ProcessStatus },
-        { project_id: project.id, stage_name: 'installation', stage_order: 11, status: 'waiting' as ProcessStatus },
-        { project_id: project.id, stage_name: 'certification', stage_order: 12, status: 'waiting' as ProcessStatus },
-        { project_id: project.id, stage_name: 'closing', stage_order: 13, status: 'waiting' as ProcessStatus },
-        { project_id: project.id, stage_name: 'completion', stage_order: 14, status: 'waiting' as ProcessStatus }
+        { project_id: project.id, stage_name: 'grc_frp', stage_order: 8, status: 'waiting' as ProcessStatus },
+        { project_id: project.id, stage_name: 'panel', stage_order: 9, status: 'waiting' as ProcessStatus },
+        { project_id: project.id, stage_name: 'fabrication', stage_order: 10, status: 'waiting' as ProcessStatus },
+        { project_id: project.id, stage_name: 'shipping', stage_order: 11, status: 'waiting' as ProcessStatus },
+        { project_id: project.id, stage_name: 'installation', stage_order: 12, status: 'waiting' as ProcessStatus },
+        { project_id: project.id, stage_name: 'certification', stage_order: 13, status: 'waiting' as ProcessStatus },
+        { project_id: project.id, stage_name: 'closing', stage_order: 14, status: 'waiting' as ProcessStatus },
+        { project_id: project.id, stage_name: 'completion', stage_order: 15, status: 'waiting' as ProcessStatus }
       ];
 
       const finalStages = stagesToInsert.map(stage => ({
@@ -234,7 +235,7 @@ export class ProjectService {
       const uploadPromises = images.map(async (image, index) => {
         // Storage에 이미지 업로드 - 파일명 sanitize 처리
         const fileName = generateUniqueFileName(image.name, projectId);
-        const { data: uploadData, error: uploadError } = await this.supabase.storage
+        const { error: uploadError } = await this.supabase.storage
           .from('projects')
           .upload(fileName, image);
 
@@ -293,7 +294,7 @@ export class ProjectService {
         .eq('id', user.id)
         .single();
 
-      const { data, error } = await this.supabase
+      const { error } = await this.supabase
         .from('projects')
         .update({
           ...dto,

@@ -1,8 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Modal, Input, List, Avatar, Button, Space, Typography, Tag, Pagination, Empty, Skeleton, message, Radio } from 'antd'
-import { SearchOutlined, UserOutlined, CheckCircleOutlined, CloseOutlined } from '@ant-design/icons'
+import { Modal, Input, List, Avatar, Button, Typography, Tag, Pagination, Empty, Skeleton, message, Radio } from 'antd'
+import { SearchOutlined, UserOutlined, CheckCircleOutlined } from '@ant-design/icons'
 import { createClient } from '@/lib/supabase/client'
 import type { User } from '@/types/user'
 

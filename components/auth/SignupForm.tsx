@@ -84,7 +84,7 @@ export default function SignupForm({ onSubmit }: SignupFormProps) {
     setError(null)
 
     try {
-      const { confirmPassword, ...submitData } = values
+      const { confirmPassword: _, ...submitData } = values
       
       if (onSubmit) {
         await onSubmit(submitData)

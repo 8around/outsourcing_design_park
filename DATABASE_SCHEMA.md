@@ -109,13 +109,14 @@ CREATE TABLE projects (
   order_date DATE NOT NULL,
   expected_completion_date DATE NOT NULL,
   installation_request_date DATE NOT NULL,
-  current_process_stage TEXT NOT NULL DEFAULT 'contract' 
+  current_process_stage TEXT NOT NULL DEFAULT 'contract'
     CHECK (current_process_stage IN (
-      'contract', 'design', 'order', 'laser', 'welding', 'plating', 
-      'painting', 'panel', 'assembly', 'shipping', 'installation', 
+      'contract', 'design', 'order', 'laser', 'welding', 'plating',
+      'painting', 'panel', 'assembly', 'shipping', 'installation',
       'certification', 'closing', 'completion'
     )),
   thumbnail_url TEXT,
+  notes TEXT,
   is_urgent BOOLEAN DEFAULT FALSE,
   created_by UUID NOT NULL REFERENCES users(id),
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
@@ -144,6 +145,7 @@ CREATE INDEX idx_projects_dates ON projects(order_date, expected_completion_date
 - `installation_request_date`: 설치 요청일, 설치 일정 계획용
 - `current_process_stage`: 현재 공정 단계, 프로젝트 진행 상태 추적
 - `thumbnail_url`: 썸네일 이미지 URL, 프로젝트 목록 표시용
+- `notes`: 비고 사항, 프로젝트 관련 메모 및 특이사항 기록용 (NULL 허용)
 - `is_urgent`: 급한 현장 여부, 우선순위 표시용
 - `created_by`: 프로젝트 생성자 ID, 작성자 추적용
 - `created_at`: 프로젝트 생성 시각, 등록일 관리용
@@ -189,7 +191,7 @@ CREATE INDEX idx_process_stages_dates ON process_stages(start_date, end_date);
 **컬럼 설명:**
 - `id`: UUID 기본키, 공정 단계 고유 식별자
 - `project_id`: 연관된 프로젝트 ID, 외래키 참조
-- `stage_name`: 공정 단계명, 14단계 중 하나 (contract~completion)
+- `stage_name`: 공정 단계명, 15단계 중 하나 (contract → design → order → incoming → welding → plating → painting → grc_frp → panel → fabrication → shipping → installation → certification → closing → completion)
 - `stage_order`: 공정 순서, 간트차트 정렬 및 진행 순서 관리
 - `status`: 공정 상태, 진행중/완료/대기/지연 중 하나
 - `delay_reason`: 지연 사유, 지연 상태시 선택 입력 사항 (NULL 허용)
@@ -211,8 +213,9 @@ CREATE TABLE history_logs (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   project_id UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
   category TEXT NOT NULL CHECK (category IN (
-    '사양변경', '도면설계', '구매발주', '생산제작', 
-    '상하차', '현장설치시공', '설치인증', '승인요청', '승인처리'
+    '사양변경', '도면설계', '구매발주', '생산제작',
+    '상하차', '현장설치시공', '설치인증', '설비', '기타',
+    '승인요청', '승인처리'
   )),
   content TEXT NOT NULL,
   author_id UUID NOT NULL REFERENCES users(id),

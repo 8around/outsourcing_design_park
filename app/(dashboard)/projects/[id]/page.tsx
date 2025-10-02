@@ -15,22 +15,23 @@ import { Loading } from '@/components/common/ui/Loading'
 import type { AttachmentFile, LogCategory } from '@/types/log'
 import type { User } from '@/types/user'
 
-// 공정 단계 정의
+// 공정 단계 정의 (15단계)
 const PROCESS_STAGES = [
   { name: 'contract', label: '계약', order: 1 },
   { name: 'design', label: '도면설계', order: 2 },
   { name: 'order', label: '발주', order: 3 },
-  { name: 'laser', label: '레이저', order: 4 },
+  { name: 'incoming', label: '입고', order: 4 },
   { name: 'welding', label: '용접', order: 5 },
   { name: 'plating', label: '도금', order: 6 },
   { name: 'painting', label: '도장', order: 7 },
-  { name: 'panel', label: '판넬', order: 8 },
-  { name: 'assembly', label: '조립', order: 9 },
-  { name: 'shipping', label: '출하', order: 10 },
-  { name: 'installation', label: '설치', order: 11 },
-  { name: 'certification', label: '인증기간', order: 12 },
-  { name: 'closing', label: '마감', order: 13 },
-  { name: 'completion', label: '준공일', order: 14 }
+  { name: 'grc_frp', label: 'GRC/FRP', order: 8 },
+  { name: 'panel', label: '판넬', order: 9 },
+  { name: 'fabrication', label: '제작조립', order: 10 },
+  { name: 'shipping', label: '출하', order: 11 },
+  { name: 'installation', label: '설치', order: 12 },
+  { name: 'certification', label: '인증기간', order: 13 },
+  { name: 'closing', label: '마감', order: 14 },
+  { name: 'completion', label: '준공일', order: 15 }
 ]
 
 interface ProjectData {
@@ -45,6 +46,7 @@ interface ProjectData {
   expected_completion_date: string
   installation_request_date: string
   current_process_stage: string
+  notes?: string | null
   is_urgent: boolean
   created_at: string
   updated_at: string
@@ -87,6 +89,9 @@ export default function ProjectDetailPage() {
   const [isApprovalLoading, setIsApprovalLoading] = useState(false)
   const [loadingMessage, setLoadingMessage] = useState('승인 요청을 처리하고 있습니다...')
 
+  // 비고 (읽기 전용)
+  const [notes, setNotes] = useState<string>('')
+
   // 프로젝트 정보 가져오기
   useEffect(() => {
     if (params.id) {
@@ -109,6 +114,9 @@ export default function ProjectDetailPage() {
       }
 
       setProject(projectData as ProjectData)
+
+      // 비고 초기값 설정
+      setNotes(projectData.notes || '')
 
       // 담당자 정보 가져오기
       const supabase = createClient()
@@ -321,7 +329,7 @@ export default function ProjectDetailPage() {
         </div>
       </div>
 
-      <div className="space-y-8">
+      <div className="space-y-4">
         {/* 기본 정보 섹션 */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <h2 className="text-xl font-semibold mb-4">기본 정보</h2>
@@ -442,6 +450,14 @@ export default function ProjectDetailPage() {
           </div>
         </div>
 
+        {/* 비고 섹션 - 읽기 전용 */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <h2 className="text-xl font-semibold mb-4">비고</h2>
+          <div className="w-full px-3 py-2 border border-gray-200 rounded-md min-h-[100px] bg-gray-50 text-gray-700 whitespace-pre-wrap">
+            {notes || '등록된 비고사항이 없습니다.'}
+          </div>
+        </div>
+
         {/* 공정 단계 관리 섹션 */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <h2 className="text-xl font-semibold mb-4">공정 단계 현황</h2>
@@ -450,7 +466,7 @@ export default function ProjectDetailPage() {
               PROCESS_STAGES.find(s => s.name === project.current_process_stage)?.label || project.current_process_stage
             }</span>
           </p>
-          
+
           <div className="space-y-3">
             {project.process_stages?.sort((a, b) => a.stage_order - b.stage_order).map((stage) => {
               const stageInfo = PROCESS_STAGES.find(s => s.name === stage.stage_name)
@@ -496,6 +512,38 @@ export default function ProjectDetailPage() {
               )
             })}
           </div>
+        </div>
+
+        {/* 히스토리 로그 섹션 */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-semibold">히스토리 로그</h2>
+            <button
+              onClick={() => setShowLogForm(!showLogForm)}
+              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 font-medium"
+            >
+              {showLogForm ? '취소' : '로그 작성'}
+            </button>
+          </div>
+
+          {/* 로그 작성 폼 */}
+          {showLogForm && (
+            <div className="mb-6 p-4 border border-gray-200 rounded-lg bg-gray-50">
+              <LogFormSimple
+                onSubmit={handleLogSubmit}
+                onCancel={() => setShowLogForm(false)}
+                showAttachments={true}
+                users={users.map(u => ({ ...u, name: u.name || u.email, role: u.role || 'user' }))}
+              />
+            </div>
+          )}
+
+          {/* 로그 목록 */}
+          <LogList
+            projectId={project.id}
+            refreshTrigger={refreshLogs}
+            onRefresh={() => setRefreshLogs(prev => prev + 1)}
+          />
         </div>
 
         {/* 이미지 갤러리 섹션 */}
@@ -571,38 +619,6 @@ export default function ProjectDetailPage() {
             )}
           </div>
         )}
-
-        {/* 히스토리 로그 섹션 */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-semibold">히스토리 로그</h2>
-            <button
-              onClick={() => setShowLogForm(!showLogForm)}
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 font-medium"
-            >
-              {showLogForm ? '취소' : '로그 작성'}
-            </button>
-          </div>
-
-          {/* 로그 작성 폼 */}
-          {showLogForm && (
-            <div className="mb-6 p-4 border border-gray-200 rounded-lg bg-gray-50">
-              <LogFormSimple
-                onSubmit={handleLogSubmit}
-                onCancel={() => setShowLogForm(false)}
-                showAttachments={true}
-                users={users.map(u => ({ ...u, name: u.name || u.email, role: u.role || 'user' }))}
-              />
-            </div>
-          )}
-
-          {/* 로그 목록 */}
-          <LogList 
-            projectId={project.id} 
-            refreshTrigger={refreshLogs}
-            onRefresh={() => setRefreshLogs(prev => prev + 1)}
-          />
-        </div>
       </div>
     </div>
     </>

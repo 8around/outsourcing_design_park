@@ -22,11 +22,6 @@ function NavigationProgressInner() {
   const [isTransitioning, setIsTransitioning] = useState(false);
 
   useEffect(() => {
-    const handleStart = () => {
-      NProgress.start();
-      setIsTransitioning(true);
-    };
-
     const handleComplete = () => {
       NProgress.done();
       setIsTransitioning(false);

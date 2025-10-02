@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Card, List, Avatar, Typography, Tag, Space, Button, Empty, Skeleton, Badge, Tooltip, message, Pagination, Modal, Input } from 'antd'
+import { Card, List, Typography, Tag, Space, Button, Empty, Skeleton, Tooltip, message, Pagination, Modal, Input } from 'antd'
 import {
   ClockCircleOutlined,
   CheckOutlined,
@@ -68,12 +68,6 @@ const typeConfig = {
   other: { color: 'default', icon: <ExclamationCircleOutlined />, label: '기타' },
 }
 
-// 우선순위 색상
-const priorityColors = {
-  high: 'red',
-  medium: 'orange',
-  low: 'default',
-}
 
 // 카테고리 색상 (LogList 컴포넌트와 동일하게 설정)
 const categoryColors: Record<string, string> = {
@@ -334,7 +328,6 @@ export default function PendingApprovals({
     const isProcessing = processing === approval.id
     // const isDeleting = deletingId === approval.id // 삭제 기능 제거
     const isReceivedRequest = approval.requestType === 'received'  // 내가 받은 요청인지 확인
-    const isAdmin = userData?.role === 'admin'
 
     // 내가 받은 요청인 경우에만 승인/거절 버튼 표시
     const actions = showActions && isReceivedRequest ? [

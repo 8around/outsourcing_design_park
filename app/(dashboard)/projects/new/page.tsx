@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { useAuth } from '@/lib/hooks/useAuth'
 import { projectService } from '@/lib/services/projects.service'
 import ImageUploader from '@/components/projects/ImageUploader'
 import ProcessStageManager from '@/components/projects/ProcessStageManager'
@@ -16,17 +15,18 @@ const PROCESS_STAGES = [
   { name: 'contract', label: '계약', order: 1 },
   { name: 'design', label: '도면설계', order: 2 },
   { name: 'order', label: '발주', order: 3 },
-  { name: 'laser', label: '레이저', order: 4 },
+  { name: 'incoming', label: '입고', order: 4 },
   { name: 'welding', label: '용접', order: 5 },
   { name: 'plating', label: '도금', order: 6 },
   { name: 'painting', label: '도장', order: 7 },
-  { name: 'panel', label: '판넬', order: 8 },
-  { name: 'assembly', label: '조립', order: 9 },
-  { name: 'shipping', label: '출하', order: 10 },
-  { name: 'installation', label: '설치', order: 11 },
-  { name: 'certification', label: '인증기간', order: 12 },
-  { name: 'closing', label: '마감', order: 13 },
-  { name: 'completion', label: '준공일', order: 14 }
+  { name: 'grc_frp', label: 'GRC/FRP', order: 8 },
+  { name: 'panel', label: '판넬', order: 9 },
+  { name: 'fabrication', label: '제작조립', order: 10 },
+  { name: 'shipping', label: '출하', order: 11 },
+  { name: 'installation', label: '설치', order: 12 },
+  { name: 'certification', label: '인증기간', order: 13 },
+  { name: 'closing', label: '마감', order: 14 },
+  { name: 'completion', label: '준공일', order: 15 }
 ]
 
 interface ProcessStage {
@@ -40,7 +40,6 @@ interface ProcessStage {
 
 export default function NewProjectPage() {
   const router = useRouter()
-  const { } = useAuth()
   const [loading, setLoading] = useState(false)
   const [users, setUsers] = useState<User[]>([])
   
@@ -56,7 +55,8 @@ export default function NewProjectPage() {
     expected_completion_date: '',
     installation_request_date: '',
     current_process_stage: 'contract',
-    is_urgent: false
+    is_urgent: false,
+    notes: ''
   })
   
   // 이미지 관리
@@ -146,7 +146,8 @@ export default function NewProjectPage() {
         order_date: formData.order_date,
         expected_completion_date: formData.expected_completion_date,
         installation_request_date: formData.installation_request_date,
-        is_urgent: formData.is_urgent
+        is_urgent: formData.is_urgent,
+        notes: formData.notes
       }
 
       const project = await projectService.createProject(
@@ -173,7 +174,7 @@ export default function NewProjectPage() {
         <p className="mt-2 text-gray-600">프로젝트 정보를 입력하여 새로운 프로젝트를 생성합니다.</p>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-8">
+      <form onSubmit={handleSubmit} className="space-y-4">
         {/* 기본 정보 섹션 */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <h2 className="text-xl font-semibold mb-4">기본 정보</h2>
@@ -320,6 +321,17 @@ export default function NewProjectPage() {
               />
             </div>
           </div>
+        </div>
+
+        {/* 비고 섹션 */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <h2 className="text-xl font-semibold mb-4">비고</h2>
+          <textarea
+            value={formData.notes}
+            onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+            placeholder="프로젝트 관련 비고사항을 입력하세요"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md min-h-[100px] max-h-[300px] resize-y focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
         </div>
 
         {/* 공정 단계 관리 섹션 */}

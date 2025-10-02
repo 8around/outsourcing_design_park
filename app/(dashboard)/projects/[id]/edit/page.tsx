@@ -22,17 +22,18 @@ const PROCESS_STAGES = [
   { name: 'contract', label: '계약', order: 1 },
   { name: 'design', label: '도면설계', order: 2 },
   { name: 'order', label: '발주', order: 3 },
-  { name: 'laser', label: '레이저', order: 4 },
+  { name: 'incoming', label: '입고', order: 4 },
   { name: 'welding', label: '용접', order: 5 },
   { name: 'plating', label: '도금', order: 6 },
   { name: 'painting', label: '도장', order: 7 },
-  { name: 'panel', label: '판넬', order: 8 },
-  { name: 'assembly', label: '조립', order: 9 },
-  { name: 'shipping', label: '출하', order: 10 },
-  { name: 'installation', label: '설치', order: 11 },
-  { name: 'certification', label: '인증기간', order: 12 },
-  { name: 'closing', label: '마감', order: 13 },
-  { name: 'completion', label: '준공일', order: 14 }
+  { name: 'grc_frp', label: 'GRC/FRP', order: 8 },
+  { name: 'panel', label: '판넬', order: 9 },
+  { name: 'fabrication', label: '제작조립', order: 10 },
+  { name: 'shipping', label: '출하', order: 11 },
+  { name: 'installation', label: '설치', order: 12 },
+  { name: 'certification', label: '인증기간', order: 13 },
+  { name: 'closing', label: '마감', order: 14 },
+  { name: 'completion', label: '준공일', order: 15 }
 ]
 
 interface ProcessStage {
@@ -76,6 +77,7 @@ export default function EditProjectPage() {
     expected_completion_date: '',
     installation_request_date: '',
     current_process_stage: 'contract',
+    notes: '',
     is_urgent: false
   })
   
@@ -145,6 +147,7 @@ export default function EditProjectPage() {
         expected_completion_date: projectData.expected_completion_date || '',
         installation_request_date: projectData.installation_request_date || '',
         current_process_stage: projectData.current_process_stage || 'contract',
+        notes: projectData.notes || '',
         is_urgent: projectData.is_urgent || false
       })
 
@@ -298,6 +301,7 @@ export default function EditProjectPage() {
         order_date: formData.order_date,
         expected_completion_date: formData.expected_completion_date,
         installation_request_date: formData.installation_request_date,
+        notes: formData.notes,
         is_urgent: formData.is_urgent,
         current_process_stage: formData.current_process_stage as ProcessStageName
       }
@@ -534,19 +538,47 @@ export default function EditProjectPage() {
           </div>
         </div>
 
-        {/* 공정 단계 관리 섹션 */}
+        {/* 비고 섹션 */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <h2 className="text-xl font-semibold mb-4">
-            공정 단계 관리 <span className="text-red-500">*</span>
-          </h2>
-          <p className="text-sm text-gray-600 mb-4">
-            각 공정 단계의 상태를 설정하고 일정을 입력하세요. 최소 하나 이상의 공정이 진행 중이어야 합니다.
-          </p>
-          <ProcessStageManager
-            stages={processStages}
-            onChange={setProcessStages}
-            currentStage={formData.current_process_stage}
-            onCurrentStageChange={(stage) => setFormData({ ...formData, current_process_stage: stage })}
+          <h2 className="text-xl font-semibold mb-4">비고</h2>
+          <textarea
+            value={formData.notes}
+            onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+            placeholder="프로젝트 관련 비고사항을 입력하세요"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md min-h-[100px] max-h-[300px] resize-y focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+
+        {/* 히스토리 로그 섹션 */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-semibold">히스토리 로그</h2>
+            <button
+              type="button"
+              onClick={() => setShowLogForm(!showLogForm)}
+              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 font-medium"
+            >
+              {showLogForm ? '취소' : '로그 작성'}
+            </button>
+          </div>
+
+          {/* 로그 작성 폼 */}
+          {showLogForm && (
+            <div className="mb-6 p-4 border border-gray-200 rounded-lg bg-gray-50">
+              <LogFormSimple
+                onSubmit={handleLogSubmit}
+                onCancel={() => setShowLogForm(false)}
+                showAttachments={true}
+                users={users.map(u => ({ ...u, name: u.name || u.email, role: u.role || 'user' }))}
+              />
+            </div>
+          )}
+
+          {/* 로그 목록 */}
+          <LogList
+            projectId={params.id as string}
+            refreshTrigger={refreshLogs}
+            onRefresh={() => setRefreshLogs(prev => prev + 1)}
           />
         </div>
 
@@ -615,6 +647,22 @@ export default function EditProjectPage() {
           </div>
         </div>
 
+        {/* 공정 단계 관리 섹션 */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <h2 className="text-xl font-semibold mb-4">
+            공정 단계 관리 <span className="text-red-500">*</span>
+          </h2>
+          <p className="text-sm text-gray-600 mb-4">
+            각 공정 단계의 상태를 설정하고 일정을 입력하세요. 최소 하나 이상의 공정이 진행 중이어야 합니다.
+          </p>
+          <ProcessStageManager
+            stages={processStages}
+            onChange={setProcessStages}
+            currentStage={formData.current_process_stage}
+            onCurrentStageChange={(stage) => setFormData({ ...formData, current_process_stage: stage })}
+          />
+        </div>
+
         {/* 제출 버튼 */}
         <div className="flex justify-end gap-4">
           <button
@@ -634,41 +682,6 @@ export default function EditProjectPage() {
           </button>
         </div>
       </form>
-
-      {/* 히스토리 로그 섹션 - form 외부에 위치 */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mt-8">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-semibold">히스토리 로그</h2>
-          <button
-            type="button"
-            onClick={() => setShowLogForm(!showLogForm)}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 font-medium"
-          >
-            {showLogForm ? '취소' : '로그 작성'}
-          </button>
-        </div>
-
-        {/* 로그 작성 폼 */}
-        {showLogForm && (
-          <div className="mb-6 p-4 border border-gray-200 rounded-lg bg-gray-50">
-            <LogFormSimple
-              onSubmit={handleLogSubmit}
-              onCancel={() => setShowLogForm(false)}
-              showAttachments={true}
-              users={users.map(u => ({ ...u, name: u.name || u.email, role: u.role || 'user' }))}
-            />
-          </div>
-        )}
-
-        {/* 로그 목록 */}
-        {params.id && (
-          <LogList 
-            projectId={params.id as string} 
-            refreshTrigger={refreshLogs}
-            onRefresh={() => setRefreshLogs(prev => prev + 1)}
-          />
-        )}
-      </div>
     </div>
   )
 }

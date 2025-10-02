@@ -53,6 +53,7 @@ export interface Database {
           installation_request_date: string
           current_process_stage: string
           thumbnail_url: string | null
+          notes: string | null
           is_urgent: boolean
           created_by: string
           created_at: string
@@ -72,6 +73,7 @@ export interface Database {
           installation_request_date: string
           current_process_stage?: string
           thumbnail_url?: string | null
+          notes?: string | null
           is_urgent?: boolean
           created_by: string
           created_at?: string
@@ -91,6 +93,7 @@ export interface Database {
           installation_request_date?: string
           current_process_stage?: string
           thumbnail_url?: string | null
+          notes?: string | null
           is_urgent?: boolean
           created_by?: string
           created_at?: string

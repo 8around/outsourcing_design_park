@@ -1,16 +1,17 @@
 // 프로젝트 관련 타입 정의
 
-// 14단계 공정 enum
+// 15단계 공정 enum
 export const PROCESS_STAGES = {
   contract: '계약',
   design: '도면설계',
   order: '발주',
-  laser: '레이저',
+  incoming: '입고',
   welding: '용접',
   plating: '도금',
   painting: '도장',
+  grc_frp: 'GRC/FRP',
   panel: '판넬',
-  assembly: '조립',
+  fabrication: '제작조립',
   shipping: '출하',
   installation: '설치',
   certification: '인증기간',
@@ -37,6 +38,7 @@ export interface Project {
   installation_request_date: string;
   current_process_stage: ProcessStageName;
   thumbnail_url?: string;
+  notes?: string | null;
   is_urgent: boolean;
   created_by: string;
   created_at: string;

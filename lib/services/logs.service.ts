@@ -5,7 +5,6 @@ import type {
   CreateLogRequest,
   CreateApprovalRequestLog,
   CreateApprovalResponseLog,
-  HistoryLog,
   HistoryLogWithAttachments,
   AttachmentFile,
   LogFilter,
@@ -251,7 +250,8 @@ class LogService {
   async getProjectLogs(
     projectId: string,
     page = 1,
-    pageSize = 20
+    pageSize = 20,
+    category?: string
   ): Promise<{
     logs: HistoryLogWithAttachments[];
     total: number;
@@ -262,15 +262,22 @@ class LogService {
     const start = (page - 1) * pageSize;
     const end = start + pageSize - 1;
 
-    // 전체 개수 조회
-    const { count } = await supabase
+    // 전체 개수 조회 쿼리
+    let countQuery = supabase
       .from("history_logs")
       .select("*", { count: "exact", head: true })
       .eq("project_id", projectId)
       .eq("is_deleted", false);
 
-    // 데이터 조회 (첨부파일 포함)
-    const { data: logs, error } = await supabase
+    // 카테고리 필터 추가
+    if (category) {
+      countQuery = countQuery.eq("category", category);
+    }
+
+    const { count } = await countQuery;
+
+    // 데이터 조회 쿼리 (첨부파일 포함)
+    let dataQuery = supabase
       .from("history_logs")
       .select(
         `
@@ -279,7 +286,14 @@ class LogService {
       `
       )
       .eq("project_id", projectId)
-      .eq("is_deleted", false)
+      .eq("is_deleted", false);
+
+    // 카테고리 필터 추가
+    if (category) {
+      dataQuery = dataQuery.eq("category", category);
+    }
+
+    const { data: logs, error } = await dataQuery
       .order("created_at", { ascending: false })
       .range(start, end);
 
@@ -302,7 +316,8 @@ class LogService {
   async getGlobalLogFeed(
     page = 1,
     pageSize = 20,
-    userId?: string
+    userId?: string,
+    category?: string
   ): Promise<{
     logs: HistoryLogWithAttachments[];
     total: number;
@@ -338,6 +353,12 @@ class LogService {
       dataQuery = dataQuery.or(
         `author_id.eq.${userId},target_user_id.eq.${userId}`
       );
+    }
+
+    // 카테고리 필터링 추가
+    if (category) {
+      countQuery = countQuery.eq("category", category);
+      dataQuery = dataQuery.eq("category", category);
     }
 
     // 전체 개수 조회
@@ -602,7 +623,7 @@ class LogService {
           type: attachment.mime_type,
         });
 
-        const { data: uploadData, error: uploadError } = await supabase.storage
+        const { error: uploadError } = await supabase.storage
           .from("log-attachments")
           .upload(uniqueFileName, fileBlob, {
             contentType: attachment.mime_type || "application/octet-stream",

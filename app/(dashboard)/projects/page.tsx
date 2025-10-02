@@ -94,17 +94,18 @@ export default function ProjectsPage() {
       contract: '#1890ff',
       design: '#52c41a',
       order: '#faad14',
-      laser: '#f5222d',
+      incoming: '#f5222d',
       welding: '#722ed1',
       plating: '#13c2c2',
       painting: '#eb2f96',
-      panel: '#fa8c16',
-      assembly: '#a0d911',
-      shipping: '#1890ff',
-      installation: '#52c41a',
-      certification: '#faad14',
-      closing: '#f5222d',
-      completion: '#722ed1'
+      grc_frp: '#fa8c16',
+      panel: '#a0d911',
+      fabrication: '#1890ff',
+      shipping: '#52c41a',
+      installation: '#faad14',
+      certification: '#f5222d',
+      closing: '#722ed1',
+      completion: '#13c2c2'
     }
     return stageColors[stage]
   }
@@ -220,7 +221,7 @@ export default function ProjectsPage() {
       {loading ? (
         <Row gutter={[24, 24]}>
           {[1, 2, 3, 4, 5, 6].map(i => (
-            <Col xs={24} md={12} lg={8} key={i}>
+            <Col xs={24} md={12} lg={6} key={i}>
               <Card>
                 <Skeleton active />
               </Card>
@@ -243,9 +244,9 @@ export default function ProjectsPage() {
           {projects.map(project => {
             const progress = calculateProgress(project)
             const isFavorite = project.favorites && project.favorites.length > 0
-            
+
             return (
-              <Col xs={24} md={12} lg={8} key={project.id}>
+              <Col xs={24} md={12} lg={6} key={project.id}>
                 <Card
                   className="project-card cursor-pointer hover:shadow-lg transition-all h-full"
                   onClick={() => router.push(`/projects/${project.id}`)}

@@ -1,14 +1,12 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { 
-  Tabs, 
-  Button, 
-  Input, 
-  Modal, 
-  message, 
-  Divider,
-  Typography,
+import {
+  Tabs,
+  Button,
+  Input,
+  Modal,
+  message,
   Card,
   Badge
 } from 'antd';
@@ -117,7 +115,7 @@ export default function UsersManagement() {
           } else {
             message.error('승인 처리 중 오류가 발생했습니다.');
           }
-        } catch (error) {
+        } catch {
           message.error('승인 처리 중 오류가 발생했습니다.');
         }
       }
@@ -176,7 +174,7 @@ export default function UsersManagement() {
           } else {
             message.error('승인 취소 중 오류가 발생했습니다.');
           }
-        } catch (error) {
+        } catch {
           message.error('승인 취소 중 오류가 발생했습니다.');
         }
       }

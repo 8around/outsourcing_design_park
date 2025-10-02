@@ -2,10 +2,9 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Card, List, Avatar, Typography, Tag, Space, Button, Empty, Skeleton, message, Pagination } from 'antd'
+import { Card, List, Avatar, Typography, Tag, Space, Button, Empty, Skeleton, message, Pagination, Select } from 'antd'
 import {
   FileTextOutlined,
-  UserOutlined,
   CheckCircleOutlined,
   ClockCircleOutlined,
   EditOutlined,
@@ -22,7 +21,6 @@ import { logService } from '@/lib/services/logs.service'
 import { projectService } from '@/lib/services/projects.service'
 import { useAuth } from '@/lib/hooks/useAuth'
 import UserSelectModal from '@/components/common/UserSelectModal'
-import type { HistoryLog } from '@/types/log'
 import type { User } from '@/types/user'
 
 const { Text, Title } = Typography
@@ -95,6 +93,7 @@ export default function GlobalLogFeed({
   const [filterUserId, setFilterUserId] = useState<string | null>(null)
   const [filterUser, setFilterUser] = useState<User | null>(null)
   const [showUserSelectModal, setShowUserSelectModal] = useState(false)
+  const [filterCategory, setFilterCategory] = useState<string | null>(null)
 
   // 로그 데이터 로드
   const loadLogs = async (page = currentPage, isRefresh = false) => {
@@ -105,8 +104,13 @@ export default function GlobalLogFeed({
     }
 
     try {
-      // 글로벌 로그 피드 조회 (사용자 필터링 적용)
-      const response = await logService.getGlobalLogFeed(page, limit, filterUserId || undefined)
+      // 글로벌 로그 피드 조회 (사용자 필터링 + 카테고리 필터링 적용)
+      const response = await logService.getGlobalLogFeed(
+        page,
+        limit,
+        filterUserId || undefined,
+        filterCategory || undefined
+      )
       
       // 프로젝트 정보 조회를 위한 프로젝트 ID 수집
       const projectIds = [...new Set(response.logs.filter(log => log.project_id).map(log => log.project_id!))]
@@ -166,7 +170,7 @@ export default function GlobalLogFeed({
   useEffect(() => {
     setCurrentPage(1)
     loadLogs(1)
-  }, [limit, filterUserId])
+  }, [limit, filterUserId, filterCategory])
 
   // 자동 새로고침
   useEffect(() => {
@@ -202,6 +206,7 @@ export default function GlobalLogFeed({
   const handleResetFilter = () => {
     setFilterUser(null)
     setFilterUserId(null)
+    setFilterCategory(null)
     message.info('전체 로그를 표시합니다.')
   }
 
@@ -443,17 +448,45 @@ export default function GlobalLogFeed({
           <div className="flex items-center gap-2">
             <Title level={4} className="mb-0">전체 활동 로그</Title>
             {filterUser && (
-              <Tag 
-                color="blue" 
-                closable 
+              <Tag
+                color="blue"
+                closable
                 onClose={handleResetFilter}
                 className="ml-2"
               >
                 {filterUser.name} 필터링 중
               </Tag>
             )}
+            {filterCategory && (
+              <Tag
+                color="green"
+                closable
+                onClose={() => setFilterCategory(null)}
+                className="ml-2"
+              >
+                {filterCategory} 필터링 중
+              </Tag>
+            )}
           </div>
           <Space>
+            {/* 카테고리 필터 Select 추가 */}
+            <Select
+              placeholder="카테고리 선택"
+              allowClear
+              style={{ width: 140 }}
+              size="small"
+              value={filterCategory}
+              onChange={(value) => setFilterCategory(value || null)}
+            >
+              <Select.Option value="사양변경">사양변경</Select.Option>
+              <Select.Option value="도면설계">도면설계</Select.Option>
+              <Select.Option value="구매발주">구매발주</Select.Option>
+              <Select.Option value="생산제작">생산제작</Select.Option>
+              <Select.Option value="상하차">상하차</Select.Option>
+              <Select.Option value="현장설치시공">현장설치시공</Select.Option>
+              <Select.Option value="설치인증">설치인증</Select.Option>
+            </Select>
+
             {/* 관리자인 경우에만 사용자 필터 버튼 표시 */}
             {userData?.role === 'admin' && (
               <Button
@@ -466,7 +499,7 @@ export default function GlobalLogFeed({
               </Button>
             )}
             {/* 필터가 적용된 경우 초기화 버튼 표시 */}
-            {filterUserId && (
+            {(filterUserId || filterCategory) && (
               <Button
                 icon={<CloseCircleOutlined />}
                 onClick={handleResetFilter}

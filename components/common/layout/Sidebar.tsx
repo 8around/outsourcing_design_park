@@ -12,17 +12,14 @@ import {
   BarChartOutlined,
   UserOutlined,
   BellOutlined,
-  SettingOutlined,
   LogoutOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
-  TeamOutlined,
   FileTextOutlined,
   UserSwitchOutlined,
 } from '@ant-design/icons'
-import { Button, Menu, Layout, Avatar, Typography, Space, Divider, Badge } from 'antd'
+import { Button, Avatar, Typography, Badge } from 'antd'
 
-const { Sider } = Layout
 const { Text } = Typography
 
 interface MenuItemType {
