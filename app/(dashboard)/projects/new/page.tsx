@@ -56,7 +56,8 @@ export default function NewProjectPage() {
     expected_completion_date: '',
     installation_request_date: '',
     current_process_stage: 'contract',
-    is_urgent: false
+    is_urgent: false,
+    notes: ''
   })
   
   // 이미지 관리
@@ -146,7 +147,8 @@ export default function NewProjectPage() {
         order_date: formData.order_date,
         expected_completion_date: formData.expected_completion_date,
         installation_request_date: formData.installation_request_date,
-        is_urgent: formData.is_urgent
+        is_urgent: formData.is_urgent,
+        notes: formData.notes
       }
 
       const project = await projectService.createProject(
@@ -173,7 +175,7 @@ export default function NewProjectPage() {
         <p className="mt-2 text-gray-600">프로젝트 정보를 입력하여 새로운 프로젝트를 생성합니다.</p>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-8">
+      <form onSubmit={handleSubmit} className="space-y-4">
         {/* 기본 정보 섹션 */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <h2 className="text-xl font-semibold mb-4">기본 정보</h2>
@@ -320,6 +322,17 @@ export default function NewProjectPage() {
               />
             </div>
           </div>
+        </div>
+
+        {/* 비고 섹션 */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <h2 className="text-xl font-semibold mb-4">비고</h2>
+          <textarea
+            value={formData.notes}
+            onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+            placeholder="프로젝트 관련 비고사항을 입력하세요"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md min-h-[100px] max-h-[300px] resize-y focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
         </div>
 
         {/* 공정 단계 관리 섹션 */}

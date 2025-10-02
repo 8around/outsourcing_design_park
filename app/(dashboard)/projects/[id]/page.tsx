@@ -45,6 +45,7 @@ interface ProjectData {
   expected_completion_date: string
   installation_request_date: string
   current_process_stage: string
+  notes?: string | null
   is_urgent: boolean
   created_at: string
   updated_at: string
@@ -87,6 +88,9 @@ export default function ProjectDetailPage() {
   const [isApprovalLoading, setIsApprovalLoading] = useState(false)
   const [loadingMessage, setLoadingMessage] = useState('승인 요청을 처리하고 있습니다...')
 
+  // 비고 (읽기 전용)
+  const [notes, setNotes] = useState<string>('')
+
   // 프로젝트 정보 가져오기
   useEffect(() => {
     if (params.id) {
@@ -109,6 +113,9 @@ export default function ProjectDetailPage() {
       }
 
       setProject(projectData as ProjectData)
+
+      // 비고 초기값 설정
+      setNotes(projectData.notes || '')
 
       // 담당자 정보 가져오기
       const supabase = createClient()
@@ -321,7 +328,7 @@ export default function ProjectDetailPage() {
         </div>
       </div>
 
-      <div className="space-y-8">
+      <div className="space-y-4">
         {/* 기본 정보 섹션 */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <h2 className="text-xl font-semibold mb-4">기본 정보</h2>
@@ -440,6 +447,46 @@ export default function ProjectDetailPage() {
               </div>
             </div>
           </div>
+        </div>
+
+        {/* 비고 섹션 - 읽기 전용 */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <h2 className="text-xl font-semibold mb-4">비고</h2>
+          <div className="w-full px-3 py-2 border border-gray-200 rounded-md min-h-[100px] bg-gray-50 text-gray-700 whitespace-pre-wrap">
+            {notes || '등록된 비고사항이 없습니다.'}
+          </div>
+        </div>
+
+        {/* 히스토리 로그 섹션 */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-semibold">히스토리 로그</h2>
+            <button
+              onClick={() => setShowLogForm(!showLogForm)}
+              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 font-medium"
+            >
+              {showLogForm ? '취소' : '로그 작성'}
+            </button>
+          </div>
+
+          {/* 로그 작성 폼 */}
+          {showLogForm && (
+            <div className="mb-6 p-4 border border-gray-200 rounded-lg bg-gray-50">
+              <LogFormSimple
+                onSubmit={handleLogSubmit}
+                onCancel={() => setShowLogForm(false)}
+                showAttachments={true}
+                users={users.map(u => ({ ...u, name: u.name || u.email, role: u.role || 'user' }))}
+              />
+            </div>
+          )}
+
+          {/* 로그 목록 */}
+          <LogList
+            projectId={project.id}
+            refreshTrigger={refreshLogs}
+            onRefresh={() => setRefreshLogs(prev => prev + 1)}
+          />
         </div>
 
         {/* 공정 단계 관리 섹션 */}
@@ -571,38 +618,6 @@ export default function ProjectDetailPage() {
             )}
           </div>
         )}
-
-        {/* 히스토리 로그 섹션 */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-semibold">히스토리 로그</h2>
-            <button
-              onClick={() => setShowLogForm(!showLogForm)}
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 font-medium"
-            >
-              {showLogForm ? '취소' : '로그 작성'}
-            </button>
-          </div>
-
-          {/* 로그 작성 폼 */}
-          {showLogForm && (
-            <div className="mb-6 p-4 border border-gray-200 rounded-lg bg-gray-50">
-              <LogFormSimple
-                onSubmit={handleLogSubmit}
-                onCancel={() => setShowLogForm(false)}
-                showAttachments={true}
-                users={users.map(u => ({ ...u, name: u.name || u.email, role: u.role || 'user' }))}
-              />
-            </div>
-          )}
-
-          {/* 로그 목록 */}
-          <LogList 
-            projectId={project.id} 
-            refreshTrigger={refreshLogs}
-            onRefresh={() => setRefreshLogs(prev => prev + 1)}
-          />
-        </div>
       </div>
     </div>
     </>

@@ -109,13 +109,14 @@ CREATE TABLE projects (
   order_date DATE NOT NULL,
   expected_completion_date DATE NOT NULL,
   installation_request_date DATE NOT NULL,
-  current_process_stage TEXT NOT NULL DEFAULT 'contract' 
+  current_process_stage TEXT NOT NULL DEFAULT 'contract'
     CHECK (current_process_stage IN (
-      'contract', 'design', 'order', 'laser', 'welding', 'plating', 
-      'painting', 'panel', 'assembly', 'shipping', 'installation', 
+      'contract', 'design', 'order', 'laser', 'welding', 'plating',
+      'painting', 'panel', 'assembly', 'shipping', 'installation',
       'certification', 'closing', 'completion'
     )),
   thumbnail_url TEXT,
+  notes TEXT,
   is_urgent BOOLEAN DEFAULT FALSE,
   created_by UUID NOT NULL REFERENCES users(id),
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
@@ -144,6 +145,7 @@ CREATE INDEX idx_projects_dates ON projects(order_date, expected_completion_date
 - `installation_request_date`: 설치 요청일, 설치 일정 계획용
 - `current_process_stage`: 현재 공정 단계, 프로젝트 진행 상태 추적
 - `thumbnail_url`: 썸네일 이미지 URL, 프로젝트 목록 표시용
+- `notes`: 비고 사항, 프로젝트 관련 메모 및 특이사항 기록용 (NULL 허용)
 - `is_urgent`: 급한 현장 여부, 우선순위 표시용
 - `created_by`: 프로젝트 생성자 ID, 작성자 추적용
 - `created_at`: 프로젝트 생성 시각, 등록일 관리용

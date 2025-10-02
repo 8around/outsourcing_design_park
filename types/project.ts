@@ -37,6 +37,7 @@ export interface Project {
   installation_request_date: string;
   current_process_stage: ProcessStageName;
   thumbnail_url?: string;
+  notes?: string | null;
   is_urgent: boolean;
   created_by: string;
   created_at: string;
