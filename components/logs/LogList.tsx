@@ -46,11 +46,12 @@ export default function LogList({ projectId, refreshTrigger = 0, onRefresh }: Lo
   const [deletingLogId, setDeletingLogId] = useState<string | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
   const [totalCount, setTotalCount] = useState(0)
+  const [filterCategory, setFilterCategory] = useState<string | null>(null)
   const pageSize = 5 // 한 페이지에 5개씩 표시
 
   useEffect(() => {
     fetchLogs()
-  }, [projectId, refreshTrigger, currentPage])
+  }, [projectId, refreshTrigger, currentPage, filterCategory])
 
   // refreshTrigger가 변경되면 페이지를 1로 리셋 (새 로그 추가 시)
   useEffect(() => {
@@ -59,10 +60,22 @@ export default function LogList({ projectId, refreshTrigger = 0, onRefresh }: Lo
     }
   }, [refreshTrigger])
 
+  // filterCategory가 변경되면 페이지를 1로 리셋
+  useEffect(() => {
+    if (filterCategory !== null) {
+      setCurrentPage(1)
+    }
+  }, [filterCategory])
+
   const fetchLogs = async () => {
     try {
       setLoading(true)
-      const result = await logService.getProjectLogs(projectId, currentPage, pageSize)
+      const result = await logService.getProjectLogs(
+        projectId,
+        currentPage,
+        pageSize,
+        filterCategory || undefined
+      )
       setLogs(result.logs)
       setTotalCount(result.total)
     } catch (error) {
@@ -176,10 +189,47 @@ export default function LogList({ projectId, refreshTrigger = 0, onRefresh }: Lo
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-xl font-semibold">히스토리 로그</h2>
-        <span className="text-sm text-gray-500">
-          총 {totalCount}개의 로그 ({startIndex}-{endIndex} 표시)
-        </span>
+        <div className="flex items-center gap-2">
+          {/* 카테고리 필터 Select */}
+          <select
+            value={filterCategory || ''}
+            onChange={(e) => setFilterCategory(e.target.value || null)}
+            className="px-3 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="">전체 카테고리</option>
+            <option value="사양변경">사양변경</option>
+            <option value="도면설계">도면설계</option>
+            <option value="구매발주">구매발주</option>
+            <option value="생산제작">생산제작</option>
+            <option value="상하차">상하차</option>
+            <option value="현장설치시공">현장설치시공</option>
+            <option value="설치인증">설치인증</option>
+          </select>
+
+          {/* 필터 초기화 버튼 */}
+          {filterCategory && (
+            <button
+              onClick={() => setFilterCategory(null)}
+              className="px-3 py-1.5 text-sm text-red-600 border border-red-300 rounded-md hover:bg-red-50 transition-colors"
+            >
+              초기화
+            </button>
+          )}
+
+          <span className="text-sm text-gray-500">
+            총 {totalCount}개의 로그 ({startIndex}-{endIndex} 표시)
+          </span>
+        </div>
       </div>
+
+      {/* 선택된 카테고리 배지 표시 */}
+      {filterCategory && (
+        <div className="mb-4">
+          <span className="inline-flex items-center px-3 py-1 text-sm font-medium rounded-full bg-green-100 text-green-800">
+            {filterCategory} 필터링 중
+          </span>
+        </div>
+      )}
 
       <div className="space-y-4">
         {logs.map((log) => {
