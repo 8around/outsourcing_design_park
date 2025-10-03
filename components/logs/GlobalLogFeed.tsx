@@ -26,7 +26,7 @@ import type { User } from '@/types/user'
 const { Text, Title } = Typography
 
 // 데이터베이스 카테고리 타입 (실제 데이터베이스 값)
-type DBCategory = '사양변경' | '도면설계' | '구매발주' | '생산제작' | '상하차' | '현장설치시공' | '설치인증' | '승인요청' | '승인처리'
+type DBCategory = '사양변경' | '도면설계' | '구매발주' | '생산제작' | '상하차' | '현장설치시공' | '설치인증' | '설비' | '기타' | '승인요청' | '승인처리'
 
 // 첨부파일 정보 인터페이스
 interface AttachmentInfo {
@@ -64,9 +64,10 @@ const categoryConfig: Record<string, { color: string; icon: React.ReactNode; lab
   '상하차': { color: 'orange', icon: <ClockCircleOutlined />, label: '상하차' },
   '현장설치시공': { color: 'red', icon: <ClockCircleOutlined />, label: '현장설치시공' },
   '설치인증': { color: 'purple', icon: <CheckCircleOutlined />, label: '설치인증' },
+  '설비': { color: 'volcano', icon: <ClockCircleOutlined />, label: '설비' },
+  '기타': { color: 'default', icon: <EditOutlined />, label: '기타' },
   '승인요청': { color: 'magenta', icon: <CheckCircleOutlined />, label: '승인요청' },
   '승인처리': { color: 'cyan', icon: <CheckCircleOutlined />, label: '승인처리' },
-  '기타': { color: 'default', icon: <EditOutlined />, label: '기타' },
 }
 
 interface GlobalLogFeedProps {
@@ -485,6 +486,8 @@ export default function GlobalLogFeed({
               <Select.Option value="상하차">상하차</Select.Option>
               <Select.Option value="현장설치시공">현장설치시공</Select.Option>
               <Select.Option value="설치인증">설치인증</Select.Option>
+              <Select.Option value="설비">설비</Select.Option>
+              <Select.Option value="기타">기타</Select.Option>
             </Select>
 
             {/* 관리자인 경우에만 사용자 필터 버튼 표시 */}
