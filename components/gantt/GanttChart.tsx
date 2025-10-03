@@ -364,9 +364,9 @@ export function GanttChart({
 
   return (
     <div>
-      <Card className="gantt-chart-container">
+      <Card className="gantt-chart-container" bodyStyle={{ padding: '0' }}>
         {/* 전체 펼치기/접기 버튼과 컬럼 리셋 버튼 */}
-        <div style={{ padding: '16px', borderBottom: '1px solid #f0f0f0', display: 'flex', gap: '8px' }}>
+        <div style={{ padding: '4px 8px', borderBottom: '1px solid #f0f0f0', display: 'flex', gap: '8px' }}>
           <Button
             onClick={handleToggleAll}
             icon={isAllExpanded ? <CompressOutlined /> : <ExpandOutlined />}
@@ -421,7 +421,7 @@ export function GanttChart({
       </Card>
       
       {/* 페이지네이션 */}
-      <div style={{ marginTop: '20px', padding: '0 24px' }}>
+      <div style={{ marginTop: '6px', padding: '0 4px' }}>
         <Space size="middle" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap' }}>
           <Text type="secondary">
             전체 {total}개 프로젝트 중 {(currentPage - 1) * pageSize + 1}-{Math.min(currentPage * pageSize, total)}개 표시
@@ -447,10 +447,11 @@ export function GanttChart({
         .gantt-wrapper {
           width: 100%;
           overflow-x: auto;
+          min-height: calc(100vh - 360px);
         }
 
         :global(.gantt-chart-container .ant-card-body) {
-          padding: 0;
+          padding: 0 !important;
         }
 
         /* 커스텀 TaskList 스타일 */

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, ReactNode } from 'react'
+import { usePathname } from 'next/navigation'
 import { Layout, FloatButton } from 'antd'
 import { UpOutlined } from '@ant-design/icons'
 import { ThemeProvider } from '@/components/providers/ThemeProvider'
@@ -14,6 +15,9 @@ interface DashboardLayoutProps {
 }
 
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
+  const pathname = usePathname()
+  const isGanttPage = pathname === '/gantt'
+
   const [collapsed, setCollapsed] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
 
@@ -85,8 +89,8 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             className="main-content"
             style={{
               marginTop: '72px', // 헤더 높이
-              padding: '24px',
-              paddingBottom: '24px',
+              padding: isGanttPage ? '0' : '24px',
+              paddingBottom: isGanttPage ? '0' : '24px',
               minHeight: 'calc(100vh - 72px)',
               background: 'var(--background-secondary)',
               position: 'relative',
@@ -94,16 +98,16 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             }}
             onClick={handleContentClick}
           >
-            {/* 콘텐츠 래퍼 */}
+            {/* 콘텐츠 래퍼 - 간트차트 페이지일 때 패딩 최소화 */}
             <div
-              className="content-wrapper"
+              className={`content-wrapper ${isGanttPage ? 'gantt-page-wrapper' : ''}`}
               style={{
-                background: 'var(--background-primary)',
-                borderRadius: 'var(--radius-md)',
-                boxShadow: 'var(--shadow-sm)',
-                border: '1px solid var(--border-color)',
+                background: isGanttPage ? 'transparent' : 'var(--background-primary)',
+                borderRadius: isGanttPage ? '0' : 'var(--radius-md)',
+                boxShadow: isGanttPage ? 'none' : 'var(--shadow-sm)',
+                border: isGanttPage ? 'none' : '1px solid var(--border-color)',
                 minHeight: 'calc(100vh - 144px)', // 헤더 + 패딩 고려
-                padding: '24px',
+                padding: isGanttPage ? '0' : '24px',
                 position: 'relative',
                 zIndex: 1, // Ensure proper stacking context
               }}
@@ -164,15 +168,28 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             z-index: 1;
           }
 
+          /* 간트차트 페이지 전용 스타일 */
+          .gantt-page-wrapper {
+            padding: 0 !important;
+            background: transparent !important;
+            border: none !important;
+            box-shadow: none !important;
+            border-radius: 0 !important;
+          }
+
           /* 반응형 스타일 */
           @media (max-width: 1200px) {
             .main-content {
               padding: 20px;
             }
-            
+
             .content-wrapper {
               padding: 20px;
               min-height: calc(100vh - 132px);
+            }
+
+            .content-wrapper.gantt-page-wrapper {
+              padding: 0 !important;
             }
           }
 
@@ -186,6 +203,11 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
               min-height: calc(100vh - 120px);
               border-radius: 12px;
             }
+
+            .content-wrapper.gantt-page-wrapper {
+              padding: 0 !important;
+              min-height: calc(100vh - 120px);
+            }
           }
 
           @media (max-width: 480px) {
@@ -197,6 +219,11 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
               padding: 12px;
               min-height: calc(100vh - 108px);
               border-radius: 8px;
+            }
+
+            .content-wrapper.gantt-page-wrapper {
+              padding: 0 !important;
+              min-height: calc(100vh - 108px);
             }
           }
 
