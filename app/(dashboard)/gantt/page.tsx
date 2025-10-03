@@ -88,9 +88,9 @@ export default function GanttPage() {
   }
 
   return (
-    <div className="gantt-page container mx-auto px-6 py-8">
+    <div className="gantt-page w-full px-0 py-0">
       {/* 헤더 */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-1 px-2">
         <div>
           <Title level={2} className="mb-2">간트차트</Title>
           <Text type="secondary" className="text-base">
@@ -112,7 +112,7 @@ export default function GanttPage() {
       </div>
 
       {/* 제어 패널 */}
-      <div className="mb-6">
+      <div className="mb-1 px-2">
         <Space wrap>
           <Select
             value={viewMode}

@@ -153,6 +153,8 @@ export default function LogList({ projectId, refreshTrigger = 0, onRefresh }: Lo
       '상하차': 'bg-orange-100 text-orange-800',
       '현장설치시공': 'bg-red-100 text-red-800',
       '설치인증': 'bg-indigo-100 text-indigo-800',
+      '설비': 'bg-amber-100 text-amber-800',
+      '기타': 'bg-gray-100 text-gray-800',
       '승인요청': 'bg-pink-100 text-pink-800',
       '승인처리': 'bg-teal-100 text-teal-800'
     }
@@ -203,6 +205,8 @@ export default function LogList({ projectId, refreshTrigger = 0, onRefresh }: Lo
             <option value="상하차">상하차</option>
             <option value="현장설치시공">현장설치시공</option>
             <option value="설치인증">설치인증</option>
+            <option value="설비">설비</option>
+            <option value="기타">기타</option>
           </select>
 
           {/* 필터 초기화 버튼 */}
