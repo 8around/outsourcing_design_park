@@ -175,7 +175,7 @@ export default function LogList({ projectId, refreshTrigger = 0, onRefresh }: Lo
     )
   }
 
-  if (logs.length === 0 && totalCount === 0) {
+  if (logs.length === 0 && totalCount === 0 && !filterCategory) {
     return (
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
         <h2 className="text-xl font-semibold mb-4">히스토리 로그</h2>
@@ -235,15 +235,20 @@ export default function LogList({ projectId, refreshTrigger = 0, onRefresh }: Lo
       )}
 
       <div className="space-y-4">
-        {logs.map((log) => {
-          const isExpanded = expandedLogs.has(log.id)
-          const isApprovalLog = log.log_type === 'approval_request' || log.log_type === 'approval_response'
-          
-          return (
-            <div
-              key={log.id}
-              className="border border-gray-200 rounded-lg hover:shadow-md transition-shadow"
-            >
+        {logs.length === 0 ? (
+          <div className="text-center py-8 text-gray-500">
+            선택한 카테고리 ({filterCategory})에 해당하는 로그가 없습니다.
+          </div>
+        ) : (
+          logs.map((log) => {
+            const isExpanded = expandedLogs.has(log.id)
+            const isApprovalLog = log.log_type === 'approval_request' || log.log_type === 'approval_response'
+
+            return (
+              <div
+                key={log.id}
+                className="border border-gray-200 rounded-lg hover:shadow-md transition-shadow"
+              >
               <div
                 className="p-4 cursor-pointer"
                 onClick={() => toggleExpand(log.id)}
@@ -414,7 +419,8 @@ export default function LogList({ projectId, refreshTrigger = 0, onRefresh }: Lo
               )}
             </div>
           )
-        })}
+        })
+        )}
       </div>
 
       {/* 페이지네이션 컨트롤 */}
