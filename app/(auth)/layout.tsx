@@ -41,7 +41,7 @@ export default function AuthLayout({
             프로젝트 현장 관리
           </h1>
           <p className="text-gray-600 text-lg font-medium">
-            효율적인 제조업 프로젝트 관리 솔루션
+            디자인파크 프로젝트 현장관리 시스템입니다
           </p>
           <div className="w-16 h-1 bg-gradient-to-r from-primary-600 to-primary-500 rounded-full mx-auto mt-4"></div>
         </div>
