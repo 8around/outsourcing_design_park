@@ -206,8 +206,8 @@ export default function Sidebar({ collapsed, onCollapse, className, isMobile = f
                 <ProjectOutlined className="text-white text-sm" />
               </div>
               <div>
-                <Text strong className="text-gray-900">프로젝트 관리</Text>
-                <Text className="text-xs text-gray-500 block">제조업 솔루션</Text>
+                <Text strong className="text-gray-900">프로젝트 관리 시스템</Text>
+                <Text className="text-xs text-gray-500 block">(주)디자인파크</Text>
               </div>
             </div>
           )}

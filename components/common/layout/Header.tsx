@@ -42,7 +42,7 @@ export default function Header({
 }: HeaderProps) {
   const pathname = usePathname()
   const router = useRouter()
-  const { user, signOut } = useAuth()
+  const { user, userData, signOut } = useAuth()
   
   // 사이드바 너비 계산
   const sidebarOffset = showMobileMenuButton ? 0 : (collapsed ? 80 : sidebarWidth)
@@ -108,7 +108,7 @@ export default function Header({
             {getPageTitle(pathname)}
           </Text>
           <Text className="text-sm text-gray-500 block">
-            {user?.role === 'admin' ? '관리자 권한' : '일반 사용자'}
+            {userData?.role === 'admin' ? '관리자 권한' : '일반 사용자'}
           </Text>
         </div>
       </div>
@@ -133,7 +133,7 @@ export default function Header({
                 {user?.email?.split('@')[0] || '사용자'}
               </Text>
               <Text className="text-xs text-gray-500">
-                {user?.role === 'admin' ? '관리자' : '사용자'}
+                {userData?.role === 'admin' ? '관리자' : '사용자'}
               </Text>
             </div>
           </div>
