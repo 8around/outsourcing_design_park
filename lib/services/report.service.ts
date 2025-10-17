@@ -278,7 +278,7 @@ export class ReportService {
       } else {
         return {
           success: false,
-          message: data?.error || "테스트 이메일 발송에 실패했습니다.",
+          message: data?.error || `테스트 이메일 발송에 실패했습니다. ${data?.message}`,
         };
       }
     } catch (error) {

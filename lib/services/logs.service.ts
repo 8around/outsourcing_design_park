@@ -133,6 +133,7 @@ class LogService {
       .from("projects")
       .select("site_name, product_name")
       .eq("id", data.project_id)
+      .is('deleted_at', null)
       .single();
 
     // 6. 이메일 발송 (기존)
@@ -331,7 +332,8 @@ class LogService {
     // 기본 쿼리 생성
     let countQuery = supabase
       .from("history_logs")
-      .select("*", { count: "exact", head: true })
+      .select("*, project:projects!inner()", { count: "exact", head: true })
+      .is('project.deleted_at', null)
       .eq("is_deleted", false);
 
     let dataQuery = supabase
@@ -339,9 +341,11 @@ class LogService {
       .select(
         `
         *,
-        attachments:history_log_attachments(*)
+        attachments:history_log_attachments(*),
+        project:projects!inner()
       `
       )
+      .is('project.deleted_at', null)
       .eq("is_deleted", false);
 
     // 사용자 필터링 적용

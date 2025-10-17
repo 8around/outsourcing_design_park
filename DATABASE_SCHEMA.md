@@ -121,7 +121,8 @@ CREATE TABLE projects (
   created_by UUID NOT NULL REFERENCES users(id),
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  last_saved_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+  last_saved_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  deleted_at TIMESTAMP WITH TIME ZONE DEFAULT NULL
 );
 
 -- Indexes
@@ -151,6 +152,7 @@ CREATE INDEX idx_projects_dates ON projects(order_date, expected_completion_date
 - `created_at`: 프로젝트 생성 시각, 등록일 관리용
 - `updated_at`: 마지막 수정 시각, 변경 이력 추적용
 - `last_saved_at`: 마지막 저장 시각, 저장 시점 표시용
+- `deleted_at`: 삭제 시각, Soft Delete용 타임스탬프 (NULL이면 활성 프로젝트)
 
 ---
 
@@ -688,13 +690,14 @@ WITH CHECK (
   )
 );
 
--- 승인된 사용자만 프로젝트 수정 가능
-CREATE POLICY "Approved users can update projects" 
-ON projects FOR UPDATE 
+-- 작성자 또는 관리자만 프로젝트 수정 가능
+CREATE POLICY "Creators and admins can update projects"
+ON projects FOR UPDATE
 USING (
+  created_by = auth.uid() OR
   EXISTS (
-    SELECT 1 FROM users 
-    WHERE id = auth.uid() AND is_approved = true
+    SELECT 1 FROM users
+    WHERE id = auth.uid() AND role = 'admin' AND is_approved = true
   )
 );
 

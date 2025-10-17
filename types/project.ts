@@ -44,7 +44,8 @@ export interface Project {
   created_at: string;
   updated_at: string;
   last_saved_at: string;
-  
+  deleted_at: string | null;
+
   // 관계 데이터
   process_stages?: ProcessStage[];
   project_images?: ProjectImage[];

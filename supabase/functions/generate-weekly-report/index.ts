@@ -73,10 +73,11 @@ serve(async (req) => {
       .select(
         `
         *,
-        projects:project_id(site_name, product_name, site_manager, sales_manager),
+        projects:project_id!inner(site_name, product_name, site_manager, sales_manager),
         users:author_id(name, email)
       `
       )
+      .is("projects.deleted_at", null)
       .gte("created_at", startDate.toISOString())
       .lte("created_at", endDate.toISOString())
       .order("created_at", { ascending: false });
