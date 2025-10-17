@@ -58,7 +58,7 @@ export function GanttChart({
       
       const response = await projectService.getProjects(
         {},
-        { sortBy: 'expected_completion_date', order: 'asc' },
+        { sortBy: 'created_at', order: 'desc' },
         { page: currentPage, limit: pageSize }
       )
       
