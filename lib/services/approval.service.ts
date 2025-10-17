@@ -331,6 +331,7 @@ export class ApprovalService {
         .from("projects")
         .select("site_name, product_name")
         .eq("id", requestData.project_id)
+        .is('deleted_at', null)
         .single();
 
       // 5-1. 승인 요청 로그에서 카테고리 정보 조회
@@ -713,9 +714,10 @@ export class ApprovalService {
         .select(
           `
           *,
-          project:projects(site_name, product_name)
+          project:projects!inner(site_name, product_name)
         `
         )
+        .is("project.deleted_at", null)
         .eq("approver_id", userId)
         .eq("status", "pending")
         .order("created_at", { ascending: false })
@@ -793,9 +795,10 @@ export class ApprovalService {
         .select(
           `
           *,
-          project:projects(site_name, product_name)
+          project:projects!inner(site_name, product_name)
         `
         )
+        .is("project.deleted_at", null)
         .eq("requester_id", userId)
         .eq("status", "pending")
         .order("created_at", { ascending: false })

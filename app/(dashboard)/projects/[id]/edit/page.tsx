@@ -665,6 +665,29 @@ export default function EditProjectPage() {
 
         {/* 제출 버튼 */}
         <div className="flex justify-end gap-4">
+          {/* 왼쪽: Admin 전용 삭제 버튼 */}
+          {userData?.role === 'admin' && (
+            <button
+              type="button"
+              onClick={async () => {
+                if (confirm('프로젝트를 삭제하시겠습니까?\n\n삭제된 프로젝트는 복구할 수 없습니다.')) {
+                  try {
+                    await projectService.softDeleteProject(params.id as string)
+                    toast.success('프로젝트가 삭제되었습니다.')
+                    router.push('/projects')
+                  } catch (error) {
+                    console.error('프로젝트 삭제 실패:', error)
+                    toast.error(error instanceof Error ? error.message : '프로젝트 삭제 실패')
+                  }
+                }
+              }}
+              className="mr-auto px-6 py-3 bg-red-600 text-white rounded-md hover:bg-red-700 font-medium disabled:opacity-50"
+              disabled={saving}
+            >
+              삭제
+            </button>
+          )}
+
           <button
             type="button"
             onClick={() => router.push(`/projects/${params.id}`)}

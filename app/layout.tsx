@@ -10,7 +10,7 @@ import '../styles/globals.css'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: '프로젝트 현장 관리 솔루션',
+  title: '프로젝트 관리 시스템',
   description: '제조업체 프로젝트 현장 관리를 위한 웹 기반 솔루션',
 }
 

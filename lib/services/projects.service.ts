@@ -36,7 +36,8 @@ export class ProjectService {
           process_stages(*),
           project_images(*),
           favorites:project_favorites(*)
-        `, { count: 'exact' });
+        `, { count: 'exact' })
+        .is('deleted_at', null);
 
       // 필터 적용
       if (filters) {
@@ -119,7 +120,8 @@ export class ProjectService {
           favorites:project_favorites(*)
         `)
         .eq('id', projectId)
-        .single();
+        .is('deleted_at', null)
+        .maybeSingle(); // 해당하는 행 없을 떄 error 대신 null 반환
 
       if (error) throw error;
       return data;
@@ -328,7 +330,7 @@ export class ProjectService {
     }
   }
 
-  // 프로젝트 삭제
+  // 프로젝트 삭제 (하드 삭제 - 사용 안 함)
   async deleteProject(projectId: string): Promise<void> {
     try {
       const { error } = await this.supabase
@@ -339,6 +341,40 @@ export class ProjectService {
       if (error) throw error;
     } catch (error) {
       console.error('프로젝트 삭제 실패:', error);
+      throw error;
+    }
+  }
+
+  // 프로젝트 삭제 (소프트 삭제)
+  async softDeleteProject(projectId: string): Promise<boolean> {
+    try {
+      // 현재 사용자 확인
+      const { data: { user } } = await this.supabase.auth.getUser();
+      if (!user) throw new Error('인증되지 않은 사용자');
+
+      // Admin 권한 확인
+      const { data: userData, error: roleError } = await this.supabase
+        .from('users')
+        .select('role')
+        .eq('id', user.id)
+        .single();
+
+      if (roleError || userData?.role !== 'admin') {
+        throw new Error('관리자만 프로젝트를 삭제할 수 있습니다.');
+      }
+      
+      // Soft Delete 수행
+      const { error: deleteError } = await this.supabase
+        .from('projects')
+        .update({ deleted_at: new Date().toISOString() })
+        .eq('id', projectId)
+        .is('deleted_at', null); // 이미 삭제된 프로젝트는 제외
+
+      if (deleteError) throw deleteError;
+
+      return true;
+    } catch (error) {
+      console.error('프로젝트 소프트 삭제 실패:', error);
       throw error;
     }
   }
@@ -472,7 +508,7 @@ export class ProjectService {
         .select('id')
         .eq('project_id', projectId)
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
 
       if (existing) {
         // 즐겨찾기 제거
@@ -508,13 +544,15 @@ export class ProjectService {
       // 전체 프로젝트 수
       const { count: total } = await this.supabase
         .from('projects')
-        .select('*', { count: 'exact', head: true });
+        .select('*', { count: 'exact', head: true })
+        .is('deleted_at', null);
 
       // 긴급 프로젝트 수
       const { count: urgent } = await this.supabase
         .from('projects')
         .select('*', { count: 'exact', head: true })
-        .eq('is_urgent', true);
+        .eq('is_urgent', true)
+        .is('deleted_at', null);
 
       // 공정 상태별 통계
       const { data: statusStats } = await this.supabase
@@ -537,6 +575,7 @@ export class ProjectService {
       const { data: stageStats } = await this.supabase
         .from('projects')
         .select('current_process_stage')
+        .is('deleted_at', null)
         .then(({ data }) => {
           const stats: Partial<Record<ProcessStageName, number>> = {};
           data?.forEach(item => {
@@ -570,25 +609,29 @@ export class ProjectService {
       // 전체 프로젝트 수
       const { count: totalProjects } = await this.supabase
         .from('projects')
-        .select('*', { count: 'exact', head: true });
+        .select('*', { count: 'exact', head: true })
+        .is('deleted_at', null);
 
       // 활성 프로젝트 (진행 중인 프로젝트)
       const { count: activeProjects } = await this.supabase
         .from('projects')
         .select('*', { count: 'exact', head: true })
-        .not('current_process_stage', 'eq', 'completion');
+        .not('current_process_stage', 'eq', 'completion')
+        .is('deleted_at', null);
 
       // 완료된 프로젝트
       const { count: completedProjects } = await this.supabase
         .from('projects')
         .select('*', { count: 'exact', head: true })
-        .eq('current_process_stage', 'completion');
+        .eq('current_process_stage', 'completion')
+        .is('deleted_at', null);
 
       // 전체 진행률 계산 (진행 중인 프로젝트들의 평균 진행률)
       const { data: projects } = await this.supabase
         .from('projects')
         .select('current_process_stage')
-        .not('current_process_stage', 'eq', 'completion');
+        .not('current_process_stage', 'eq', 'completion')
+        .is('deleted_at', null);
 
       let totalProgress = 0;
       if (projects && projects.length > 0) {
@@ -624,7 +667,8 @@ export class ProjectService {
       const { data: monthlyProjects } = await this.supabase
         .from('projects')
         .select('current_process_stage')
-        .gte('created_at', startOfMonth.toISOString());
+        .gte('created_at', startOfMonth.toISOString())
+        .is('deleted_at', null);
 
       let monthlyProgress = 0;
       if (monthlyProjects && monthlyProjects.length > 0) {

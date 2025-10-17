@@ -117,6 +117,7 @@ export default function ProjectCalendar() {
           *,
           process_stages (*)
         `)
+        .is('deleted_at', null)
         .order('created_at', { ascending: false })
 
       if (projectsError) {
@@ -125,6 +126,7 @@ export default function ProjectCalendar() {
         const { data: fallbackData, error: fallbackError } = await supabase
           .from('projects')
           .select('*')
+          .is('deleted_at', null)
           .order('created_at', { ascending: false })
         
         if (fallbackError) throw fallbackError
