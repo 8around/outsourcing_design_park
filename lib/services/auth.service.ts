@@ -18,6 +18,8 @@ export interface AuthResponse {
   success: boolean;
   user?: User | null;
   error?: string;
+  needsEmailVerification?: boolean; // 이메일 인증 필요 여부
+  email?: string; // 재발송용 이메일 주소
 }
 
 export interface ResetPasswordRequestData {
@@ -168,6 +170,16 @@ export class AuthService {
 
           // 그 외의 경우 (비밀번호 오류)
           throw new Error("비밀번호가 올바르지 않습니다.");
+        }
+
+        // 이메일 미인증 에러 처리
+        if (error.message === "Email not confirmed") {
+          return {
+            success: false,
+            error: "이메일 인증이 필요합니다. 가입 시 받은 이메일을 확인해주세요.",
+            needsEmailVerification: true,
+            email: data.email,
+          };
         }
 
         throw error;
@@ -371,6 +383,33 @@ export class AuthService {
   }
 
   /**
+   * 이메일 인증 재발송
+   */
+  async resendVerificationEmail(
+    email: string
+  ): Promise<{ success: boolean; error?: string }> {
+    try {
+      const { error } = await this.supabase.auth.resend({
+        type: 'signup',
+        email: email,
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
+        },
+      });
+
+      if (error) throw error;
+
+      return { success: true };
+    } catch (error) {
+      
+      return {
+        success: false,
+        error: this.getErrorMessage(error),
+      };
+    }
+  }
+
+  /**
    * 에러 메시지 처리
    */
   private getErrorMessage(error: unknown): string {
@@ -378,8 +417,6 @@ export class AuthService {
       switch (error.message) {
         case "Invalid login credentials":
           return "로그인 정보를 확인해주세요.";
-        case "Email not confirmed":
-          return "이메일 인증이 필요합니다. 가입 시 받은 이메일을 확인해주세요.";
         case "User already registered":
           return "이미 등록된 이메일입니다.";
         case "Email rate limit exceeded":
@@ -388,6 +425,14 @@ export class AuthService {
           return "등록되지 않은 계정입니다.";
         default:
           // 기타 Auth 에러
+          if (error.message.includes("after") && error.message.includes("seconds.")) {
+            const seconds = error.message.match(/after (\d+) seconds./)?.[1]
+            if (seconds) {
+              return `${seconds}초 후 다시 시도해주세요.`;
+            } else {
+              return "너무 많은 시도가 있었습니다. 잠시 후 다시 시도해주세요.";
+            }
+          }
           if (error.message.includes("email")) {
             return "이메일 관련 오류가 발생했습니다.";
           }

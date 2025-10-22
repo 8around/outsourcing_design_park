@@ -96,15 +96,28 @@ export async function GET(request: NextRequest) {
   if (error) {
     console.error("Auth callback error:", error, errorDescription);
 
+    const clearSearchParams = () => {
+      redirectTo.searchParams.delete("error");
+      redirectTo.searchParams.delete("error_code");
+      redirectTo.searchParams.delete("error_description");
+      redirectTo.searchParams.delete("token_hash");
+      redirectTo.searchParams.delete("type");
+      redirectTo.searchParams.delete("code");
+    }
+
     // 에러 메시지에 따른 처리
     if (error === "access_denied" && errorDescription?.includes("expired")) {
+      clearSearchParams();
+
       redirectTo.pathname = "/login";
       redirectTo.searchParams.set("error", "link_expired");
       redirectTo.searchParams.set(
         "error_message",
-        "인증 링크가 만료되었습니다. 다시 시도해주세요."
+        "인증 링크가 만료되었습니다.\n로그인 시도 시 이메일 재발송이 가능합니다."
       );
     } else {
+      clearSearchParams();
+
       redirectTo.pathname = "/login";
       redirectTo.searchParams.set("error", "verification_failed");
       redirectTo.searchParams.set(
@@ -113,20 +126,11 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // 모든 auth 관련 파라미터 제거
-    redirectTo.searchParams.delete("error");
-    redirectTo.searchParams.delete("error_code");
-    redirectTo.searchParams.delete("error_description");
-    redirectTo.searchParams.delete("token_hash");
-    redirectTo.searchParams.delete("type");
-    redirectTo.searchParams.delete("code");
-
     return NextResponse.redirect(redirectTo);
   }
 
-  // 파라미터가 없는 경우 에러 페이지로 리다이렉트
+  // 파라미터가 없는 경우 일반 로그인 페이지로 리다이렉트
   redirectTo.pathname = "/login";
-  redirectTo.searchParams.set("error", "invalid_request");
-  redirectTo.searchParams.set("error_message", "잘못된 인증 요청입니다");
+
   return NextResponse.redirect(redirectTo);
 }
