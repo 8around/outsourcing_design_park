@@ -1,4 +1,5 @@
 import React from 'react'
+import Image from 'next/image'
 
 export default function AuthLayout({
   children,
@@ -19,21 +20,17 @@ export default function AuthLayout({
       <div className="w-full max-w-md relative z-10">
         {/* Header Section */}
         <div className="text-center mb-10 animate-slide-up">
-          {/* Brand Icon */}
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-primary-600 rounded-soft-xl mb-6 shadow-soft-lg">
-            <svg 
-              className="w-8 h-8 text-white" 
-              fill="none" 
-              stroke="currentColor" 
-              viewBox="0 0 24 24"
-            >
-              <path 
-                strokeLinecap="round" 
-                strokeLinejoin="round" 
-                strokeWidth={2} 
-                d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" 
-              />
-            </svg>
+          {/* Brand Logo */}
+          <div className="relative inline-flex items-center justify-center mb-6">
+            <Image
+              src="/images/logo.png"
+              alt="디자인파크 로고"
+              width={961/390*64}
+              height={64}
+              priority
+              className="rounded-soft-xl shadow-soft-lg"
+              unoptimized
+            />
           </div>
           
           {/* Brand Text */}

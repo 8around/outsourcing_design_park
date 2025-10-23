@@ -3,6 +3,7 @@
 import React, { useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import Link from 'next/link'
+import Image from 'next/image'
 import { useAuth } from '@/lib/hooks/useAuth'
 import { useNotifications } from '@/lib/hooks/useNotifications'
 import {
@@ -202,8 +203,16 @@ export default function Sidebar({ collapsed, onCollapse, className, isMobile = f
         <div className="flex items-center justify-between">
           {!collapsed && (
             <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center">
-                <ProjectOutlined className="text-white text-sm" />
+              <div className="h-8 rounded-lg overflow-hidden flex items-center justify-center">
+                <Image
+                  src="/images/logo.png"
+                  alt="디자인파크"
+                  width={961/390*32}
+                  height={32}
+                  className="object-contain"
+                  priority
+                  unoptimized
+                />
               </div>
               <div>
                 <Text strong className="text-gray-900">프로젝트 관리 시스템</Text>
