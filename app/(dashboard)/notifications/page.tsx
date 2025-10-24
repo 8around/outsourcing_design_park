@@ -47,8 +47,8 @@ const typeColors = {
 
 // 알림 타입별 라벨
 const typeLabels = {
-  approval_request: '승인 요청',
-  approval_response: '승인 응답',
+  approval_request: '확인 요청',
+  approval_response: '확인 응답',
   system: '시스템'
 }
 

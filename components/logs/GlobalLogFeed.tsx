@@ -66,8 +66,8 @@ const categoryConfig: Record<string, { color: string; icon: React.ReactNode; lab
   '설치인증': { color: 'purple', icon: <CheckCircleOutlined />, label: '설치인증' },
   '설비': { color: 'volcano', icon: <ClockCircleOutlined />, label: '설비' },
   '기타': { color: 'default', icon: <EditOutlined />, label: '기타' },
-  '승인요청': { color: 'magenta', icon: <CheckCircleOutlined />, label: '승인요청' },
-  '승인처리': { color: 'cyan', icon: <CheckCircleOutlined />, label: '승인처리' },
+  '승인요청': { color: 'magenta', icon: <CheckCircleOutlined />, label: '확인요청' },
+  '승인처리': { color: 'cyan', icon: <CheckCircleOutlined />, label: '확인처리' },
 }
 
 interface GlobalLogFeedProps {
@@ -291,13 +291,13 @@ export default function GlobalLogFeed({
     // 로그 타입과 승인 상태에 따른 액션 텍스트 생성
     let actionText = ''
     if (log.log_type === 'approval_request') {
-      actionText = '승인 요청'
+      actionText = '확인 요청'
     } else if (log.log_type === 'approval_response') {
-      actionText = log.approval_status === 'approved' ? '승인 완료' : '승인 거절'
+      actionText = log.approval_status === 'approved' ? '확인 완료' : '보류/재조정필요';
     } else if (log.category === '승인요청') {
-      actionText = '승인 요청'
+      actionText = '확인 요청'
     } else if (log.category === '승인처리') {
-      actionText = '승인 처리'
+      actionText = '확인 처리'
     } else if (['도면설계', '구매발주', '생산제작', '상하차', '현장설치시공', '설치인증'].includes(log.category)) {
       actionText = '공정 진행'
     } else if (log.category === '사양변경') {
@@ -355,10 +355,10 @@ export default function GlobalLogFeed({
               )}
               <Tag color={config.color} style={{ flexShrink: 0 }}>{config.label}</Tag>
               {log.approval_status === 'approved' && (
-                <Tag color="green" style={{ flexShrink: 0 }}>승인됨</Tag>
+                <Tag color="green" style={{ flexShrink: 0 }}>확인됨</Tag>
               )}
               {log.approval_status === 'rejected' && (
-                <Tag color="red" style={{ flexShrink: 0 }}>거절됨</Tag>
+                <Tag color="red" style={{ flexShrink: 0 }}>보류/재조정필요</Tag>
               )}
               {log.attachments && log.attachments.length > 0 && (
                 <Tag

@@ -87,7 +87,7 @@ export default function ProjectDetailPage() {
   const [users, setUsers] = useState<User[]>([])
   const [refreshLogs, setRefreshLogs] = useState(0)
   const [isApprovalLoading, setIsApprovalLoading] = useState(false)
-  const [loadingMessage, setLoadingMessage] = useState('승인 요청을 처리하고 있습니다...')
+  const [loadingMessage, setLoadingMessage] = useState('확인 요청을 처리하고 있습니다...')
 
   // 비고 (읽기 전용)
   const [notes, setNotes] = useState<string>('')
@@ -176,7 +176,7 @@ export default function ProjectDetailPage() {
       // 승인 요청인 경우 전체 화면 로딩 시작
       if (data.approvalRequestTo) {
         setIsApprovalLoading(true)
-        setLoadingMessage('승인 요청을 생성하고 있습니다...')
+        setLoadingMessage('확인 요청을 생성하고 있습니다...')
       }
 
       if (data.approvalRequestTo) {
@@ -201,7 +201,7 @@ export default function ProjectDetailPage() {
         })
         
         setLoadingMessage('작업을 완료하고 있습니다...')
-        toast.success('승인 요청이 생성되었습니다.')
+        toast.success('확인 요청이 생성되었습니다.')
       } else {
         // 일반 로그 생성 (기존과 동일)
         await logService.createManualLog({
@@ -224,7 +224,7 @@ export default function ProjectDetailPage() {
       // 승인 요청인 경우 로딩 종료
       if (data.approvalRequestTo) {
         setIsApprovalLoading(false)
-        setLoadingMessage('승인 요청을 처리하고 있습니다...')
+        setLoadingMessage('확인 요청을 처리하고 있습니다...')
       }
     }
   }

@@ -81,7 +81,7 @@ export class EmailService {
       const { error } = await resend.emails.send({
         from: this.fromEmail,
         to: approverEmail,
-        subject: `[승인 요청] ${projectName} - ${category}`,
+        subject: `[확인 요청] ${projectName} - ${category}`,
         html: this.getProjectApprovalRequestTemplate(
           requesterName,
           projectName,
@@ -122,8 +122,8 @@ export class EmailService {
 
       const subject =
         status === "approved"
-          ? `[승인 완료] ${projectName}`
-          : `[반려] ${projectName}`;
+          ? `[확인 완료] ${projectName}`
+          : `[보류/재조정필요] ${projectName}`;
 
       const { error } = await resend.emails.send({
         from: this.fromEmail,
@@ -294,10 +294,10 @@ export class EmailService {
       <body>
         <div class="container">
           <div class="header">
-            <h1>프로젝트 승인 요청</h1>
+            <h1>프로젝트 확인 요청</h1>
           </div>
           <div class="content">
-            <h2>승인이 필요한 항목이 있습니다</h2>
+            <h2>확인이 필요한 항목이 있습니다</h2>
             <div class="project-info">
               <p><strong>요청자:</strong> ${requesterName}</p>
               <p><strong>프로젝트명:</strong> ${projectName}</p>
@@ -308,7 +308,7 @@ export class EmailService {
               <strong>요청 메모:</strong>
               <p>${memo || "메모 없음"}</p>
             </div>
-            <a href="${appUrl}/" class="button">승인 대기 목록 확인</a>
+            <a href="${appUrl}/" class="button">확인 대기 목록 확인</a>
             <p style="margin-top: 20px; font-size: 14px; color: #666;">
               이 이메일은 프로젝트 현장 관리 시스템에서 자동으로 발송되었습니다.
             </p>
@@ -330,7 +330,7 @@ export class EmailService {
     memo?: string
   ): string {
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-    const statusText = status === "approved" ? "승인" : "반려";
+    const statusText = status === "approved" ? "확인" : "보류/재조정필요";
     const statusColor = status === "approved" ? "#4CAF50" : "#f44336";
 
     return `
@@ -366,7 +366,7 @@ export class EmailService {
               memo
                 ? `
               <div class="memo-box">
-                <strong>${status === "approved" ? "승인 메모" : "반려 사유"}:</strong>
+                <strong>${status === "approved" ? "확인 메모" : "보류/재조정필요 사유"}:</strong>
                 <p>${memo}</p>
               </div>
             `

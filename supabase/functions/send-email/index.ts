@@ -89,10 +89,10 @@ async function sendProjectApprovalRequest(data: any) {
     <body>
       <div class="container">
         <div class="header">
-          <h1>프로젝트 승인 요청</h1>
+          <h1>프로젝트 확인 요청</h1>
         </div>
         <div class="content">
-          <h2>승인이 필요한 항목이 있습니다</h2>
+          <h2>확인이 필요한 항목이 있습니다</h2>
           <div class="project-info">
             <p><strong>프로젝트:</strong> ${siteName}-${productName}</p>
             <p><strong>요청자:</strong> ${requesterName}</p>
@@ -118,7 +118,7 @@ async function sendProjectApprovalRequest(data: any) {
   const { data: emailData, error } = await resend.emails.send({
     from: fromEmail,
     to: approverEmail,
-    subject: `[승인 요청] ${siteName}${productName ? ` - ${productName}` : ""} - ${category}`,
+    subject: `[확인 요청] ${siteName}${productName ? ` - ${productName}` : ""} - ${category}`,
     html,
   });
 
@@ -163,15 +163,15 @@ async function sendProjectApprovalApproved(data: any) {
     <body>
       <div class="container">
         <div class="header">
-          <h1>프로젝트 승인 알림</h1>
+          <h1>프로젝트 확인 알림</h1>
         </div>
         <div class="content">
-          <h2>요청하신 항목이 승인되었습니다</h2>
+          <h2>요청하신 항목이 확인되었습니다</h2>
           <div class="project-info">
             <p><strong>프로젝트:</strong> ${siteName}-${productName}</p>
-            <p><strong>승인자:</strong> ${approverName}</p>
+            <p><strong>확인자:</strong> ${approverName}</p>
             <p><strong>카테고리:</strong> ${category}</p>
-            <p><strong>승인 시간:</strong> ${approvedAt}</p>
+            <p><strong>확인 시간:</strong> ${approvedAt}</p>
           </div>
           <div style="text-align: center; margin-top: 25px;">
             <a href="https://pm.dpaworld.net" class="button" style="display: inline-block; padding: 12px 24px; background: #4CAF50; color: white; text-decoration: none; border-radius: 5px; font-weight: bold;">시스템 바로가기</a>
@@ -185,7 +185,7 @@ async function sendProjectApprovalApproved(data: any) {
   const { data: emailData, error } = await resend.emails.send({
     from: fromEmail,
     to: requesterEmail,
-    subject: `[승인] ${siteName}${productName ? ` - ${productName}` : ""}`,
+    subject: `[확인] ${siteName}${productName ? ` - ${productName}` : ""}`,
     html,
   });
 
@@ -237,21 +237,21 @@ async function sendProjectApprovalRejected(data: any) {
     <body>
       <div class="container">
         <div class="header">
-          <h1>프로젝트 반려 알림</h1>
+          <h1>프로젝트 보류/재조정필요 알림</h1>
         </div>
         <div class="content">
-          <h2>요청하신 항목이 반려되었습니다</h2>
+          <h2>요청하신 항목이 보류/재조정필요 처리되었습니다</h2>
           <div class="project-info">
             <p><strong>프로젝트:</strong> ${siteName}-${productName}</p>
-            <p><strong>반려자:</strong> ${approverName}</p>
+            <p><strong>보류/재조정필요 처리자:</strong> ${approverName}</p>
             <p><strong>카테고리:</strong> ${category}</p>
-            <p><strong>반려 시간:</strong> ${rejectedAt}</p>
+            <p><strong>보류/재조정필요 처리 시간:</strong> ${rejectedAt}</p>
           </div>
           ${
             memo
               ? `
             <div class="memo-box">
-              <strong>반려 사유:</strong>
+              <strong>보류/재조정필요 사유:</strong>
               <p>${memo}</p>
             </div>
           `
@@ -269,7 +269,7 @@ async function sendProjectApprovalRejected(data: any) {
   const { data: emailData, error } = await resend.emails.send({
     from: fromEmail,
     to: requesterEmail,
-    subject: `[반려] ${siteName}${productName ? ` - ${productName}` : ""}`,
+    subject: `[보류/재조정필요] ${siteName}${productName ? ` - ${productName}` : ""}`,
     html,
   });
 

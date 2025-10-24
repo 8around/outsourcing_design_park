@@ -183,7 +183,7 @@ export class NotificationService {
     
     return this.createNotification({
       user_id: userId,
-      title: requestType === 'request' ? '승인 요청' : '승인 응답',
+      title: requestType === 'request' ? '확인 요청' : '확인 응답',
       message,
       type,
       related_id: approvalRequestId,
