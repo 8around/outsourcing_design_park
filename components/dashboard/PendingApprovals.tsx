@@ -217,12 +217,12 @@ export default function PendingApprovals({
           user.id,
           userData?.name || user.email || 'Unknown',
           'approved',
-          '승인되었습니다.'
+          '확인되었습니다.'
         )
       }
 
       if (success) {
-        message.success('승인이 완료되었습니다.')
+        message.success('확인이 완료되었습니다.')
         if (onApprove) {
           onApprove(id)
         }
@@ -230,11 +230,11 @@ export default function PendingApprovals({
         setAllApprovals(prev => prev.filter(item => item.id !== id))
         setApprovals(prev => prev.filter(item => item.id !== id))
       } else {
-        message.error('승인 처리에 실패했습니다.')
+        message.error('확인 처리에 실패했습니다.')
       }
     } catch (error) {
-      console.error('승인 실패:', error)
-      message.error('승인 처리 중 오류가 발생했습니다.')
+      console.error('확인 실패:', error)
+      message.error('확인 처리 중 오류가 발생했습니다.')
     } finally {
       setProcessing(null)
     }
@@ -355,7 +355,7 @@ export default function PendingApprovals({
         disabled={isProcessing}
         key="approve"
       >
-        승인
+        확인
       </Button>,
       <Button
         danger

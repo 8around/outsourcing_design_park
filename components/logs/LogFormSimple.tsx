@@ -213,13 +213,13 @@ export default function LogFormSimple({
             className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-800"
           >
             <UserPlus className="h-4 w-4" />
-            승인 요청 추가 (선택사항)
+            확인 요청 추가 (선택사항)
           </button>
         ) : (
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <label className="block text-sm font-medium text-gray-700">
-                승인 요청 수신자 (선택사항)
+                확인 요청 수신자 (선택사항)
               </label>
               <button
                 type="button"
@@ -237,7 +237,7 @@ export default function LogFormSimple({
               onChange={(e) => setFormData({ ...formData, approvalRequestTo: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
-              <option value="">승인 요청자를 선택하세요</option>
+              <option value="">확인 요청자를 선택하세요</option>
               {users
                 .filter(u => u.id !== user?.id)  // 본인 제외
                 .map((u) => (
@@ -247,7 +247,7 @@ export default function LogFormSimple({
                 ))}
             </select>
             <p className="text-sm text-gray-500">
-              선택한 사용자에게 승인 요청이 전송됩니다.
+              선택한 사용자에게 확인 요청이 전송됩니다.
             </p>
           </div>
         )}
@@ -260,7 +260,7 @@ export default function LogFormSimple({
         </p>
         {formData.approvalRequestTo && (
           <p className="text-sm text-gray-600 mt-1">
-            <span className="font-medium">승인 요청 대상:</span>{' '}
+            <span className="font-medium">확인 요청 대상:</span>{' '}
             {users.find(u => u.id === formData.approvalRequestTo)?.name || '선택됨'}
           </p>
         )}

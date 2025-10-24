@@ -368,7 +368,7 @@ export class ApprovalService {
             approverName,
             projectName,
             requestData.project_id,
-            logData?.category || "승인"
+            logData?.category || "확인"
           );
         } else {
           await emailClientService.sendProjectApprovalRejected(
@@ -376,7 +376,7 @@ export class ApprovalService {
             approverName,
             projectName,
             requestData.project_id,
-            logData?.category || "반려",
+            logData?.category || "보류/재조정필요",
             responseMemo
           );
         }
@@ -396,7 +396,7 @@ export class ApprovalService {
               approverName,
               projectData?.site_name || "현장",
               projectData?.product_name || "프로젝트",
-              logData?.category || "승인요청"
+              logData?.category || "확인요청"
             );
         } catch (error) {
           // 카카오톡 발송 실패해도 승인은 정상 처리
@@ -418,7 +418,7 @@ export class ApprovalService {
               approverName,
               projectData?.site_name || "현장",
               projectData?.product_name || "프로젝트",
-              logData?.category || "승인요청", // history_logs에서 조회한 카테고리 사용
+              logData?.category || "보류/재조정필요", // history_logs에서 조회한 카테고리 사용
               responseMemo
             );
         } catch (error) {
@@ -428,15 +428,15 @@ export class ApprovalService {
       }
 
       // 8. 알림 생성 (요청자에게)
-      const statusText = status === "approved" ? "승인" : "반려";
+      const statusText = status === "approved" ? "확인" : "보류/재조정필요 처리";
       const title =
-        status === "approved" ? "승인 요청 승인됨" : "승인 요청 반려됨";
+        status === "approved" ? "확인 요청 확인됨" : "확인 요청 보류/재조정필요 처리됨";
 
       await this.createProjectNotification(
         requestData.requester_id,
         "approval_response",
         title,
-        `${approverName}님이 프로젝트 승인 요청을 ${statusText}했습니다: ${responseMemo}`,
+        `${approverName}님이 프로젝트 확인 요청을 ${statusText}했습니다: ${responseMemo}`,
         requestId,
         "approval_request",
         status === "approved"
@@ -771,8 +771,8 @@ export class ApprovalService {
       ).map((approval) => ({
         id: approval.id,
         type: "project" as const,
-        title: "프로젝트 승인 요청",
-        description: approval.memo || "승인이 필요한 프로젝트가 있습니다.",
+        title: "프로젝트 확인 요청",
+        description: approval.memo || "확인이 필요한 프로젝트가 있습니다.",
         requester_id: approval.requester_id,
         requester_name: approval.requester_name,
         approver_id: approval.approver_id,
@@ -851,8 +851,8 @@ export class ApprovalService {
         (approval) => ({
           id: approval.id,
           type: "project" as const,
-          title: "프로젝트 승인 요청 (대기중)",
-          description: approval.memo || "승인 대기 중인 요청입니다.",
+          title: "프로젝트 확인 요청 (대기중)",
+          description: approval.memo || "확인 대기 중인 요청입니다.",
           requester_id: approval.requester_id,
           requester_name: approval.requester_name,
           approver_id: approval.approver_id,

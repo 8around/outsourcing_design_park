@@ -226,7 +226,7 @@ export default function EditProjectPage() {
           approver_name: data.approvalRequestTo.name,
           attachments: data.attachments
         })
-        toast.success('승인 요청이 생성되었습니다.')
+        toast.success('확인 요청이 생성되었습니다.')
       } else {
         // 일반 로그 생성
         await logService.createManualLog({

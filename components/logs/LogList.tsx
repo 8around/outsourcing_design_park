@@ -261,7 +261,7 @@ export default function LogList({ projectId, refreshTrigger = 0, onRefresh }: Lo
                     </span>
                     {isApprovalLog && (
                       <span className="px-2 py-1 text-xs font-medium rounded-full bg-purple-100 text-purple-800">
-                        {log.log_type === 'approval_request' ? '승인 요청' : '승인 응답'}
+                        {log.log_type === 'approval_request' ? '확인 요청' : '확인 응답'}
                       </span>
                     )}
                     {log.approval_status && (
@@ -270,7 +270,7 @@ export default function LogList({ projectId, refreshTrigger = 0, onRefresh }: Lo
                           ? 'bg-green-100 text-green-800' 
                           : 'bg-red-100 text-red-800'
                       }`}>
-                        {log.approval_status === 'approved' ? '승인' : '반려'}
+                        {log.approval_status === 'approved' ? '확인됨' : '보류/재조정필요'}
                       </span>
                     )}
                     {log.attachments && log.attachments.length > 0 && (
@@ -411,8 +411,8 @@ export default function LogList({ projectId, refreshTrigger = 0, onRefresh }: Lo
                   <div className="mt-3 pt-3 border-t border-gray-200">
                     <p className="text-xs text-gray-500">
                       {log.log_type === 'approval_request' 
-                        ? '이 로그는 승인 요청으로 생성되었습니다.'
-                        : '이 로그는 승인 응답으로 생성되었습니다.'}
+                        ? '이 로그는 확인 요청으로 생성되었습니다.'
+                        : '이 로그는 확인 응답으로 생성되었습니다.'}
                     </p>
                   </div>
                 </div>
