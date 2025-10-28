@@ -25,7 +25,7 @@ class KakaoClientService {
         type: 'project-approval-request',
         data: {
           to: approverPhone,
-          templateId: 'KA01TP250919055855314funPPq4lwbZ',
+          templateId: 'KA01TP251024084545153gmkAD5IrEXG',
           variables: {
             site_name: siteName,
             product_name: productName,
@@ -95,7 +95,7 @@ class KakaoClientService {
         type: 'project-approval-rejection',
         data: {
           to: requesterPhone,
-          templateId: 'KA01TP250919062830851iHHImWx687U',
+          templateId: 'KA01TP251024084458052HzrLSvzJD2k',
           variables: {
             site_name: siteName,
             product_name: productName,
@@ -166,7 +166,7 @@ class KakaoClientService {
         type: 'project-approval-approved',
         data: {
           to: requesterPhone,
-          templateId: 'KA01TP250919063658041BaQdwc5qwmQ',
+          templateId: 'KA01TP251024084338512cB0bYNL5s7p',
           variables: {
             site_name: siteName,
             product_name: productName,
