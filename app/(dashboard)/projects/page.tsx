@@ -115,7 +115,7 @@ export default function ProjectsPage() {
     if (!project.process_stages || project.process_stages.length === 0) return 0
     
     const completedStages = project.process_stages.filter(s => s.status === 'completed').length
-    return Math.round((completedStages / 14) * 100)
+    return Math.round((completedStages / 15) * 100)
   }
 
   // 상태별 색상
