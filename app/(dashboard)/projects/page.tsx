@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect, useCallback } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import {
   Card, Row, Col, Button, Input, Select, Typography, Empty,
   Skeleton, Tag, Progress, message, Tooltip, Pagination,
@@ -33,17 +33,85 @@ const { Option } = Select
 
 export default function ProjectsPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+
+  // URL에서 초기값 읽기
+  const pageFromUrl = parseInt(searchParams.get('page') ?? '1')
+  const searchFromUrl = searchParams.get('search') ?? ''
+  const stageFromUrl = searchParams.get('stage') as ProcessStageName | null
+  const urgentFromUrl = searchParams.get('urgent') === 'true'
+  const favoritesFromUrl = searchParams.get('favorites') === 'true'
+  const statusFromUrl = (searchParams.get('status') as ProjectCompletionStatus) ?? 'in_progress'
+
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [projects, setProjects] = useState<Project[]>([])
-  const [searchTerm, setSearchTerm] = useState('')
+  const [searchTerm, setSearchTerm] = useState(searchFromUrl)
   const debouncedSearchTerm = useDebounce(searchTerm, 300)
-  const [selectedStage, setSelectedStage] = useState<ProcessStageName | undefined>()
-  const [showUrgentOnly, setShowUrgentOnly] = useState(false)
-  const [showFavoritesOnly, setShowFavoritesOnly] = useState(false)
-  const [completionStatus, setCompletionStatus] = useState<ProjectCompletionStatus>('in_progress')
+  const [selectedStage, setSelectedStage] = useState<ProcessStageName | undefined>(stageFromUrl || undefined)
+  const [showUrgentOnly, setShowUrgentOnly] = useState(urgentFromUrl)
+  const [showFavoritesOnly, setShowFavoritesOnly] = useState(favoritesFromUrl)
+  const [completionStatus, setCompletionStatus] = useState<ProjectCompletionStatus>(statusFromUrl)
   const [totalProjects, setTotalProjects] = useState(0)
-  const [currentPage, setCurrentPage] = useState(1)
+  const [currentPage, setCurrentPage] = useState(pageFromUrl)
+
+  // URL 업데이트 함수
+  const updateURL = useCallback((params: {
+    page?: number
+    search?: string
+    stage?: string
+    urgent?: boolean
+    favorites?: boolean
+    status?: string
+  }) => {
+    const newParams = new URLSearchParams()
+
+    // 페이지 (1이 아닐 때만 URL에 추가)
+    if (params.page && params.page > 1) {
+      newParams.set('page', String(params.page))
+    }
+
+    // 검색어 (있을 때만)
+    if (params.search) {
+      newParams.set('search', params.search)
+    }
+
+    // 공정 단계 (있을 때만)
+    if (params.stage) {
+      newParams.set('stage', params.stage)
+    }
+
+    // 긴급 필터 (true일 때만)
+    if (params.urgent) {
+      newParams.set('urgent', 'true')
+    }
+
+    // 즐겨찾기 필터 (true일 때만)
+    if (params.favorites) {
+      newParams.set('favorites', 'true')
+    }
+
+    // 완료 상태 (기본값 'in_progress'가 아닐 때만)
+    if (params.status && params.status !== 'in_progress') {
+      newParams.set('status', params.status)
+    }
+
+    const queryString = newParams.toString()
+    const url = queryString ? `/projects?${queryString}` : '/projects'
+
+    // shallow routing으로 스크롤 위치 유지
+    router.push(url, { scroll: false })
+  }, [router])
+
+  // 현재 파라미터 가져오기
+  const getCurrentParams = useCallback(() => ({
+    page: currentPage,
+    search: debouncedSearchTerm,
+    stage: selectedStage || '',
+    urgent: showUrgentOnly,
+    favorites: showFavoritesOnly,
+    status: completionStatus
+  }), [currentPage, debouncedSearchTerm, selectedStage, showUrgentOnly, showFavoritesOnly, completionStatus])
 
   // 프로젝트 목록 조회
   const fetchProjects = async (isRefresh = false) => {
@@ -91,6 +159,41 @@ export default function ProjectsPage() {
     }
   }
 
+  // 페이지 변경 핸들러
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page)
+    updateURL({ ...getCurrentParams(), page })
+  }
+
+  // 완료 상태 변경 핸들러
+  const handleCompletionStatusChange = (value: ProjectCompletionStatus) => {
+    setCompletionStatus(value)
+    setCurrentPage(1)
+    updateURL({ ...getCurrentParams(), status: value, page: 1 })
+  }
+
+  // 공정 단계 변경 핸들러
+  const handleStageChange = (value: ProcessStageName | undefined) => {
+    setSelectedStage(value || undefined)
+    setCurrentPage(1)
+    updateURL({ ...getCurrentParams(), stage: value || '', page: 1 })
+  }
+
+  // 긴급 필터 토글 핸들러
+  const handleUrgentToggle = () => {
+    const newValue = !showUrgentOnly
+    setShowUrgentOnly(newValue)
+    setCurrentPage(1)
+    updateURL({ ...getCurrentParams(), urgent: newValue, page: 1 })
+  }
+
+  // 즐겨찾기 필터 토글 핸들러
+  const handleFavoritesToggle = () => {
+    const newValue = !showFavoritesOnly
+    setShowFavoritesOnly(newValue)
+    setCurrentPage(1)
+    updateURL({ ...getCurrentParams(), favorites: newValue, page: 1 })
+  }
 
   // 공정 상태 색상
   const getStageColor = (stage: ProcessStageName) => {
@@ -117,7 +220,7 @@ export default function ProjectsPage() {
   // 진행률 계산
   const calculateProgress = (project: Project): number => {
     if (!project.process_stages || project.process_stages.length === 0) return 0
-    
+
     const completedStages = project.process_stages.filter(s => s.status === 'completed').length
     return Math.round((completedStages / 15) * 100)
   }
@@ -126,13 +229,23 @@ export default function ProjectsPage() {
   const getStatusColor = (project: Project) => {
     const hasDelayed = project.process_stages?.some(s => s.status === 'delayed')
     if (hasDelayed) return 'exception'
-    
+
     const progress = calculateProgress(project)
     if (progress === 100) return 'success'
     if (progress > 0) return 'active'
     return 'normal'
   }
 
+  // 검색어 변경 시 URL 업데이트 (debounce 적용)
+  useEffect(() => {
+    if (debouncedSearchTerm !== searchFromUrl) {
+      setCurrentPage(1)
+      updateURL({ ...getCurrentParams(), search: debouncedSearchTerm, page: 1 })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedSearchTerm])
+
+  // 데이터 페칭
   useEffect(() => {
     fetchProjects()
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -174,10 +287,7 @@ export default function ProjectsPage() {
         <div className="flex flex-col md:flex-row gap-4 items-start md:items-center">
           <Select
             value={completionStatus}
-            onChange={(value: ProjectCompletionStatus) => {
-              setCompletionStatus(value)
-              setCurrentPage(1)
-            }}
+            onChange={handleCompletionStatusChange}
             style={{ width: 100 }}
             size="large"
           >
@@ -195,12 +305,12 @@ export default function ProjectsPage() {
             size="large"
             prefix={<SearchOutlined className="text-gray-400" />}
           />
-          
+
           <Space wrap>
             <Select
               placeholder="공정 단계"
               value={selectedStage}
-              onChange={setSelectedStage}
+              onChange={handleStageChange}
               style={{ width: 160 }}
               size="large"
               allowClear
@@ -216,7 +326,7 @@ export default function ProjectsPage() {
             <Button
               type={showUrgentOnly ? 'primary' : 'default'}
               icon={<ThunderboltOutlined />}
-              onClick={() => setShowUrgentOnly(!showUrgentOnly)}
+              onClick={handleUrgentToggle}
               size="large"
               danger={showUrgentOnly}
             >
@@ -226,7 +336,7 @@ export default function ProjectsPage() {
             <Button
               type={showFavoritesOnly ? 'primary' : 'default'}
               icon={showFavoritesOnly ? <HeartFilled /> : <HeartOutlined />}
-              onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}
+              onClick={handleFavoritesToggle}
               size="large"
             >
               즐겨찾기
@@ -271,8 +381,8 @@ export default function ProjectsPage() {
                   bodyStyle={{ padding: 0 }}
                 >
                     {/* 썸네일 섹션 */}
-                    <div 
-                      className="thumbnail-section" 
+                    <div
+                      className="thumbnail-section"
                       style={{ position: 'relative' }}
                     >
                       {(project.project_images && project.project_images.length > 0) || project.thumbnail_url ? (
@@ -294,19 +404,19 @@ export default function ProjectsPage() {
                           height={200}
                         />
                       ) : (
-                        <div 
+                        <div
                           className="flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100"
                           style={{ height: 200 }}
                         >
                           <ProjectOutlined style={{ fontSize: 48, color: '#8c8c8c' }} />
                         </div>
                       )}
-                      
+
                       {/* 즐겨찾기 버튼 */}
                       <Button
                         type="text"
-                        icon={isFavorite ? 
-                          <HeartFilled style={{ fontSize: 20, color: '#ff4d4f' }} /> : 
+                        icon={isFavorite ?
+                          <HeartFilled style={{ fontSize: 20, color: '#ff4d4f' }} /> :
                           <HeartOutlined style={{ fontSize: 20 }} />
                         }
                         onClick={(e) => handleToggleFavorite(e, project.id)}
@@ -422,7 +532,7 @@ export default function ProjectsPage() {
             current={currentPage}
             total={totalProjects}
             pageSize={12}
-            onChange={(page) => setCurrentPage(page)}
+            onChange={handlePageChange}
             showSizeChanger={false}
             showTotal={(total, range) => `${range[0]}-${range[1]} / 전체 ${total}개`}
             className="mt-4"
