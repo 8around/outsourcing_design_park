@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Card, List, Avatar, Typography, Tag, Space, Button, Empty, Skeleton, message, Pagination, Select } from 'antd'
+import { Card, List, Avatar, Typography, Tag, Space, Button, Empty, Skeleton, message, Pagination, Select, Tooltip } from 'antd'
 import {
   FileTextOutlined,
   CheckCircleOutlined,
@@ -458,9 +458,15 @@ export default function GlobalLogFeed({
               <Text>{log.content}</Text>
               {log.project_name && (
                 <div>
-                  <Tag color="blue" className="mt-1">
-                    {log.project_name}
-                  </Tag>
+                  <Tooltip 
+                      title={log.project_name} 
+                      placement="bottom"
+                      rootClassName="project-name-tooltip"
+                    >
+                    <Tag color="blue" className="mt-1 project-name-tag">
+                      {log.project_name}
+                    </Tag>
+                  </Tooltip>
                 </div>
               )}
               {/* 첨부파일 표시 - PendingApprovals와 동일한 스타일 */}
@@ -690,6 +696,22 @@ export default function GlobalLogFeed({
         /* 로그 제목 영역 스크롤바 숨김 */
         .global-log-feed :global(.ant-list-item-meta-title) {
           overflow-x: visible;
+        }
+
+        /* 프로젝트명 태그 - 말줄임 처리 */
+        :global(.project-name-tag) {
+          max-width: 100%;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+          display: inline-block;
+          cursor: pointer;
+        }
+
+        /* 프로젝트명 툴팁 */
+        :global(.project-name-tooltip) {
+          max-width: 400px;
+          word-break: break-word;
         }
 
         @media (max-width: 768px) {
