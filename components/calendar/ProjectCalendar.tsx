@@ -67,8 +67,8 @@ interface CalendarEvent {
     processStages?: ProcessStage[]
     productName: string
     productQuantity: number
-    contractDate?: string
-    completionDate?: string
+    installationStartDate?: string
+    installationEndDate?: string
   }
 }
 
@@ -150,15 +150,20 @@ export default function ProjectCalendar() {
   }, [supabase])
 
   // 프로젝트를 캘린더 이벤트로 변환
-  const convertProjectsToEvents = useCallback((projects: Project[]): CalendarEvent[] => {
+  const convertProjectsToEvents = useCallback((projects: Project[]): (CalendarEvent | null)[] => {
     return projects.map(project => {
-      // 계약 시작일과 준공 종료일 결정
-      const contractStage = project.process_stages?.find(s => s.stage_name === 'contract')
+      // 설치 단계 시작일과 종료일 결정
+      const installationStage = project.process_stages?.find(s => s.stage_name === 'installation')
       const completionStage = project.process_stages?.find(s => s.stage_name === 'completion')
-      
-      const startDate = contractStage?.start_date || project.order_date
-      const endDate = completionStage?.end_date || project.expected_completion_date
-      
+
+      // 설치 단계 날짜가 없으면 캘린더에서 제외
+      if (!installationStage?.start_date || !installationStage?.end_date) {
+        return null
+      }
+
+      const startDate = installationStage.start_date
+      const endDate = installationStage.end_date
+
       // 프로젝트 상태 결정
       let status: ProjectStatus = 'normal'
       if (project.is_urgent) {
@@ -170,7 +175,7 @@ export default function ProjectCalendar() {
       } else if (project.process_stages?.some(s => s.status === 'waiting')) {
         status = 'waiting'
       }
-      
+
       return {
         id: project.id,
         title: project.site_name,
@@ -194,16 +199,16 @@ export default function ProjectCalendar() {
           processStages: project.process_stages,
           productName: project.product_name,
           productQuantity: project.product_quantity,
-          contractDate: startDate,
-          completionDate: endDate
+          installationStartDate: startDate,
+          installationEndDate: endDate
         }
       }
     })
   }, [])
 
-  // 이벤트 생성
+  // 이벤트 생성 (설치 단계 날짜가 없는 프로젝트는 필터링)
   const filteredEvents = useMemo(() => {
-    return convertProjectsToEvents(projects)
+    return convertProjectsToEvents(projects).filter((event): event is CalendarEvent => event !== null)
   }, [projects, convertProjectsToEvents])
 
   // 초기 데이터 로드
@@ -430,112 +435,118 @@ export default function ProjectCalendar() {
         width={700}
       >
         {selectedEvent && (
-          <Descriptions column={2} bordered>
-            <Descriptions.Item label="현장명" span={2}>
-              <strong>{selectedEvent.extendedProps.siteName}</strong>
-              {selectedEvent.extendedProps.isUrgent && (
-                <Tag color="orange" className="ml-2">
-                  <ExclamationCircleOutlined /> 긴급
-                </Tag>
-              )}
-            </Descriptions.Item>
-            
-            <Descriptions.Item label="상태">
-              <Tag color={statusColors[selectedEvent.extendedProps.status]}>
-                {statusLabels[selectedEvent.extendedProps.status]}
-              </Tag>
-            </Descriptions.Item>
-            
-            <Descriptions.Item label="현재 공정">
-              {selectedEvent.extendedProps.currentStage}
-            </Descriptions.Item>
-            
-            <Descriptions.Item label="제품명">
-              {selectedEvent.extendedProps.productName}
-            </Descriptions.Item>
-            
-            <Descriptions.Item label="수량">
-              {selectedEvent.extendedProps.productQuantity}개
-            </Descriptions.Item>
-            
-            <Descriptions.Item label="영업담당자">
-              <Tooltip
-                title={selectedEvent.extendedProps.salesManager && selectedEvent.extendedProps.salesManagerEmail
-                  ? `${selectedEvent.extendedProps.salesManager} (${selectedEvent.extendedProps.salesManagerEmail})`
-                  : selectedEvent.extendedProps.salesManager || '-'
-                }
-                placement="bottom"
-              >
-                <Space className="manager-info-wrapper">
-                  <UserOutlined />
-                  <span className="manager-info">
-                    {selectedEvent.extendedProps.salesManager
-                      ? selectedEvent.extendedProps.salesManagerEmail
-                        ? `${selectedEvent.extendedProps.salesManager} (${selectedEvent.extendedProps.salesManagerEmail})`
-                        : selectedEvent.extendedProps.salesManager
-                      : '-'
-                    }
-                  </span>
-                </Space>
-              </Tooltip>
-            </Descriptions.Item>
-
-            <Descriptions.Item label="현장담당자">
-              <Tooltip
-                title={selectedEvent.extendedProps.siteManager && selectedEvent.extendedProps.siteManagerEmail
-                  ? `${selectedEvent.extendedProps.siteManager} (${selectedEvent.extendedProps.siteManagerEmail})`
-                  : selectedEvent.extendedProps.siteManager || '-'
-                }
-                placement="bottom"
-              >
-                <Space className="manager-info-wrapper">
-                  <UserOutlined />
-                  <span className="manager-info">
-                    {selectedEvent.extendedProps.siteManager
-                      ? selectedEvent.extendedProps.siteManagerEmail
-                        ? `${selectedEvent.extendedProps.siteManager} (${selectedEvent.extendedProps.siteManagerEmail})`
-                        : selectedEvent.extendedProps.siteManager
-                      : '-'
-                    }
-                  </span>
-                </Space>
-              </Tooltip>
-            </Descriptions.Item>
-            
-            <Descriptions.Item label="계약일">
-              <Space>
-                <CalendarOutlined />
-                {moment(selectedEvent.extendedProps.contractDate).format('YYYY-MM-DD')}
-              </Space>
-            </Descriptions.Item>
-            
-            <Descriptions.Item label="준공예정일">
-              <Space>
-                <CalendarOutlined />
-                {moment(selectedEvent.extendedProps.completionDate).format('YYYY-MM-DD')}
-              </Space>
-            </Descriptions.Item>
-            
-            {selectedEvent.extendedProps.processStages && 
-             selectedEvent.extendedProps.processStages.length > 0 && (
-              <Descriptions.Item label="공정 단계별 일정" span={2}>
-                <List
-                  size="small"
-                  dataSource={selectedEvent.extendedProps.processStages}
-                  renderItem={(stage) => (
-                    <List.Item>
-                      <Text>{PROCESS_STAGES[stage.stage_name]}</Text>
-                      {stage.start_date && stage.end_date && (
-                        <Text type="secondary" className="ml-2">
-                          ({moment(stage.start_date).format('MM/DD')} ~ {moment(stage.end_date).format('MM/DD')})
-                        </Text>
-                      )}
-                    </List.Item>
-                  )}
-                />
+          <div className="project-detail-descriptions">
+            <Descriptions column={2} bordered>
+              <Descriptions.Item label="현장명" span={2}>
+                <strong>{selectedEvent.extendedProps.siteName}</strong>
+                {selectedEvent.extendedProps.isUrgent && (
+                  <Tag color="orange" className="ml-2">
+                    <ExclamationCircleOutlined /> 긴급
+                  </Tag>
+                )}
               </Descriptions.Item>
-            )}
-          </Descriptions>
+              
+              <Descriptions.Item label="상태">
+                <Tag color={statusColors[selectedEvent.extendedProps.status]}>
+                  {statusLabels[selectedEvent.extendedProps.status]}
+                </Tag>
+              </Descriptions.Item>
+              
+              <Descriptions.Item label="현재 공정">
+                {selectedEvent.extendedProps.currentStage}
+              </Descriptions.Item>
+              
+              <Descriptions.Item label="제품명">
+                {selectedEvent.extendedProps.productName}
+              </Descriptions.Item>
+              
+              <Descriptions.Item label="수량">
+                {selectedEvent.extendedProps.productQuantity}개
+              </Descriptions.Item>
+              
+              <Descriptions.Item label="영업담당자">
+                <Tooltip
+                  title={selectedEvent.extendedProps.salesManager && selectedEvent.extendedProps.salesManagerEmail
+                    ? `${selectedEvent.extendedProps.salesManager} (${selectedEvent.extendedProps.salesManagerEmail})`
+                    : selectedEvent.extendedProps.salesManager || '-'
+                  }
+                  placement="bottom"
+                >
+                  <div className="manager-info-wrapper">
+                    <UserOutlined />
+                    <span className="manager-info">
+                      {selectedEvent.extendedProps.salesManager
+                        ? selectedEvent.extendedProps.salesManagerEmail
+                          ? `${selectedEvent.extendedProps.salesManager} (${selectedEvent.extendedProps.salesManagerEmail})`
+                          : selectedEvent.extendedProps.salesManager
+                        : '-'
+                      }
+                    </span>
+                  </div>
+                </Tooltip>
+              </Descriptions.Item>
+
+              <Descriptions.Item label="현장담당자">
+                <Tooltip
+                  title={selectedEvent.extendedProps.siteManager && selectedEvent.extendedProps.siteManagerEmail
+                    ? `${selectedEvent.extendedProps.siteManager} (${selectedEvent.extendedProps.siteManagerEmail})`
+                    : selectedEvent.extendedProps.siteManager || '-'
+                  }
+                  placement="bottom"
+                >
+                  <div className="manager-info-wrapper">
+                    <UserOutlined />
+                    <span className="manager-info">
+                      {selectedEvent.extendedProps.siteManager
+                        ? selectedEvent.extendedProps.siteManagerEmail
+                          ? `${selectedEvent.extendedProps.siteManager} (${selectedEvent.extendedProps.siteManagerEmail})`
+                          : selectedEvent.extendedProps.siteManager
+                        : '-'
+                      }
+                    </span>
+                  </div>
+                </Tooltip>
+              </Descriptions.Item>
+              
+              <Descriptions.Item label="설치 시작일">
+                <Space>
+                  <CalendarOutlined />
+                  {selectedEvent.extendedProps.installationStartDate
+                    ? moment(selectedEvent.extendedProps.installationStartDate).format('YYYY-MM-DD')
+                    : '-'}
+                </Space>
+              </Descriptions.Item>
+
+              <Descriptions.Item label="설치 종료일">
+                <Space>
+                  <CalendarOutlined />
+                  {selectedEvent.extendedProps.installationEndDate
+                    ? moment(selectedEvent.extendedProps.installationEndDate).format('YYYY-MM-DD')
+                    : '-'}
+                </Space>
+              </Descriptions.Item>
+              
+              {selectedEvent.extendedProps.processStages && 
+              selectedEvent.extendedProps.processStages.length > 0 && (
+                <Descriptions.Item label="공정 단계별 일정" span={2}>
+                  <List
+                    size="small"
+                    dataSource={selectedEvent.extendedProps.processStages}
+                    renderItem={(stage) => (
+                      <List.Item>
+                        <Text>{PROCESS_STAGES[stage.stage_name]}</Text>
+                        {stage.start_date && stage.end_date && (
+                          <Text type="secondary" className="ml-2">
+                            ({moment(stage.start_date).format('MM/DD')} ~ {moment(stage.end_date).format('MM/DD')})
+                          </Text>
+                        )}
+                      </List.Item>
+                    )}
+                  />
+                </Descriptions.Item>
+              )}
+            </Descriptions>
+          </div>
         )}
       </Modal>
 
@@ -733,18 +744,34 @@ export default function ProjectCalendar() {
           color: #ff4d4f;
         }
 
-        /* 담당자 정보 스타일 - ellipsis 처리 */
-        .manager-info-wrapper {
-          max-width: 100%;
+        /* 프로젝트 상세 Descriptions 스타일 */
+        .project-detail-descriptions .ant-descriptions-view {
+          table-layout: fixed !important;
         }
 
-        .manager-info {
-          display: inline-block;
-          max-width: 180px;
+        .project-detail-descriptions .ant-descriptions-item-label {
+          width: 100px !important;
+          white-space: nowrap !important;
+        }
+
+        .project-detail-descriptions .ant-descriptions-item-content {
+          overflow: hidden !important;
+          max-width: 0 !important;
+        }
+
+        /* 담당자 정보 스타일 */
+        .project-detail-descriptions .manager-info-wrapper {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+        }
+
+        .project-detail-descriptions .manager-info {
+          flex: 1;
+          min-width: 0;
           overflow: hidden;
           text-overflow: ellipsis;
           white-space: nowrap;
-          vertical-align: middle;
         }
       `}</style>
     </div>
