@@ -133,6 +133,9 @@ export interface UpdateProcessStageDTO {
   actual_end_date?: string;
 }
 
+// 프로젝트 완료 상태 타입
+export type ProjectCompletionStatus = 'all' | 'in_progress' | 'completed';
+
 // 프로젝트 필터 옵션
 export interface ProjectFilters {
   search?: string;
@@ -142,6 +145,7 @@ export interface ProjectFilters {
   date_from?: string;
   date_to?: string;
   favorites_only?: boolean;
+  completion_status?: ProjectCompletionStatus;
 }
 
 // 프로젝트 정렬 옵션

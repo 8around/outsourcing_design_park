@@ -23,7 +23,7 @@ import {
   ThunderboltOutlined
 } from '@ant-design/icons'
 import { projectService } from '@/lib/services/projects.service'
-import { PROCESS_STAGES, type Project, type ProjectFilters, type ProcessStageName } from '@/types/project'
+import { PROCESS_STAGES, type Project, type ProjectFilters, type ProcessStageName, type ProjectCompletionStatus } from '@/types/project'
 import ImageCarousel from '@/components/projects/ImageCarousel'
 
 const { Title, Text } = Typography
@@ -39,6 +39,7 @@ export default function ProjectsPage() {
   const [selectedStage, setSelectedStage] = useState<ProcessStageName | undefined>()
   const [showUrgentOnly, setShowUrgentOnly] = useState(false)
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false)
+  const [completionStatus, setCompletionStatus] = useState<ProjectCompletionStatus>('in_progress')
   const [totalProjects, setTotalProjects] = useState(0)
   const [currentPage, setCurrentPage] = useState(1)
 
@@ -55,7 +56,8 @@ export default function ProjectsPage() {
         search: searchTerm || undefined,
         current_process_stage: selectedStage,
         is_urgent: showUrgentOnly ? true : undefined,
-        favorites_only: showFavoritesOnly ? true : undefined
+        favorites_only: showFavoritesOnly ? true : undefined,
+        completion_status: completionStatus
       }
 
       const response = await projectService.getProjects(
@@ -132,7 +134,7 @@ export default function ProjectsPage() {
   useEffect(() => {
     fetchProjects()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchTerm, selectedStage, showUrgentOnly, showFavoritesOnly, currentPage])
+  }, [searchTerm, selectedStage, showUrgentOnly, showFavoritesOnly, currentPage, completionStatus])
 
   return (
     <div className="p-6">
@@ -168,6 +170,20 @@ export default function ProjectsPage() {
       {/* 필터 및 검색 */}
       <Card className="mb-6">
         <div className="flex flex-col md:flex-row gap-4 items-start md:items-center">
+          <Select
+            value={completionStatus}
+            onChange={(value: ProjectCompletionStatus) => {
+              setCompletionStatus(value)
+              setCurrentPage(1)
+            }}
+            style={{ width: 100 }}
+            size="large"
+          >
+            <Option value="in_progress">진행중</Option>
+            <Option value="completed">완료</Option>
+            <Option value="all">전체</Option>
+          </Select>
+
           <Search
             placeholder="현장명, 제품명으로 검색..."
             allowClear

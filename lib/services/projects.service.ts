@@ -66,13 +66,47 @@ export class ProjectService {
               .from('project_favorites')
               .select('project_id')
               .eq('user_id', user.id);
-            
+
             // 즐겨찾기가 있든 없든 필터 적용
             const projectIds = favorites?.map(f => f.project_id) || [];
             query = query.in('id', projectIds);
           } else {
             // 사용자가 없으면 빈 결과 반환
             query = query.in('id', []);
+          }
+        }
+
+        // completion_status 필터 적용
+        if (filters.completion_status && filters.completion_status !== 'all') {
+          // RPC 함수로 완료된 프로젝트 ID 조회
+          const { data: completedIds, error: rpcError } = await this.supabase
+            .rpc('get_completed_project_ids');
+
+          if (rpcError) {
+            console.error('완료 프로젝트 조회 실패:', rpcError);
+          }
+
+          const completedProjectIds = completedIds?.map((row: { project_id: string }) => row.project_id) || [];
+
+          if (filters.completion_status === 'completed') {
+            // 완료된 프로젝트만 조회
+            if (completedProjectIds.length > 0) {
+              query = query.in('id', completedProjectIds);
+            } else {
+              // 완료된 프로젝트가 없으면 DB 쿼리 없이 바로 빈 결과 반환
+              return {
+                data: [],
+                total: 0,
+                page: 1,
+                totalPages: 0
+              };
+            }
+          } else if (filters.completion_status === 'in_progress') {
+            // 진행중 프로젝트만 조회 (완료되지 않은 프로젝트)
+            if (completedProjectIds.length > 0) {
+              query = query.not('id', 'in', `(${completedProjectIds.join(',')})`);
+            }
+            // completedProjectIds가 비어있으면 모든 프로젝트가 진행중이므로 추가 필터 불필요
           }
         }
       }
