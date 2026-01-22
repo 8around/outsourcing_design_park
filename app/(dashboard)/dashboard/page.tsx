@@ -13,11 +13,9 @@ import { useAuth } from '@/lib/hooks/useAuth'
 
 const { Title, Text } = Typography
 
-
 export default function DashboardPage() {
   const router = useRouter()
   const { user } = useAuth()
-
 
   return (
     <div className="dashboard-container">
@@ -33,15 +31,15 @@ export default function DashboardPage() {
             </Text>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Button 
-              type="primary" 
+            <Button
+              type="primary"
               icon={<ProjectOutlined />}
               onClick={() => router.push('/projects/new')}
               size="middle"
             >
               새 프로젝트
             </Button>
-            <Button 
+            <Button
               icon={<CalendarOutlined />}
               onClick={() => router.push('/calendar')}
               size="middle"
@@ -69,8 +67,8 @@ export default function DashboardPage() {
       <Row gutter={[16, 16]} className="mb-6">
         {/* 글로벌 활동 로그 */}
         <Col xs={24} lg={12}>
-          <GlobalLogFeed 
-            limit={5} 
+          <GlobalLogFeed
+            limit={5}
             showRefresh={true}
             autoRefresh={false}
           />
@@ -78,7 +76,7 @@ export default function DashboardPage() {
 
         {/* 승인 대기 목록 */}
         <Col xs={24} lg={12}>
-          <PendingApprovals 
+          <PendingApprovals
             limit={5}
             showActions={true}
           />

@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect, useCallback } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Card, List, Avatar, Typography, Tag, Space, Button, Empty, Skeleton, message, Pagination, Select } from 'antd'
 import {
   FileTextOutlined,
@@ -77,24 +77,72 @@ interface GlobalLogFeedProps {
   refreshInterval?: number // 초 단위
 }
 
-export default function GlobalLogFeed({ 
-  limit = 10, 
+export default function GlobalLogFeed({
+  limit = 10,
   showRefresh = true,
   autoRefresh = false,
   refreshInterval = 30
 }: GlobalLogFeedProps) {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { user, userData } = useAuth()
+
+  // URL에서 초기값 읽기
+  const pageFromUrl = parseInt(searchParams.get('logPage') ?? '1')
+  const categoryFromUrl = searchParams.get('logCategory')
+  const userIdFromUrl = searchParams.get('logUser')
+
   const [logs, setLogs] = useState<LogItem[]>([])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
-  const [currentPage, setCurrentPage] = useState(1)
+  const [currentPage, setCurrentPage] = useState(pageFromUrl)
   const [totalCount, setTotalCount] = useState(0)
   const [deletingLogId, setDeletingLogId] = useState<string | null>(null)
-  const [filterUserId, setFilterUserId] = useState<string | null>(null)
+  const [filterUserId, setFilterUserId] = useState<string | null>(userIdFromUrl)
   const [filterUser, setFilterUser] = useState<User | null>(null)
   const [showUserSelectModal, setShowUserSelectModal] = useState(false)
-  const [filterCategory, setFilterCategory] = useState<string | null>(null)
+  const [filterCategory, setFilterCategory] = useState<string | null>(categoryFromUrl)
+
+  // URL 업데이트 함수
+  const updateURL = useCallback((params: {
+    logPage?: number
+    logCategory?: string | null
+    logUser?: string | null
+  }) => {
+    const newParams = new URLSearchParams(searchParams.toString())
+
+    // 페이지 (1이 아닐 때만 URL에 추가)
+    if (params.logPage && params.logPage > 1) {
+      newParams.set('logPage', String(params.logPage))
+    } else {
+      newParams.delete('logPage')
+    }
+
+    // 카테고리 필터
+    if (params.logCategory) {
+      newParams.set('logCategory', params.logCategory)
+    } else {
+      newParams.delete('logCategory')
+    }
+
+    // 사용자 필터
+    if (params.logUser) {
+      newParams.set('logUser', params.logUser)
+    } else {
+      newParams.delete('logUser')
+    }
+
+    const queryString = newParams.toString()
+    const url = queryString ? `/dashboard?${queryString}` : '/dashboard'
+    router.push(url, { scroll: false })
+  }, [router, searchParams])
+
+  // 현재 파라미터 가져오기
+  const getCurrentParams = useCallback(() => ({
+    logPage: currentPage,
+    logCategory: filterCategory,
+    logUser: filterUserId
+  }), [currentPage, filterCategory, filterUserId])
 
   // 로그 데이터 로드
   const loadLogs = async (page = currentPage, isRefresh = false) => {
@@ -112,10 +160,10 @@ export default function GlobalLogFeed({
         filterUserId || undefined,
         filterCategory || undefined
       )
-      
+
       // 프로젝트 정보 조회를 위한 프로젝트 ID 수집
       const projectIds = [...new Set(response.logs.filter(log => log.project_id).map(log => log.project_id!))]
-      
+
       // 프로젝트 정보 조회
       const projectInfo: Record<string, string> = {}
       for (const projectId of projectIds) {
@@ -143,7 +191,7 @@ export default function GlobalLogFeed({
         project_name: log.project_id ? projectInfo[log.project_id] : undefined,
         log_type: log.log_type,
         approval_status: log.approval_status || undefined,
-        attachments: log.attachments && log.attachments.length > 0 
+        attachments: log.attachments && log.attachments.length > 0
           ? log.attachments.map((att: Record<string, unknown>) => ({
               id: att.id as string,
               file_path: att.file_path as string,
@@ -169,9 +217,9 @@ export default function GlobalLogFeed({
 
   // 초기 로드 및 필터 변경 시 재로드
   useEffect(() => {
-    setCurrentPage(1)
-    loadLogs(1)
-  }, [limit, filterUserId, filterCategory])
+    loadLogs(currentPage)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [limit, filterUserId, filterCategory, currentPage])
 
   // 자동 새로고침
   useEffect(() => {
@@ -192,14 +240,23 @@ export default function GlobalLogFeed({
   // 페이지 변경 핸들러
   const handlePageChange = (page: number) => {
     setCurrentPage(page)
-    loadLogs(page)
+    updateURL({ ...getCurrentParams(), logPage: page })
+  }
+
+  // 카테고리 필터 변경 핸들러
+  const handleCategoryChange = (value: string | null) => {
+    setFilterCategory(value)
+    setCurrentPage(1)
+    updateURL({ ...getCurrentParams(), logCategory: value, logPage: 1 })
   }
 
   // 사용자 필터 선택 핸들러
   const handleUserSelect = (user: User) => {
     setFilterUser(user)
     setFilterUserId(user.id)
+    setCurrentPage(1)
     setShowUserSelectModal(false)
+    updateURL({ ...getCurrentParams(), logUser: user.id, logPage: 1 })
     message.success(`${user.name}님의 로그를 필터링합니다.`)
   }
 
@@ -208,6 +265,8 @@ export default function GlobalLogFeed({
     setFilterUser(null)
     setFilterUserId(null)
     setFilterCategory(null)
+    setCurrentPage(1)
+    updateURL({ logPage: 1, logCategory: null, logUser: null })
     message.info('전체 로그를 표시합니다.')
   }
 
@@ -230,7 +289,7 @@ export default function GlobalLogFeed({
   // 로그 삭제 핸들러 (관리자만)
   const handleDeleteLog = async (logId: string, e: React.MouseEvent) => {
     e.stopPropagation() // 로그 클릭 이벤트 전파 방지
-    
+
     if (!user || userData?.role !== 'admin') {
       message.error('관리자만 삭제할 수 있습니다.')
       return
@@ -240,7 +299,7 @@ export default function GlobalLogFeed({
     try {
       await logService.deleteLog(logId, user.id)
       message.success('로그가 삭제되었습니다.')
-      
+
       // 목록에서 제거
       setLogs(prev => prev.filter(log => log.id !== logId))
       setTotalCount(prev => prev - 1)
@@ -256,17 +315,17 @@ export default function GlobalLogFeed({
   const handleDownloadAttachment = async (attachment: AttachmentInfo, e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation() // 로그 클릭 이벤트 전파 방지
-    
+
     try {
       // Supabase storage public URL 생성
       const publicUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/log-attachments/${attachment.file_path}`
-      
+
       const response = await fetch(publicUrl)
-      
+
       if (!response.ok) {
         throw new Error('파일 다운로드 실패')
       }
-      
+
       const blob = await response.blob()
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement('a')
@@ -287,7 +346,7 @@ export default function GlobalLogFeed({
     const config = categoryConfig[log.category] || categoryConfig['기타']
     const isDeleting = deletingLogId === log.id
     const isAdmin = userData?.role === 'admin'
-    
+
     // 로그 타입과 승인 상태에 따른 액션 텍스트 생성
     let actionText = ''
     if (log.log_type === 'approval_request') {
@@ -303,7 +362,7 @@ export default function GlobalLogFeed({
     } else if (log.category === '사양변경') {
       actionText = '사양 변경'
     }
-    
+
     // 관리자일 경우 삭제 버튼 포함
     const actions = isAdmin ? [
       <Button
@@ -318,9 +377,9 @@ export default function GlobalLogFeed({
         삭제
       </Button>
     ] : undefined
-    
+
     return (
-      <List.Item 
+      <List.Item
         key={log.id}
         onClick={() => handleLogClick(log)}
         style={{ cursor: log.project_id ? 'pointer' : 'default' }}
@@ -329,8 +388,8 @@ export default function GlobalLogFeed({
       >
         <List.Item.Meta
           avatar={
-            <Avatar 
-              icon={config.icon} 
+            <Avatar
+              icon={config.icon}
               style={{ backgroundColor: `var(--ant-color-${config.color})` }}
             />
           }
@@ -395,7 +454,7 @@ export default function GlobalLogFeed({
                       {log.attachments.map((attachment) => {
                         // Supabase storage public URL 생성
                         const publicUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/log-attachments/${attachment.file_path}`
-                        
+
                         return (
                           <div
                             key={attachment.id}
@@ -430,9 +489,9 @@ export default function GlobalLogFeed({
                 </div>
               )}
               <Text type="secondary" className="text-xs">
-                {formatDistanceToNow(new Date(log.created_at), { 
-                  addSuffix: true, 
-                  locale: ko 
+                {formatDistanceToNow(new Date(log.created_at), {
+                  addSuffix: true,
+                  locale: ko
                 })}
               </Text>
             </div>
@@ -462,7 +521,7 @@ export default function GlobalLogFeed({
               <Tag
                 color="green"
                 closable
-                onClose={() => setFilterCategory(null)}
+                onClose={() => handleCategoryChange(null)}
                 className="ml-2"
               >
                 {filterCategory} 필터링 중
@@ -477,7 +536,7 @@ export default function GlobalLogFeed({
               style={{ width: 140 }}
               size="small"
               value={filterCategory}
-              onChange={(value) => setFilterCategory(value || null)}
+              onChange={handleCategoryChange}
             >
               <Select.Option value="사양변경">사양변경</Select.Option>
               <Select.Option value="도면설계">도면설계</Select.Option>
