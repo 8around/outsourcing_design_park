@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useDebounce } from '@/lib/hooks/useDebounce'
 import { Modal, Input, List, Avatar, Button, Typography, Tag, Pagination, Empty, Skeleton, message, Radio } from 'antd'
 import { SearchOutlined, UserOutlined, CheckCircleOutlined } from '@ant-design/icons'
 import { createClient } from '@/lib/supabase/client'
@@ -24,6 +25,7 @@ export default function UserSelectModal({
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
+  const debouncedSearchTerm = useDebounce(searchTerm, 300)
   const [currentPage, setCurrentPage] = useState(1)
   const [totalCount, setTotalCount] = useState(0)
   const [selectedUser, setSelectedUser] = useState<string | null>(selectedUserId || null)
@@ -69,27 +71,20 @@ export default function UserSelectModal({
     }
   }
 
-  // 모달이 열릴 때 사용자 목록 로드
+  // visible 또는 debouncedSearchTerm 변경 시 상태 초기화 및 API 호출
   useEffect(() => {
     if (visible) {
-      setCurrentPage(1)
-      setSearchTerm('')
       setSelectedUser(selectedUserId || null)
-      loadUsers(1)
+      setCurrentPage(1)
+      loadUsers(1, debouncedSearchTerm)
     }
-  }, [visible, selectedUserId])
-
-  // 검색 처리
-  const handleSearch = (value: string) => {
-    setSearchTerm(value)
-    setCurrentPage(1)
-    loadUsers(1, value)
-  }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visible, debouncedSearchTerm])
 
   // 페이지 변경
   const handlePageChange = (page: number) => {
     setCurrentPage(page)
-    loadUsers(page, searchTerm)
+    loadUsers(page, debouncedSearchTerm)
   }
 
   // 사용자 선택
@@ -161,7 +156,7 @@ export default function UserSelectModal({
         <Input
           placeholder="이름 또는 이메일로 검색"
           prefix={<SearchOutlined />}
-          onChange={(e) => handleSearch(e.target.value)}
+          onChange={(e) => setSearchTerm(e.target.value)}
           value={searchTerm}
           allowClear
         />

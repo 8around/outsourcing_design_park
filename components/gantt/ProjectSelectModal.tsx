@@ -52,19 +52,14 @@ export default function ProjectSelectModal({
     }
   }
 
-  // 선택 상태만 동기화 (취소 후 재오픈 대응)
+  // visible 또는 debouncedSearchTerm 변경 시 상태 초기화 및 API 호출
   useEffect(() => {
     if (visible) {
       setAllSelectedIds(new Set(selectedProjectIds))
-    }
-  }, [visible, selectedProjectIds])
-
-  // visible 또는 debouncedSearchTerm 변경 시 API 호출
-  useEffect(() => {
-    if (visible) {
       setCurrentPage(1)
       loadProjects(1, debouncedSearchTerm)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible, debouncedSearchTerm])
 
   // 페이지 변경
