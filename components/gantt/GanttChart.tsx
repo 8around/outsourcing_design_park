@@ -406,7 +406,7 @@ export function GanttChart({
 
   return (
     <div>
-      <Card className="gantt-chart-container" bodyStyle={{ padding: '0' }}>
+      <Card className="gantt-chart-container" styles={{ body: { padding: '0' } }}>
         {/* 전체 펼치기/접기 버튼과 컬럼 리셋 버튼 */}
         <div style={{ padding: '4px 8px', borderBottom: '1px solid #f0f0f0', display: 'flex', gap: '8px' }}>
           <Button

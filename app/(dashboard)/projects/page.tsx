@@ -378,7 +378,7 @@ export default function ProjectsPage() {
                 <Card
                   className="project-card cursor-pointer hover:shadow-lg transition-all h-full"
                   onClick={() => router.push(`/projects/${project.id}`)}
-                  bodyStyle={{ padding: 0 }}
+                  styles={{ body: { padding: 0 } }}
                 >
                     {/* 썸네일 섹션 */}
                     <div
