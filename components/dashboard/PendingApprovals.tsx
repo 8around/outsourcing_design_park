@@ -15,8 +15,7 @@ import {
   DownloadOutlined,
   // DeleteOutlined, // 삭제 기능 제거
 } from '@ant-design/icons'
-import { formatDistanceToNow } from 'date-fns'
-import { ko } from 'date-fns/locale'
+import { format } from 'date-fns'
 import { useRouter } from 'next/navigation'
 import { approvalService } from '@/lib/services/approval.service'
 import { useAuth } from '@/lib/hooks/useAuth'
@@ -482,10 +481,7 @@ export default function PendingApprovals({
                 )}
                 <Text type="secondary" style={{ flexShrink: 0 }}>•</Text>
                 <Text type="secondary" style={{ flexShrink: 0 }}>
-                  {formatDistanceToNow(new Date(approval.created_at), {
-                    addSuffix: true,
-                    locale: ko
-                  })}
+                  {format(new Date(approval.created_at), 'yyyy-MM-dd HH:mm:ss')}
                 </Text>
               </div>
               {/* 첨부파일 표시 - 항상 보이기 */}

@@ -15,8 +15,7 @@ import {
   FilterOutlined,
   CloseCircleOutlined,
 } from '@ant-design/icons'
-import { formatDistanceToNow } from 'date-fns'
-import { ko } from 'date-fns/locale'
+import { format } from 'date-fns'
 import { logService } from '@/lib/services/logs.service'
 import { projectService } from '@/lib/services/projects.service'
 import { useAuth } from '@/lib/hooks/useAuth'
@@ -513,10 +512,7 @@ export default function GlobalLogFeed({
                 </div>
               )}
               <Text type="secondary" className="text-xs">
-                {formatDistanceToNow(new Date(log.created_at), {
-                  addSuffix: true,
-                  locale: ko
-                })}
+                {format(new Date(log.created_at), 'yyyy-MM-dd HH:mm:ss')}
               </Text>
             </div>
           }

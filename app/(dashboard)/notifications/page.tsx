@@ -142,18 +142,7 @@ export default function NotificationsPage() {
 
   // 시간 포맷팅
   const formatTime = (dateString: string) => {
-    const now = moment()
-    const notificationTime = moment(dateString)
-    
-    if (now.diff(notificationTime, 'minutes') < 60) {
-      return `${now.diff(notificationTime, 'minutes')}분 전`
-    } else if (now.diff(notificationTime, 'hours') < 24) {
-      return `${now.diff(notificationTime, 'hours')}시간 전`
-    } else if (now.diff(notificationTime, 'days') < 7) {
-      return `${now.diff(notificationTime, 'days')}일 전`
-    } else {
-      return notificationTime.format('YYYY-MM-DD')
-    }
+    return moment(dateString).format('YYYY-MM-DD HH:mm:ss')
   }
 
   return (
