@@ -11,7 +11,8 @@ import {
   Descriptions,
   Drawer,
   List,
-  message
+  message,
+  Tooltip
 } from 'antd'
 import {
   CalendarOutlined,
@@ -58,7 +59,9 @@ interface CalendarEvent {
     siteName: string
     status: ProjectStatus
     salesManager?: string
+    salesManagerEmail?: string
     siteManager?: string
+    siteManagerEmail?: string
     currentStage: string
     isUrgent: boolean
     processStages?: ProcessStage[]
@@ -110,12 +113,14 @@ export default function ProjectCalendar() {
   const fetchProjects = useCallback(async () => {
     try {
       setLoading(true)
-      // 먼저 프로젝트 데이터만 가져옵니다
+      // 프로젝트 데이터와 담당자 정보를 함께 가져옵니다
       const { data: projectsData, error: projectsError } = await supabase
         .from('projects')
         .select(`
           *,
-          process_stages (*)
+          process_stages (*),
+          sales_manager_user:users!projects_sales_manager_id_fkey(id, name, email),
+          site_manager_user:users!projects_site_manager_id_fkey(id, name, email)
         `)
         .is('deleted_at', null)
         .order('created_at', { ascending: false })
@@ -180,8 +185,10 @@ export default function ProjectCalendar() {
           projectId: project.id,
           siteName: project.site_name,
           status: status,
-          salesManager: project.sales_manager || '',
-          siteManager: project.site_manager || '',
+          salesManager: project.sales_manager_user?.name || '',
+          salesManagerEmail: project.sales_manager_user?.email || '',
+          siteManager: project.site_manager_user?.name || '',
+          siteManagerEmail: project.site_manager_user?.email || '',
           currentStage: PROCESS_STAGES[project.current_process_stage],
           isUrgent: project.is_urgent,
           processStages: project.process_stages,
@@ -452,17 +459,47 @@ export default function ProjectCalendar() {
             </Descriptions.Item>
             
             <Descriptions.Item label="영업담당자">
-              <Space>
-                <UserOutlined />
-                {selectedEvent.extendedProps.salesManager || '-'}
-              </Space>
+              <Tooltip
+                title={selectedEvent.extendedProps.salesManager && selectedEvent.extendedProps.salesManagerEmail
+                  ? `${selectedEvent.extendedProps.salesManager} (${selectedEvent.extendedProps.salesManagerEmail})`
+                  : selectedEvent.extendedProps.salesManager || '-'
+                }
+                placement="bottom"
+              >
+                <Space className="manager-info-wrapper">
+                  <UserOutlined />
+                  <span className="manager-info">
+                    {selectedEvent.extendedProps.salesManager
+                      ? selectedEvent.extendedProps.salesManagerEmail
+                        ? `${selectedEvent.extendedProps.salesManager} (${selectedEvent.extendedProps.salesManagerEmail})`
+                        : selectedEvent.extendedProps.salesManager
+                      : '-'
+                    }
+                  </span>
+                </Space>
+              </Tooltip>
             </Descriptions.Item>
-            
+
             <Descriptions.Item label="현장담당자">
-              <Space>
-                <UserOutlined />
-                {selectedEvent.extendedProps.siteManager || '-'}
-              </Space>
+              <Tooltip
+                title={selectedEvent.extendedProps.siteManager && selectedEvent.extendedProps.siteManagerEmail
+                  ? `${selectedEvent.extendedProps.siteManager} (${selectedEvent.extendedProps.siteManagerEmail})`
+                  : selectedEvent.extendedProps.siteManager || '-'
+                }
+                placement="bottom"
+              >
+                <Space className="manager-info-wrapper">
+                  <UserOutlined />
+                  <span className="manager-info">
+                    {selectedEvent.extendedProps.siteManager
+                      ? selectedEvent.extendedProps.siteManagerEmail
+                        ? `${selectedEvent.extendedProps.siteManager} (${selectedEvent.extendedProps.siteManagerEmail})`
+                        : selectedEvent.extendedProps.siteManager
+                      : '-'
+                    }
+                  </span>
+                </Space>
+              </Tooltip>
             </Descriptions.Item>
             
             <Descriptions.Item label="계약일">
@@ -694,6 +731,20 @@ export default function ProjectCalendar() {
         .fc-day-sun .fc-daygrid-day-number,
         .fc-day-sat .fc-daygrid-day-number {
           color: #ff4d4f;
+        }
+
+        /* 담당자 정보 스타일 - ellipsis 처리 */
+        .manager-info-wrapper {
+          max-width: 100%;
+        }
+
+        .manager-info {
+          display: inline-block;
+          max-width: 180px;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+          vertical-align: middle;
         }
       `}</style>
     </div>
