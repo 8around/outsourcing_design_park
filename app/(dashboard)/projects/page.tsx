@@ -62,8 +62,8 @@ export default function ProjectsPage() {
 
       const response = await projectService.getProjects(
         appliedFilters,
-        { sortBy: 'created_at', order: 'desc' },
-        { page: currentPage, limit: 10 }
+        { sortBy: 'expected_completion_date', order: 'desc' },
+        { page: currentPage, limit: 12 }
       )
 
       setProjects(response.data)
@@ -419,7 +419,7 @@ export default function ProjectsPage() {
           <Pagination
             current={currentPage}
             total={totalProjects}
-            pageSize={10}
+            pageSize={12}
             onChange={(page) => setCurrentPage(page)}
             showSizeChanger={false}
             showTotal={(total, range) => `${range[0]}-${range[1]} / 전체 ${total}개`}
