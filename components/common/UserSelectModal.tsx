@@ -147,11 +147,10 @@ export default function UserSelectModal({
         <Button key="cancel" onClick={onClose}>
           취소
         </Button>,
-        <Button 
-          key="confirm" 
-          type="primary" 
+        <Button
+          key="confirm"
+          type="primary"
           onClick={handleConfirm}
-          disabled={!selectedUser}
         >
           확인
         </Button>

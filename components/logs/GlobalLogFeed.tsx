@@ -78,7 +78,7 @@ interface GlobalLogFeedProps {
 }
 
 export default function GlobalLogFeed({
-  limit = 10,
+  limit = 5,
   showRefresh = true,
   autoRefresh = false,
   refreshInterval = 30
@@ -91,6 +91,7 @@ export default function GlobalLogFeed({
   const pageFromUrl = parseInt(searchParams.get('logPage') ?? '1')
   const categoryFromUrl = searchParams.get('logCategory')
   const userIdFromUrl = searchParams.get('logUser')
+  const limitFromUrl = parseInt(searchParams.get('logLimit') ?? String(limit))
 
   const [logs, setLogs] = useState<LogItem[]>([])
   const [loading, setLoading] = useState(true)
@@ -102,12 +103,14 @@ export default function GlobalLogFeed({
   const [filterUser, setFilterUser] = useState<User | null>(null)
   const [showUserSelectModal, setShowUserSelectModal] = useState(false)
   const [filterCategory, setFilterCategory] = useState<string | null>(categoryFromUrl)
+  const [pageSize, setPageSize] = useState(limitFromUrl)
 
   // URL 업데이트 함수
   const updateURL = useCallback((params: {
     logPage?: number
     logCategory?: string | null
     logUser?: string | null
+    logLimit?: number
   }) => {
     const newParams = new URLSearchParams(searchParams.toString())
 
@@ -132,6 +135,13 @@ export default function GlobalLogFeed({
       newParams.delete('logUser')
     }
 
+    // 페이지 크기 (기본값 5가 아닐 때만)
+    if (params.logLimit && params.logLimit !== 5) {
+      newParams.set('logLimit', String(params.logLimit))
+    } else {
+      newParams.delete('logLimit')
+    }
+
     const queryString = newParams.toString()
     const url = queryString ? `/dashboard?${queryString}` : '/dashboard'
     router.push(url, { scroll: false })
@@ -141,8 +151,9 @@ export default function GlobalLogFeed({
   const getCurrentParams = useCallback(() => ({
     logPage: currentPage,
     logCategory: filterCategory,
-    logUser: filterUserId
-  }), [currentPage, filterCategory, filterUserId])
+    logUser: filterUserId,
+    logLimit: pageSize
+  }), [currentPage, filterCategory, filterUserId, pageSize])
 
   // 로그 데이터 로드
   const loadLogs = async (page = currentPage, isRefresh = false) => {
@@ -156,7 +167,7 @@ export default function GlobalLogFeed({
       // 글로벌 로그 피드 조회 (사용자 필터링 + 카테고리 필터링 적용)
       const response = await logService.getGlobalLogFeed(
         page,
-        limit,
+        pageSize,
         filterUserId || undefined,
         filterCategory || undefined
       )
@@ -219,7 +230,7 @@ export default function GlobalLogFeed({
   useEffect(() => {
     loadLogs(currentPage)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [limit, filterUserId, filterCategory, currentPage])
+  }, [pageSize, filterUserId, filterCategory, currentPage])
 
   // 자동 새로고침
   useEffect(() => {
@@ -241,6 +252,13 @@ export default function GlobalLogFeed({
   const handlePageChange = (page: number) => {
     setCurrentPage(page)
     updateURL({ ...getCurrentParams(), logPage: page })
+  }
+
+  // 페이지 크기 변경 핸들러
+  const handlePageSizeChange = (value: number) => {
+    setPageSize(value)
+    setCurrentPage(1)
+    updateURL({ ...getCurrentParams(), logLimit: value, logPage: 1 })
   }
 
   // 카테고리 필터 변경 핸들러
@@ -266,7 +284,7 @@ export default function GlobalLogFeed({
     setFilterUserId(null)
     setFilterCategory(null)
     setCurrentPage(1)
-    updateURL({ logPage: 1, logCategory: null, logUser: null })
+    updateURL({ logPage: 1, logCategory: null, logUser: null, logLimit: pageSize })
     message.info('전체 로그를 표시합니다.')
   }
 
@@ -529,7 +547,23 @@ export default function GlobalLogFeed({
             )}
           </div>
           <Space>
-            {/* 카테고리 필터 Select 추가 */}
+            {/* 페이지 크기 Select */}
+            <Select
+              value={pageSize}
+              onChange={handlePageSizeChange}
+              style={{ width: 85 }}
+              size="small"
+            >
+              <Select.Option value={5}>5개</Select.Option>
+              <Select.Option value={10}>10개</Select.Option>
+              <Select.Option value={20}>20개</Select.Option>
+              <Select.Option value={30}>30개</Select.Option>
+              <Select.Option value={40}>40개</Select.Option>
+              <Select.Option value={50}>50개</Select.Option>
+              <Select.Option value={100}>100개</Select.Option>
+            </Select>
+
+            {/* 카테고리 필터 Select */}
             <Select
               placeholder="카테고리 선택"
               allowClear
@@ -596,12 +630,12 @@ export default function GlobalLogFeed({
             renderItem={renderLogItem}
             className="log-list"
           />
-          {totalCount > limit && (
+          {totalCount > pageSize && (
             <div className="pagination-container">
               <Pagination
                 current={currentPage}
                 total={totalCount}
-                pageSize={limit}
+                pageSize={pageSize}
                 onChange={handlePageChange}
                 showSizeChanger={false}
                 showTotal={(total, range) => `${range[0]}-${range[1]} / 전체 ${total}개`}
