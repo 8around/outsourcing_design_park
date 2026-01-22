@@ -23,6 +23,7 @@ import {
   ThunderboltOutlined
 } from '@ant-design/icons'
 import { projectService } from '@/lib/services/projects.service'
+import { useDebounce } from '@/lib/hooks/useDebounce'
 import { PROCESS_STAGES, type Project, type ProjectFilters, type ProcessStageName, type ProjectCompletionStatus } from '@/types/project'
 import ImageCarousel from '@/components/projects/ImageCarousel'
 
@@ -36,6 +37,7 @@ export default function ProjectsPage() {
   const [refreshing, setRefreshing] = useState(false)
   const [projects, setProjects] = useState<Project[]>([])
   const [searchTerm, setSearchTerm] = useState('')
+  const debouncedSearchTerm = useDebounce(searchTerm, 300)
   const [selectedStage, setSelectedStage] = useState<ProcessStageName | undefined>()
   const [showUrgentOnly, setShowUrgentOnly] = useState(false)
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false)
@@ -53,7 +55,7 @@ export default function ProjectsPage() {
       }
 
       const appliedFilters: ProjectFilters = {
-        search: searchTerm || undefined,
+        search: debouncedSearchTerm || undefined,
         current_process_stage: selectedStage,
         is_urgent: showUrgentOnly ? true : undefined,
         favorites_only: showFavoritesOnly ? true : undefined,
@@ -134,7 +136,7 @@ export default function ProjectsPage() {
   useEffect(() => {
     fetchProjects()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchTerm, selectedStage, showUrgentOnly, showFavoritesOnly, currentPage, completionStatus])
+  }, [debouncedSearchTerm, selectedStage, showUrgentOnly, showFavoritesOnly, currentPage, completionStatus])
 
   return (
     <div className="p-6">

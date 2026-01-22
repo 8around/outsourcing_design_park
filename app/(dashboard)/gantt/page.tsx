@@ -18,10 +18,12 @@ import {
   PlusOutlined,
   ZoomInOutlined,
   ZoomOutOutlined,
-  CalendarOutlined
+  CalendarOutlined,
+  ProjectOutlined
 } from '@ant-design/icons'
 import { useRouter } from 'next/navigation'
 import { GanttChart } from '@/components/gantt/GanttChart'
+import ProjectSelectModal from '@/components/gantt/ProjectSelectModal'
 import { ViewMode, Task } from 'gantt-task-react'
 
 const { Title, Text } = Typography
@@ -29,10 +31,12 @@ const { Option } = Select
 
 export default function GanttPage() {
   const router = useRouter()
-  const [viewMode, setViewMode] = useState<ViewMode>(ViewMode.Week)
+  const [viewMode, setViewMode] = useState<ViewMode>(ViewMode.Day)
   const [selectedTask, setSelectedTask] = useState<Task | null>(null)
   const [detailModalVisible, setDetailModalVisible] = useState(false)
   const [isFullscreen, setIsFullscreen] = useState(false)
+  const [isProjectSelectModalVisible, setIsProjectSelectModalVisible] = useState(false)
+  const [selectedProjectIds, setSelectedProjectIds] = useState<string[]>([])
 
   // 작업 클릭 핸들러
   const handleTaskClick = (task: Task) => {
@@ -160,6 +164,14 @@ export default function GanttPage() {
           >
             축소
           </Button>
+
+          <Button
+            icon={<ProjectOutlined />}
+            onClick={() => setIsProjectSelectModalVisible(true)}
+            type={selectedProjectIds.length > 0 ? 'primary' : 'default'}
+          >
+            프로젝트 선택 {selectedProjectIds.length > 0 && `(${selectedProjectIds.length})`}
+          </Button>
         </Space>
       </div>
 
@@ -171,6 +183,18 @@ export default function GanttPage() {
         onDateChange={handleDateChange}
         onProgressChange={handleProgressChange}
         locale="ko-KR"
+        selectedProjectIds={selectedProjectIds.length > 0 ? selectedProjectIds : undefined}
+      />
+
+      {/* 프로젝트 선택 모달 */}
+      <ProjectSelectModal
+        visible={isProjectSelectModalVisible}
+        onClose={() => setIsProjectSelectModalVisible(false)}
+        onApply={(ids) => {
+          setSelectedProjectIds(ids)
+          setIsProjectSelectModalVisible(false)
+        }}
+        selectedProjectIds={selectedProjectIds}
       />
 
       {/* 작업 상세 모달 */}

@@ -21,6 +21,7 @@ interface GanttChartProps {
   onDateChange?: (task: Task) => void
   onProgressChange?: (task: Task) => void
   locale?: string
+  selectedProjectIds?: string[]
 }
 
 export function GanttChart({
@@ -29,7 +30,8 @@ export function GanttChart({
   onTaskDoubleClick,
   onDateChange,
   onProgressChange,
-  locale = 'ko-KR'
+  locale = 'ko-KR',
+  selectedProjectIds
 }: GanttChartProps) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -48,23 +50,63 @@ export function GanttChart({
 
   // 프로젝트 데이터 조회
   useEffect(() => {
-    fetchProjects()
-  }, [currentPage, pageSize])
+    if (selectedProjectIds && selectedProjectIds.length > 0) {
+      fetchSelectedProjects()
+    } else {
+      fetchProjects()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPage, pageSize, selectedProjectIds])
+
+  // 선택된 프로젝트만 조회
+  const fetchSelectedProjects = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+
+      // 선택된 프로젝트들을 개별 조회
+      const projectPromises = selectedProjectIds!.map(id =>
+        projectService.getProject(id)
+      )
+      const results = await Promise.all(projectPromises)
+      const validProjects = results.filter(Boolean) as Project[]
+
+      // 준공일 내림차순 정렬
+      validProjects.sort((a, b) => {
+        const dateA = new Date(a.expected_completion_date).getTime()
+        const dateB = new Date(b.expected_completion_date).getTime()
+        return dateB - dateA
+      })
+
+      setProjects(validProjects)
+      setTotal(validProjects.length)
+
+      // 확장 상태 초기화
+      const allProjectIds = new Set(validProjects.map(p => `project-${p.id}`))
+      setExpandedProjects(allProjectIds)
+      setIsAllExpanded(true)
+    } catch (err) {
+      setError('프로젝트 데이터를 불러오는데 실패했습니다.')
+      console.error('선택된 프로젝트 조회 실패:', err)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const fetchProjects = async () => {
     try {
       setLoading(true)
       setError(null)
-      
+
       const response = await projectService.getProjects(
         {},
-        { sortBy: 'created_at', order: 'desc' },
+        { sortBy: 'expected_completion_date', order: 'desc' },
         { page: currentPage, limit: pageSize }
       )
-      
+
       setProjects(response.data)
       setTotal(response.total)
-      
+
       // Initialize all projects as expanded
       const allProjectIds = new Set(response.data.map(p => `project-${p.id}`))
       setExpandedProjects(allProjectIds)
@@ -420,23 +462,33 @@ export function GanttChart({
         </div>
       </Card>
       
-      {/* 페이지네이션 */}
-      <div style={{ marginTop: '6px', padding: '0 4px' }}>
-        <Space size="middle" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap' }}>
+      {/* 페이지네이션 - 선택된 프로젝트가 없을 때만 표시 */}
+      {(!selectedProjectIds || selectedProjectIds.length === 0) && (
+        <div style={{ marginTop: '6px', padding: '0 4px' }}>
+          <Space size="middle" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap' }}>
+            <Text type="secondary">
+              전체 {total}개 프로젝트 중 {(currentPage - 1) * pageSize + 1}-{Math.min(currentPage * pageSize, total)}개 표시
+            </Text>
+
+            <Pagination
+              current={currentPage}
+              total={total}
+              pageSize={pageSize}
+              onChange={(page) => setCurrentPage(page)}
+              showSizeChanger={false}
+              showTotal={(total, range) => `${range[0]}-${range[1]} / ${total}개`}
+            />
+          </Space>
+        </div>
+      )}
+      {/* 선택된 프로젝트 표시 */}
+      {selectedProjectIds && selectedProjectIds.length > 0 && (
+        <div style={{ marginTop: '6px', padding: '0 4px' }}>
           <Text type="secondary">
-            전체 {total}개 프로젝트 중 {(currentPage - 1) * pageSize + 1}-{Math.min(currentPage * pageSize, total)}개 표시
+            선택된 프로젝트 {total}개 표시 중
           </Text>
-          
-          <Pagination
-            current={currentPage}
-            total={total}
-            pageSize={pageSize}
-            onChange={(page) => setCurrentPage(page)}
-            showSizeChanger={false}
-            showTotal={(total, range) => `${range[0]}-${range[1]} / ${total}개`}
-          />
-        </Space>
-      </div>
+        </div>
+      )}
 
       <style jsx>{`
         .gantt-chart-container {

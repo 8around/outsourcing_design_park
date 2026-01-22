@@ -145,7 +145,9 @@ projectAdminManagment/
 │   │   └── CalendarSettings.tsx
 │   │
 │   ├── gantt/                         # 간트차트 관련 컴포넌트
-│   │   ├── GanttChart.tsx
+│   │   ├── GanttChart.tsx             # 간트차트 메인 컴포넌트 (프로젝트 필터링 지원)
+│   │   ├── ProjectSelectModal.tsx     # 프로젝트 선택 모달 (다중 선택, 검색, 페이지네이션)
+│   │   ├── CustomTaskList.tsx         # 커스텀 태스크 리스트
 │   │   ├── GanttTask.tsx
 │   │   ├── GanttTimeline.tsx
 │   │   └── GanttSettings.tsx
