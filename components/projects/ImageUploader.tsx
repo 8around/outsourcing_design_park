@@ -266,7 +266,7 @@ export default function ImageUploader({
 
       {/* Image Preview Grid */}
       {images.length > 0 && (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-5 gap-4">
           {images.map((image) => (
             <div
               key={image.id}

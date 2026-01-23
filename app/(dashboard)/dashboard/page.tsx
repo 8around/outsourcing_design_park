@@ -21,12 +21,12 @@ export default function DashboardPage() {
     <div className="dashboard-container">
       {/* 웰컴 섹션 */}
       <div className="mb-6">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="flex flex-row items-center justify-between gap-4">
           <div>
-            <Title level={2} className="mb-2 text-xl sm:text-2xl">
+            <Title level={2} className="mb-2 text-2xl">
               안녕하세요, {userData?.name || '사용자'}님! 👋
             </Title>
-            <Text type="secondary" className="text-base sm:text-lg">
+            <Text type="secondary" className="text-lg">
               오늘도 프로젝트 관리를 효율적으로 진행해보세요.
             </Text>
           </div>
@@ -63,7 +63,7 @@ export default function DashboardPage() {
       {/* 글로벌 활동 로그와 승인 대기 목록 */}
       <Row gutter={[16, 16]} className="mb-6">
         {/* 글로벌 활동 로그 */}
-        <Col xs={24} lg={12}>
+        <Col span={12}>
           <GlobalLogFeed
             limit={5}
             showRefresh={true}
@@ -72,7 +72,7 @@ export default function DashboardPage() {
         </Col>
 
         {/* 승인 대기 목록 */}
-        <Col xs={24} lg={12}>
+        <Col span={12}>
           <PendingApprovals
             limit={5}
             showActions={true}
@@ -88,12 +88,6 @@ export default function DashboardPage() {
           overflow-x: hidden;
         }
 
-        /* 반응형 스타일 */
-        @media (max-width: 768px) {
-          .dashboard-container {
-            padding: 0;
-          }
-        }
       `}</style>
     </div>
   )

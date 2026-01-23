@@ -393,7 +393,7 @@ export default function ProjectDetailPage() {
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <h2 className="text-xl font-semibold mb-4">기본 정보</h2>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-2 gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 현장명
@@ -433,7 +433,7 @@ export default function ProjectDetailPage() {
 
           {/* 프로젝트 메타 정보 */}
           <div className="mt-6 pt-6 border-t border-gray-200">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+            <div className="grid grid-cols-3 gap-4 text-sm">
               <div>
                 <span className="text-gray-500">생성자:</span>{' '}
                 <span className="font-medium">{project.creator?.name || '-'}</span>
@@ -454,7 +454,7 @@ export default function ProjectDetailPage() {
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <h2 className="text-xl font-semibold mb-4">담당자 정보</h2>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-2 gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 영업담당자
@@ -479,7 +479,7 @@ export default function ProjectDetailPage() {
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <h2 className="text-xl font-semibold mb-4">일정 정보</h2>
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-3 gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 발주일
@@ -579,7 +579,7 @@ export default function ProjectDetailPage() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                  <div className="grid grid-cols-3 gap-4 text-sm">
                     <div>
                       <span className="text-gray-500">시작일:</span>{' '}
                       <span className="font-medium">
@@ -593,7 +593,7 @@ export default function ProjectDetailPage() {
                       </span>
                     </div>
                     {stage.status === 'delayed' && stage.delay_reason && (
-                      <div className="md:col-span-3">
+                      <div className="col-span-3">
                         <span className="text-gray-500">지연 사유:</span>{' '}
                         <span className="font-medium text-red-600">{stage.delay_reason}</span>
                       </div>
@@ -656,7 +656,7 @@ export default function ProjectDetailPage() {
 
             {/* 썸네일 그리드 */}
             {project.project_images.length > 1 && (
-              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2">
+              <div className="grid grid-cols-6 gap-2">
                 {project.project_images.map((image, index) => (
                   <button
                     key={image.id}

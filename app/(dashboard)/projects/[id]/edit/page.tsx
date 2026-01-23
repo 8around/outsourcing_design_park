@@ -394,7 +394,7 @@ export default function EditProjectPage() {
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <h2 className="text-xl font-semibold mb-4">기본 정보</h2>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-2 gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 현장명 <span className="text-red-500">*</span>
@@ -473,7 +473,7 @@ export default function EditProjectPage() {
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <h2 className="text-xl font-semibold mb-4">담당자 정보</h2>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-2 gap-6">
             <UserSelector
               label="영업담당자"
               value={formData.sales_manager}
@@ -496,7 +496,7 @@ export default function EditProjectPage() {
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <h2 className="text-xl font-semibold mb-4">일정 정보</h2>
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-3 gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 발주일 <span className="text-red-500">*</span>
@@ -590,7 +590,7 @@ export default function EditProjectPage() {
           {existingImages.length > 0 && (
             <div className="mb-6">
               <h3 className="text-sm font-medium text-gray-700 mb-3">기존 이미지</h3>
-              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
+              <div className="grid grid-cols-6 gap-3">
                 {existingImages.map((image) => (
                   <div
                     key={image.id}

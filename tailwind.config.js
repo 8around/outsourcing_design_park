@@ -7,6 +7,14 @@ module.exports = {
   ],
   darkMode: 'class', // Enable class-based dark mode
   theme: {
+    container: {
+      center: true,
+      screens: {
+        lg: '1024px',
+        xl: '1280px',
+        '2xl': '1536px',
+      },
+    },
     extend: {
       colors: {
         // Modern White Theme Color System

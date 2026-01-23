@@ -393,31 +393,7 @@ body {
   }
 }
 
-/* Responsive Design - Mobile First */
-@media (max-width: 640px) {
-  .project-card .ant-card-body {
-    padding: 16px;
-  }
-  
-  .process-stage {
-    font-size: 11px;
-    padding: 4px 8px;
-    margin: 2px 1px;
-  }
-  
-  .modern-card-grid {
-    grid-template-columns: 1fr;
-    gap: 16px;
-    padding: 16px 0;
-  }
-}
-
-@media (max-width: 768px) {
-  .project-card {
-    margin-bottom: 16px;
-  }
-}
-
+/* Large Screen Styles */
 @media (min-width: 1200px) {
   .modern-card-grid {
     grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
@@ -824,13 +800,6 @@ body {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
   gap: 16px;
-}
-
-@media (max-width: 640px) {
-  .image-preview-grid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 12px;
-  }
 }
 
 /* Image Preview Item */

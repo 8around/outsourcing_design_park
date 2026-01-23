@@ -137,17 +137,6 @@ body {
   transform: scale(1.05);
 }
 
-/* Responsive adjustments */
-@media (max-width: 768px) {
-  .project-card .ant-card-body {
-    padding: 12px;
-  }
-  
-  .project-card .ant-card-cover {
-    height: 160px;
-  }
-}
-
 /* Loading and empty states */
 .ant-empty {
   margin: 2rem 0;

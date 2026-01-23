@@ -215,7 +215,7 @@ export default function UsersManagement() {
 
       {/* 컨트롤 패널 */}
       <div className="bg-white rounded-soft-xl border border-gray-200 shadow-soft p-6">
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+        <div className="flex flex-row items-center justify-between gap-4">
           {/* Search Section */}
           <div className="flex-1 max-w-md">
             <div className="relative">

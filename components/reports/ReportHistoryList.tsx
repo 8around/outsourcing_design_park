@@ -140,7 +140,7 @@ export function ReportHistoryList() {
       )}
 
       {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-4 gap-4">
         <div className="bg-gray-50 rounded-lg p-4">
           <div className="text-sm text-gray-500">전체 발송</div>
           <div className="text-2xl font-bold text-gray-900">{statistics.totalSent}</div>
@@ -234,7 +234,7 @@ export function ReportHistoryList() {
       </div>
 
       {/* History Table */}
-      <div className="overflow-x-auto shadow ring-1 ring-black ring-opacity-5 md:rounded-lg">
+      <div className="overflow-x-auto shadow ring-1 ring-black ring-opacity-5 rounded-lg">
         <table className="min-w-full divide-y divide-gray-300">
           <thead className="bg-gray-50">
             <tr>

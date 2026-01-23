@@ -371,9 +371,9 @@ export function GanttChart({
   if (loading) {
     return (
       <Card className="gantt-chart-container">
-        <div style={{ textAlign: 'center', padding: '50px' }}>
-          <Spin size="large" tip="프로젝트 데이터를 불러오는 중..." />
-        </div>
+        <Spin size="large" tip="프로젝트 데이터를 불러오는 중..." spinning={true}>
+          <div style={{ textAlign: 'center', padding: '50px', minHeight: '100px' }} />
+        </Spin>
       </Card>
     )
   }

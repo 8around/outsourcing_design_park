@@ -4,8 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import {
   Card, Row, Col, Button, Input, Select, Typography, Empty,
-  Skeleton, Tag, Progress, message, Tooltip, Pagination,
-  Space
+  Skeleton, Tag, Progress, message, Tooltip, Pagination, Space
 } from 'antd'
 import {
   ProjectOutlined,
@@ -298,7 +297,7 @@ export default function ProjectsPage() {
   return (
     <div className="p-6">
       {/* 헤더 섹션 */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8 gap-4">
+      <div className="flex flex-row items-center justify-between mb-8 gap-4">
         <div>
           <Title level={2} className="mb-2">
             프로젝트 관리
@@ -333,7 +332,7 @@ export default function ProjectsPage() {
 
       {/* 필터 및 검색 */}
       <Card className="mb-6">
-        <div className="flex flex-col md:flex-row gap-4 items-start md:items-center">
+        <div className="flex flex-wrap gap-4 items-center">
           <Select
             value={completionStatus}
             onChange={handleCompletionStatusChange}
@@ -353,22 +352,22 @@ export default function ProjectsPage() {
             prefix={<SearchOutlined className="text-gray-400" />}
           />
 
-          <Space wrap>
-            <Select
-              placeholder="공정 단계"
-              value={selectedStage}
-              onChange={handleStageChange}
-              style={{ width: 160 }}
-              allowClear
-            >
-              <Option value="">전체</Option>
-              {Object.entries(PROCESS_STAGES).map(([key, label]) => (
-                <Option key={key} value={key}>
-                  {label}
-                </Option>
-              ))}
-            </Select>
+          <Select
+            placeholder="공정 단계"
+            value={selectedStage}
+            onChange={handleStageChange}
+            style={{ width: 160 }}
+            allowClear
+          >
+            <Option value="">전체</Option>
+            {Object.entries(PROCESS_STAGES).map(([key, label]) => (
+              <Option key={key} value={key}>
+                {label}
+              </Option>
+            ))}
+          </Select>
 
+          <Space>
             <Button
               type={showUrgentOnly ? 'primary' : 'default'}
               icon={<ThunderboltOutlined />}
@@ -393,7 +392,7 @@ export default function ProjectsPage() {
       {loading ? (
         <Row gutter={[24, 24]}>
           {[1, 2, 3, 4, 5, 6].map(i => (
-            <Col xs={24} md={12} lg={6} key={i}>
+            <Col span={6} key={i}>
               <Card>
                 <Skeleton active />
               </Card>
@@ -418,7 +417,7 @@ export default function ProjectsPage() {
             const isFavorite = project.favorites && project.favorites.length > 0
 
             return (
-              <Col xs={24} md={12} lg={6} key={project.id}>
+              <Col span={6} key={project.id}>
                 <Card
                   className="project-card cursor-pointer hover:shadow-lg transition-all h-full"
                   onClick={() => router.push(`/projects/${project.id}`)}

@@ -411,7 +411,7 @@ export default function GlobalLogFeed({
             />
           }
           title={
-            <div style={{
+            <div className="log-tag-container" style={{
               display: 'flex',
               alignItems: 'center',
               gap: '8px',
@@ -445,11 +445,6 @@ export default function GlobalLogFeed({
                   첨부 {log.attachments.length}
                 </Tag>
               )}
-              <style jsx>{`
-                div::-webkit-scrollbar {
-                  display: none;
-                }
-              `}</style>
             </div>
           }
           description={
@@ -645,6 +640,10 @@ export default function GlobalLogFeed({
       />
 
       <style jsx>{`
+        .log-tag-container::-webkit-scrollbar {
+          display: none;
+        }
+
         .global-log-feed :global(.ant-card-body) {
           padding: 0;
           max-height: 500px;
@@ -703,20 +702,6 @@ export default function GlobalLogFeed({
           align-items: center;
         }
 
-        @media (max-width: 768px) {
-          .global-log-feed :global(.ant-card-body) {
-            max-height: 400px;
-          }
-
-          .log-list :global(.ant-list-item) {
-            padding: 12px 16px;
-          }
-
-          .pagination-container {
-            padding: 12px;
-          }
-
-        }
       `}</style>
     </Card>
   )

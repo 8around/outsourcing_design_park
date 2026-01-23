@@ -664,41 +664,6 @@ export default function PendingApprovals({
           overflow-wrap: break-word;
         }
 
-        /* 모바일 전용 스타일 개선 */
-        @media (max-width: 768px) {
-          .approval-list :global(.ant-list-item) {
-            padding: 12px 16px;
-          }
-
-          .approval-list :global(.ant-list-item-meta) {
-            width: 100%;
-            overflow: hidden;
-          }
-
-          .approval-list :global(.ant-list-item-meta-title) {
-            width: 100%;
-            overflow: visible;
-          }
-
-          .approval-description {
-            max-width: 100%;
-            word-break: keep-all;
-            overflow-wrap: break-word;
-          }
-
-          .approval-meta-info {
-            width: 100%;
-            overflow-x: auto;
-          }
-
-          .approval-list :global(.ant-list-item-action) {
-            margin-top: 12px;
-            margin-left: 0;
-            display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
-          }
-        }
       `}</style>
 
       {/* 거절 모달 */}

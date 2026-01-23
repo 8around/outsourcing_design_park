@@ -177,7 +177,7 @@ export default function ProcessStageManager({
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       공정 상태
                     </label>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                    <div className="grid grid-cols-4 gap-2">
                       {Object.entries(STATUS_LABELS).map(([value, label]) => (
                         <button
                           key={value}
@@ -217,7 +217,7 @@ export default function ProcessStageManager({
                   )}
 
                   {/* 일정 설정 */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         시작일 

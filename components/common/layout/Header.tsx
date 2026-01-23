@@ -114,8 +114,8 @@ export default function Header({
           />
         </div>
 
-        {/* 브랜드 텍스트 - 최소 폭 992px 보장되므로 항상 표시 */}
-        <div>
+        {/* 브랜드 텍스트 - sm(640px) 이상에서만 표시 */}
+        <div className="hidden sm:block">
           <Text strong className="text-gray-900 block leading-tight">
             프로젝트 관리 시스템
           </Text>
@@ -137,7 +137,8 @@ export default function Header({
               icon={<UserOutlined />}
               className="bg-primary-100 text-primary-600"
             />
-            <div>
+            {/* 사용자 정보 텍스트 - sm(640px) 이상에서만 표시 */}
+            <div className="hidden sm:block">
               <Text className="text-sm font-medium text-gray-900 block">
                 {userData?.name || '사용자'} ({user?.email})
               </Text>
