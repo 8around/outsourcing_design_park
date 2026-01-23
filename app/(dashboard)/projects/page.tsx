@@ -20,10 +20,15 @@ import {
   ReloadOutlined,
   UserOutlined,
   CalendarOutlined,
-  ThunderboltOutlined
+  ThunderboltOutlined,
+  FileExcelOutlined
 } from '@ant-design/icons'
 import { projectService } from '@/lib/services/projects.service'
+import { logService } from '@/lib/services/logs.service'
 import { useDebounce } from '@/lib/hooks/useDebounce'
+import { generateProjectExcel, downloadExcel, generateExportFileName } from '@/lib/utils/excel'
+import ExportProjectModal from '@/components/projects/ExportProjectModal'
+import type { HistoryLogWithAttachments } from '@/types/log'
 import { PROCESS_STAGES, type Project, type ProjectFilters, type ProcessStageName, type ProjectCompletionStatus } from '@/types/project'
 import ImageCarousel from '@/components/projects/ImageCarousel'
 
@@ -54,6 +59,8 @@ export default function ProjectsPage() {
   const [completionStatus, setCompletionStatus] = useState<ProjectCompletionStatus>(statusFromUrl)
   const [totalProjects, setTotalProjects] = useState(0)
   const [currentPage, setCurrentPage] = useState(pageFromUrl)
+  const [exportModalVisible, setExportModalVisible] = useState(false)
+  const [isExporting, setIsExporting] = useState(false)
 
   // URL 업데이트 함수
   const updateURL = useCallback((params: {
@@ -156,6 +163,43 @@ export default function ProjectsPage() {
       fetchProjects(true)
     } catch {
       message.error('즐겨찾기 처리에 실패했습니다.')
+    }
+  }
+
+  // 프로젝트 내보내기 핸들러
+  const handleExportProjects = async (projectIds: string[]) => {
+    setIsExporting(true)
+    try {
+      // 1. 선택된 프로젝트 데이터 조회
+      const projectsToExport = await projectService.getProjectsByIds(projectIds, { sortBy: 'expected_completion_date', order: 'desc' })
+
+      // 2. 각 프로젝트별 전체 히스토리 로그 조회 (병렬 처리)
+      const logPromises = projectIds.map(async (projectId) => {
+        const logs = await logService.getAllProjectLogs(projectId)
+        return { projectId, logs }
+      })
+      const logResults = await Promise.all(logPromises)
+
+      // 3. 로그 맵 생성
+      const logsByProject = new Map<string, HistoryLogWithAttachments[]>()
+      logResults.forEach(({ projectId, logs }) => {
+        logsByProject.set(projectId, logs)
+      })
+
+      // 4. Excel 파일 생성
+      const buffer = await generateProjectExcel(projectsToExport, logsByProject)
+
+      // 5. 파일 다운로드
+      const fileName = generateExportFileName()
+      downloadExcel(buffer, fileName)
+
+      message.success(`${projectIds.length}개 프로젝트를 내보냈습니다.`)
+      setExportModalVisible(false)
+    } catch (error) {
+      console.error('프로젝트 내보내기 실패:', error)
+      message.error('내보내기에 실패했습니다.')
+    } finally {
+      setIsExporting(false)
     }
   }
 
@@ -272,9 +316,14 @@ export default function ProjectsPage() {
             새로고침
           </Button>
           <Button
+            icon={<FileExcelOutlined />}
+            onClick={() => setExportModalVisible(true)}
+          >
+            내보내기
+          </Button>
+          <Button
             type="primary"
             icon={<PlusOutlined />}
-            size="large"
             onClick={() => router.push('/projects/new')}
           >
             새 프로젝트
@@ -539,6 +588,14 @@ export default function ProjectsPage() {
           />
         </div>
       )}
+
+      {/* 내보내기 모달 */}
+      <ExportProjectModal
+        visible={exportModalVisible}
+        onClose={() => setExportModalVisible(false)}
+        onExport={handleExportProjects}
+        isExporting={isExporting}
+      />
     </div>
   )
 }

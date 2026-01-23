@@ -12,7 +12,9 @@ import Image from 'next/image'
 import LogFormSimple from '@/components/logs/LogFormSimple'
 import LogList from '@/components/logs/LogList'
 import { Loading } from '@/components/common/ui/Loading'
-import type { AttachmentFile, LogCategory } from '@/types/log'
+import { FileExcelOutlined, LoadingOutlined } from '@ant-design/icons'
+import { generateProjectExcel, downloadExcel, generateExportFileName } from '@/lib/utils/excel'
+import type { AttachmentFile, LogCategory, HistoryLogWithAttachments } from '@/types/log'
 import type { User } from '@/types/user'
 
 // 공정 단계 정의 (15단계)
@@ -88,6 +90,7 @@ export default function ProjectDetailPage() {
   const [refreshLogs, setRefreshLogs] = useState(0)
   const [isApprovalLoading, setIsApprovalLoading] = useState(false)
   const [loadingMessage, setLoadingMessage] = useState('확인 요청을 처리하고 있습니다...')
+  const [isExporting, setIsExporting] = useState(false)
 
   // 비고 (읽기 전용)
   const [notes, setNotes] = useState<string>('')
@@ -230,6 +233,50 @@ export default function ProjectDetailPage() {
   }
 
 
+  // 단일 프로젝트 내보내기 핸들러
+  const handleExportSingleProject = async () => {
+    if (!project) return
+
+    setIsExporting(true)
+    try {
+      // 1. 프로젝트의 전체 히스토리 로그 조회
+      const logs = await logService.getAllProjectLogs(project.id)
+
+      // 2. 로그 맵 생성
+      const logsByProject = new Map<string, HistoryLogWithAttachments[]>()
+      logsByProject.set(project.id, logs)
+
+      // 3. 프로젝트 데이터 변환 (상세 페이지의 ProjectData를 Project 형식으로)
+      const projectForExport = {
+        ...project,
+        sales_manager_user: salesManager ? {
+          id: salesManager.id as string,
+          name: salesManager.name as string,
+          email: salesManager.email as string
+        } : undefined,
+        site_manager_user: siteManager ? {
+          id: siteManager.id as string,
+          name: siteManager.name as string,
+          email: siteManager.email as string
+        } : undefined
+      }
+
+      // 4. Excel 파일 생성
+      const buffer = await generateProjectExcel([projectForExport as never], logsByProject)
+
+      // 5. 파일 다운로드
+      const fileName = generateExportFileName()
+      downloadExcel(buffer, fileName)
+
+      toast.success('프로젝트를 내보냈습니다.')
+    } catch (error) {
+      console.error('프로젝트 내보내기 실패:', error)
+      toast.error('내보내기에 실패했습니다.')
+    } finally {
+      setIsExporting(false)
+    }
+  }
+
   // 날짜 포맷팅
   const formatDate = (dateString: string) => {
     if (!dateString) return '-'
@@ -315,6 +362,18 @@ export default function ProjectDetailPage() {
             >
               목록으로
             </Link>
+            <button
+              onClick={handleExportSingleProject}
+              disabled={isExporting}
+              className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 bg-white hover:bg-gray-50 font-medium flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isExporting ? (
+                <LoadingOutlined className="text-base" spin />
+              ) : (
+                <FileExcelOutlined className="text-base" />
+              )}
+              내보내기
+            </button>
             {canEdit && (
               <>
                 <Link

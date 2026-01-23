@@ -165,6 +165,55 @@ export class ProjectService {
     }
   }
 
+  // 여러 프로젝트 ID로 조회 (내보내기용)
+  async getProjectsByIds(projectIds: string[], sort?: ProjectSortOptions): Promise<Project[]> {
+    if (!projectIds || projectIds.length === 0) return [];
+
+    try {
+      let query = this.supabase
+        .from('projects')
+        .select(`
+          *,
+          creator:created_by(id, name, email),
+          sales_manager_user:sales_manager(id, name, email),
+          site_manager_user:site_manager(id, name, email),
+          process_stages(*),
+          project_images(*)
+        `)
+        .in('id', projectIds)
+        .is('deleted_at', null)
+
+      const sortBy = sort?.sortBy || 'created_at';
+      const order = sort?.order || 'desc';
+
+      query = query.order(sortBy, { ascending: order === 'asc' });
+
+      const { data, error } = await query;
+
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.error('프로젝트 다중 조회 실패:', error);
+      throw error;
+    }
+  }
+
+  // 모든 프로젝트 ID 조회 (전체 선택용)
+  async getAllProjectIds(): Promise<string[]> {
+    try {
+      const { data, error } = await this.supabase
+        .from('projects')
+        .select('id')
+        .is('deleted_at', null);
+
+      if (error) throw error;
+      return data?.map(p => p.id) || [];
+    } catch (error) {
+      console.error('전체 프로젝트 ID 조회 실패:', error);
+      throw error;
+    }
+  }
+
   // 프로젝트 생성 (이미지 업로드 및 공정 단계 포함)
   async createProject(
     dto: CreateProjectDTO,
