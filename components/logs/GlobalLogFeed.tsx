@@ -290,7 +290,7 @@ export default function GlobalLogFeed({
   // 로그 클릭 시 프로젝트 상세 페이지로 이동
   const handleLogClick = (log: LogItem) => {
     if (log.project_id) {
-      router.push(`/projects/${log.project_id}`)
+      window.open(`/projects/${log.project_id}`, '_blank')
     }
   }
 
