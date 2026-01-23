@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useCallback } from 'react'
+import React, { useCallback, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { useAuth } from '@/lib/hooks/useAuth'
@@ -34,6 +34,7 @@ export default function Header({
 }: HeaderProps) {
   const router = useRouter()
   const { user, userData, signOut } = useAuth()
+  const [dropdownOpen, setDropdownOpen] = useState(false)
 
   // 사용자 드롭다운 메뉴
   const userMenuItems: MenuProps['items'] = [
@@ -54,6 +55,9 @@ export default function Header({
   ]
 
   const handleUserMenuClick = useCallback<NonNullable<MenuProps['onClick']>>(async ({ key }) => {
+    // 메뉴 클릭 시 드롭다운 닫기
+    setDropdownOpen(false)
+    
     switch (key) {
       case 'profile':
         router.push('/profile')
@@ -130,6 +134,9 @@ export default function Header({
           menu={{ items: userMenuItems, onClick: handleUserMenuClick }}
           placement="bottomRight"
           arrow
+          trigger={['click']}
+          open={dropdownOpen}
+          onOpenChange={setDropdownOpen}
         >
           <div className="flex items-center space-x-2 cursor-pointer hover:bg-gray-50 rounded-lg px-3 py-2 transition-all duration-200">
             <Avatar

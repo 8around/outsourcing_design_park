@@ -22,6 +22,7 @@ import {
   SIDEBAR_COLLAPSED_WIDTH,
   Z_INDEX,
 } from '@/lib/config/layout.constants'
+import { message } from 'antd/lib'
 
 interface MenuItemType {
   key: string
@@ -91,11 +92,11 @@ export default function Sidebar({ collapsed, className, isMobile = false }: Side
   const router = useRouter()
   const { userData, signOut } = useAuth()
   const { unreadCount } = useNotifications()
-  const [loading, setLoading] = useState(false)
 
   // 현재 경로에서 선택된 키 결정
   const getSelectedKey = () => {
     if (pathname === '/' || pathname === '/dashboard') return 'dashboard'
+    if (pathname.startsWith('/profile')) return 'profile'
     if (pathname.startsWith('/gantt')) return 'gantt'
     if (pathname.startsWith('/calendar')) return 'calendar'
     if (pathname.startsWith('/notifications')) return 'notifications'
@@ -106,17 +107,16 @@ export default function Sidebar({ collapsed, className, isMobile = false }: Side
   }
 
   const selectedKey = getSelectedKey()
+  const isProfileActive = selectedKey === 'profile'
 
   // 로그아웃 핸들러
   const handleLogout = useCallback(async () => {
-    setLoading(true)
     try {
       await signOut()
       router.push('/login')
     } catch (error) {
       console.error('로그아웃 실패:', error)
-    } finally {
-      setLoading(false)
+      message.error('로그아웃 실패')
     }
   }, [signOut, router])
 
@@ -135,13 +135,10 @@ export default function Sidebar({ collapsed, className, isMobile = false }: Side
     const shouldShowBadge = badgeCount !== undefined && badgeCount !== null && badgeCount > 0
 
     return (
-      <Tooltip key={item.key} title={item.label} placement="right">
+      <Tooltip key={item.key} title={item.label} placement="right" mouseEnterDelay={0} mouseLeaveDelay={0}>
         <Link
           href={item.path}
-          className={`
-            collapsed-menu-item
-            ${isSelected ? 'active' : ''}
-          `}
+          className={`collapsed-menu-item ${isSelected ? 'active' : ''}`}
         >
           <div className="icon-wrapper">
             {shouldShowBadge ? (
@@ -167,10 +164,7 @@ export default function Sidebar({ collapsed, className, isMobile = false }: Side
       <Link
         key={item.key}
         href={item.path}
-        className={`
-          expanded-menu-item
-          ${isSelected ? 'active' : ''}
-        `}
+        className={`expanded-menu-item ${isSelected ? 'active' : ''}`}
       >
         <div className="icon-wrapper">{item.icon}</div>
         <span className="menu-label">{item.label}</span>
@@ -208,9 +202,9 @@ export default function Sidebar({ collapsed, className, isMobile = false }: Side
         <div className="bottom-actions">
           {collapsed ? (
             <>
-              <Tooltip title="프로필" placement="right" mouseEnterDelay={0.1}>
+              <Tooltip title="프로필" placement="right" mouseEnterDelay={0} mouseLeaveDelay={0}>
                 <div
-                  className="collapsed-action-item"
+                  className={`collapsed-action-item profile ${isProfileActive ? 'active' : ''}`}
                   onClick={() => router.push('/profile')}
                 >
                   <div className="icon-wrapper">
@@ -218,7 +212,7 @@ export default function Sidebar({ collapsed, className, isMobile = false }: Side
                   </div>
                 </div>
               </Tooltip>
-              <Tooltip title={loading ? '로그아웃 중...' : '로그아웃'} placement="right" mouseEnterDelay={0.1}>
+              <Tooltip title="로그아웃" placement="right" mouseEnterDelay={0} mouseLeaveDelay={0}>
                 <div className="collapsed-action-item logout" onClick={handleLogout}>
                   <div className="icon-wrapper">
                     <LogoutOutlined />
@@ -229,7 +223,7 @@ export default function Sidebar({ collapsed, className, isMobile = false }: Side
           ) : (
             <>
               <div
-                className="expanded-action-item"
+                className={`expanded-action-item profile ${isProfileActive ? 'active' : ''}`}
                 onClick={() => router.push('/profile')}
               >
                 <div className="icon-wrapper">
@@ -241,7 +235,7 @@ export default function Sidebar({ collapsed, className, isMobile = false }: Side
                 <div className="icon-wrapper">
                   <LogoutOutlined />
                 </div>
-                <span>{loading ? '로그아웃 중...' : '로그아웃'}</span>
+                <span>로그아웃</span>
               </div>
             </>
           )}
@@ -289,11 +283,11 @@ export default function Sidebar({ collapsed, className, isMobile = false }: Side
         }
 
         .bottom-actions {
-          padding: 16px;
+          padding: 16px 0;
           border-top: 1px solid #f3f4f6;
           display: flex;
           flex-direction: column;
-          gap: 8px;
+          gap: 0;
         }
 
         /* Collapsed 메뉴 아이템 */
@@ -324,7 +318,8 @@ export default function Sidebar({ collapsed, className, isMobile = false }: Side
           display: flex;
           align-items: center;
           gap: 12px;
-          padding: 12px 16px;
+          height: 48px;
+          padding: 0 16px;
           margin: 4px 12px;
           border-radius: 8px;
           color: #374151;
@@ -353,34 +348,44 @@ export default function Sidebar({ collapsed, className, isMobile = false }: Side
           font-size: 16px;
         }
 
-        /* Collapsed 액션 아이템 */
+        /* Collapsed 액션 아이템 - 상단 메뉴와 동일한 margin 적용 */
         .collapsed-action-item {
           display: flex;
           align-items: center;
           justify-content: center;
           height: 48px;
+          margin: 4px 12px;
           border-radius: 8px;
           color: #6b7280;
           cursor: pointer;
           transition: background-color 0.2s ease, color 0.2s ease;
         }
 
-        .collapsed-action-item:hover {
-          background-color: #f3f4f6;
-          color: #374151;
+        /* 프로필 버튼 - primary blue 호버/활성 */
+        .collapsed-action-item.profile:hover {
+          background-color: #eff6ff;
+          color: #2563eb;
         }
 
+        .collapsed-action-item.profile.active {
+          background-color: #dbeafe;
+          color: #1d4ed8;
+        }
+
+        /* 로그아웃 버튼 - error red 호버 */
         .collapsed-action-item.logout:hover {
           background-color: #fef2f2;
           color: #dc2626;
         }
 
-        /* Expanded 액션 아이템 */
+        /* Expanded 액션 아이템 - 상단 메뉴와 동일한 높이/margin 적용 */
         .expanded-action-item {
           display: flex;
           align-items: center;
           gap: 12px;
-          padding: 12px 16px;
+          height: 48px;
+          padding: 0 16px;
+          margin: 4px 12px;
           border-radius: 8px;
           color: #374151;
           cursor: pointer;
@@ -388,11 +393,18 @@ export default function Sidebar({ collapsed, className, isMobile = false }: Side
           font-weight: 500;
         }
 
-        .expanded-action-item:hover {
-          background-color: #f3f4f6;
-          color: #374151;
+        /* 프로필 버튼 - primary blue 호버/활성 */
+        .expanded-action-item.profile:hover {
+          background-color: #eff6ff;
+          color: #2563eb;
         }
 
+        .expanded-action-item.profile.active {
+          background-color: #dbeafe;
+          color: #1d4ed8;
+        }
+
+        /* 로그아웃 버튼 - error red 호버 */
         .expanded-action-item.logout:hover {
           background-color: #fef2f2;
           color: #dc2626;
