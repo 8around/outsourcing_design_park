@@ -19,6 +19,7 @@ import { format } from 'date-fns'
 import { useRouter } from 'next/navigation'
 import { approvalService } from '@/lib/services/approval.service'
 import { useAuth } from '@/lib/hooks/useAuth'
+import { Z_INDEX } from '@/lib/config/layout.constants'
 
 const { Text, Title } = Typography
 const { TextArea } = Input
@@ -690,6 +691,7 @@ export default function PendingApprovals({
           setSelectedApproval(null)
           setRejectReason('')
         }}
+        zIndex={Z_INDEX.MODAL}
         okText="거절하기"
         cancelText="취소"
         okType="danger"

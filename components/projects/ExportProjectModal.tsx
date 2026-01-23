@@ -6,6 +6,7 @@ import { SearchOutlined, ProjectOutlined, CalendarOutlined, ThunderboltOutlined,
 import { projectService } from '@/lib/services/projects.service'
 import { useDebounce } from '@/lib/hooks/useDebounce'
 import type { Project } from '@/types/project'
+import { Z_INDEX } from '@/lib/config/layout.constants'
 
 const { Text } = Typography
 
@@ -134,6 +135,7 @@ export default function ExportProjectModal({
       open={visible}
       onCancel={onClose}
       width={700}
+      zIndex={Z_INDEX.MODAL}
       maskClosable={!isExporting}
       closable={!isExporting}
       footer={

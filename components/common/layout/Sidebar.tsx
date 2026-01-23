@@ -20,6 +20,7 @@ import { Badge, Tooltip } from 'antd'
 import {
   SIDEBAR_WIDTH,
   SIDEBAR_COLLAPSED_WIDTH,
+  Z_INDEX,
 } from '@/lib/config/layout.constants'
 
 interface MenuItemType {
@@ -255,7 +256,7 @@ export default function Sidebar({ collapsed, className, isMobile = false }: Side
           height: calc(100vh - var(--header-height));
           background: white;
           border-right: 1px solid #e5e7eb;
-          z-index: 1050;
+          z-index: ${Z_INDEX.SIDEBAR};
           display: flex;
           flex-direction: column;
         }

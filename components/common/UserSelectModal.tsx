@@ -6,6 +6,7 @@ import { Modal, Input, List, Avatar, Button, Typography, Tag, Pagination, Empty,
 import { SearchOutlined, UserOutlined, CheckCircleOutlined } from '@ant-design/icons'
 import { createClient } from '@/lib/supabase/client'
 import type { User } from '@/types/user'
+import { Z_INDEX } from '@/lib/config/layout.constants'
 
 const { Text } = Typography
 
@@ -138,6 +139,7 @@ export default function UserSelectModal({
       open={visible}
       onCancel={onClose}
       width={600}
+      zIndex={Z_INDEX.MODAL}
       footer={[
         <Button key="cancel" onClick={onClose}>
           취소

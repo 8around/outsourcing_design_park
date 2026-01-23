@@ -11,6 +11,7 @@ import {
   SIDEBAR_WIDTH,
   SIDEBAR_COLLAPSED_WIDTH,
   MIN_RENDERING_WIDTH,
+  Z_INDEX,
 } from '@/lib/config/layout.constants'
 
 const { Content } = Layout
@@ -152,7 +153,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
               right: 0,
               bottom: 0,
               background: 'rgba(0, 0, 0, 0.5)',
-              zIndex: 999,
+              zIndex: Z_INDEX.OVERLAY,
             }}
             onClick={() => setCollapsed(true)}
           />

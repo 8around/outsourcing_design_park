@@ -25,6 +25,7 @@ import { useRouter } from 'next/navigation'
 import { GanttChart } from '@/components/gantt/GanttChart'
 import ProjectSelectModal from '@/components/gantt/ProjectSelectModal'
 import { ViewMode, Task } from 'gantt-task-react'
+import { Z_INDEX } from '@/lib/config/layout.constants'
 
 const { Title, Text } = Typography
 const { Option } = Select
@@ -211,6 +212,7 @@ export default function GanttPage() {
           </Button>
         ]}
         width={600}
+        zIndex={Z_INDEX.MODAL}
       >
         {selectedTask && (
           <Descriptions column={1} bordered>

@@ -18,6 +18,7 @@ import { approvalService } from '@/lib/services/approval.service';
 import { useAuth } from '@/lib/hooks/useAuth';
 import UserStatsCards from './UserStatsCards';
 import UserTable from './UserTable';
+import { Z_INDEX } from '@/lib/config/layout.constants';
 
 const { Search } = Input;
 const { confirm } = Modal;
@@ -354,6 +355,7 @@ export default function UsersManagement() {
         }
         open={rejectModalVisible}
         onOk={confirmReject}
+        zIndex={Z_INDEX.MODAL}
         onCancel={() => {
           setRejectModalVisible(false);
           setSelectedUser(null);

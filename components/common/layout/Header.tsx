@@ -13,7 +13,7 @@ import {
 } from '@ant-design/icons'
 import { Button, Avatar, Dropdown, Typography } from 'antd'
 import type { MenuProps } from 'antd'
-import { HEADER_HEIGHT } from '@/lib/config/layout.constants'
+import { HEADER_HEIGHT, Z_INDEX } from '@/lib/config/layout.constants'
 
 const { Text } = Typography
 
@@ -74,7 +74,7 @@ export default function Header({
       className="fixed top-0 left-0 right-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between"
       style={{
         height: 'var(--header-height)',
-        zIndex: 1100,
+        zIndex: Z_INDEX.HEADER,
       }}
     >
       {/* 왼쪽 영역: Collapse 토글 + 로고 + 브랜드 */}

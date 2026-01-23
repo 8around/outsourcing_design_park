@@ -4,6 +4,7 @@ import React from 'react';
 import { Modal, Descriptions, Tag, Badge, Space, Button } from 'antd';
 import { UserOutlined, MailOutlined, PhoneOutlined, CalendarOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
+import { Z_INDEX } from '@/lib/config/layout.constants';
 
 interface User {
   id: string;
@@ -112,6 +113,7 @@ export default function UserDetailModal({
       open={open}
       onCancel={onClose}
       width={600}
+      zIndex={Z_INDEX.MODAL}
       footer={[
         <Button key="close" onClick={onClose}>
           닫기

@@ -40,6 +40,7 @@ import { DateClickArg } from '@fullcalendar/interaction'
 import { createClient } from '@/lib/supabase/client'
 import { Project, ProcessStage, PROCESS_STAGES } from '@/types/project'
 import { useAuth } from '@/lib/hooks/useAuth'
+import { Z_INDEX } from '@/lib/config/layout.constants'
 
 const { Title, Text } = Typography
 
@@ -461,6 +462,7 @@ export default function ProjectCalendar() {
           setEventModalVisible(false)
           setSelectedEvent(null)
         }}
+        zIndex={Z_INDEX.MODAL}
         footer={[
           <Button
             key="detail"
@@ -611,6 +613,7 @@ export default function ProjectCalendar() {
         onClose={() => setDateDrawerVisible(false)}
         open={dateDrawerVisible}
         width={400}
+        zIndex={Z_INDEX.DRAWER}
       >
         <Button
           type="dashed"
@@ -682,6 +685,7 @@ export default function ProjectCalendar() {
         }}
         okText="변경"
         cancelText="취소"
+        zIndex={Z_INDEX.MODAL}
       >
         <p>프로젝트 일정을 변경하시겠습니까?</p>
         {draggedEvent && (
