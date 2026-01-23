@@ -109,11 +109,11 @@ export class ReportService {
       }
 
       if (startDate) {
-        query = query.gte("created_at", startDate);
+        query = query.gte("report_period_end", startDate);
       }
 
       if (endDate) {
-        query = query.lte("created_at", endDate);
+        query = query.lte("report_period_start", endDate);
       }
 
       // Apply pagination and sorting

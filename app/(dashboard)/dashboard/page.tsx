@@ -35,14 +35,12 @@ export default function DashboardPage() {
               type="primary"
               icon={<ProjectOutlined />}
               onClick={() => router.push('/projects/new')}
-              size="middle"
             >
               새 프로젝트
             </Button>
             <Button
               icon={<CalendarOutlined />}
               onClick={() => router.push('/calendar')}
-              size="middle"
             >
               일정 보기
             </Button>
@@ -53,7 +51,6 @@ export default function DashboardPage() {
                 const nasUrl = 'http://192.168.2.63'
                 window.open(nasUrl, '_blank')
               }}
-              size="middle"
               title="NAS 서버 접속"
             >
               NAS 서버

@@ -222,7 +222,6 @@ export default function UsersManagement() {
               <Search
                 placeholder="이름, 이메일, 전화번호로 검색"
                 allowClear
-                size="large"
                 onSearch={setSearchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full"
@@ -232,12 +231,10 @@ export default function UsersManagement() {
           </div>
           
           {/* Action Buttons */}
-          <Button 
-            icon={<ReloadOutlined />} 
+          <Button
+            icon={<ReloadOutlined />}
             onClick={handleRefresh}
             loading={loading}
-            type="primary"
-            className="h-10 px-6 bg-primary-600 hover:bg-primary-500 border-primary-600 hover:border-primary-500 rounded-soft font-medium shadow-soft hover:shadow-soft-md transition-smooth"
           >
             새로고침
           </Button>

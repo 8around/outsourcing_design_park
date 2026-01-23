@@ -12,18 +12,23 @@ import {
   Drawer,
   List,
   message,
-  Tooltip
+  Tooltip,
+  DatePicker,
 } from 'antd'
 import {
   CalendarOutlined,
   UserOutlined,
   ProjectOutlined,
   ExclamationCircleOutlined,
-  PlusOutlined
+  PlusOutlined,
+  LeftOutlined,
+  RightOutlined
 } from '@ant-design/icons'
 import { useRouter } from 'next/navigation'
 import moment from 'moment'
 import 'moment/locale/ko'
+import dayjs, { Dayjs } from 'dayjs'
+import 'dayjs/locale/ko'
 import FullCalendar from '@fullcalendar/react'
 import dayGridPlugin from '@fullcalendar/daygrid'
 import timeGridPlugin from '@fullcalendar/timegrid'
@@ -39,6 +44,7 @@ import { useAuth } from '@/lib/hooks/useAuth'
 const { Title, Text } = Typography
 
 moment.locale('ko')
+dayjs.locale('ko')
 
 // 프로젝트 상태 타입
 type ProjectStatus = 'normal' | 'delayed' | 'completed' | 'waiting' | 'urgent'
@@ -106,7 +112,10 @@ export default function ProjectCalendar() {
   const [selectedDateProjects, setSelectedDateProjects] = useState<CalendarEvent[]>([])
   const [confirmModalVisible, setConfirmModalVisible] = useState(false)
   const [draggedEvent, setDraggedEvent] = useState<EventDropArg | null>(null)
-  
+
+  // DatePicker용 state - Ant Design은 dayjs를 사용
+  const [pickerValue, setPickerValue] = useState<Dayjs>(dayjs())
+
   const isAdmin = user?.role === 'admin'
 
   // 프로젝트 데이터 가져오기
@@ -298,6 +307,14 @@ export default function ProjectCalendar() {
     }
   }, [draggedEvent, supabase, fetchProjects])
 
+  // 년월 선택 핸들러 - Ant Design DatePicker는 dayjs 사용
+  const handleCalendarDateChange = useCallback((date: Dayjs | null) => {
+    if (date && calendarRef.current) {
+      calendarRef.current.getApi().gotoDate(date.toDate())
+      setPickerValue(date)
+    }
+  }, [])
+
   // 커스텀 이벤트 렌더링
   const renderEventContent = useCallback((eventInfo: EventContentArg) => {
     const isUrgent = eventInfo.event.extendedProps.isUrgent
@@ -346,16 +363,53 @@ export default function ProjectCalendar() {
 
       {/* 캘린더 뷰 */}
       <Card loading={loading}>
+        {/* Ant Design 커스텀 툴바 */}
+        <div style={{ position: 'relative', marginBottom: 16 }}>
+          {/* 중앙: 타이틀 (정가운데 배치) */}
+          <div style={{ textAlign: 'center' }}>
+            <Title level={4} style={{ margin: 0 }}>
+              {pickerValue.format('YYYY년 MM월')}
+            </Title>
+          </div>
+
+          {/* 좌측: 날짜 이동 (절대 위치로 왼쪽 상단에 배치) */}
+          <Space style={{ position: 'absolute', left: 0, top: '50%', transform: 'translateY(-50%)' }}>
+            <Space.Compact>
+              <Button icon={<LeftOutlined />} onClick={() => calendarRef.current?.getApi().prev()} />
+              <Button icon={<RightOutlined />} onClick={() => calendarRef.current?.getApi().next()} />
+            </Space.Compact>
+            <Button onClick={() => calendarRef.current?.getApi().today()}>오늘</Button>
+            <DatePicker
+              picker="month"
+              value={pickerValue}
+              onChange={handleCalendarDateChange}
+              format="YYYY년 MM월"
+              allowClear={false}
+              placeholder="년월 선택"
+            />
+          </Space>
+
+          {/* 우측: 뷰 선택 (주석처리 - 월 뷰만 사용)
+          <Segmented
+            style={{ position: 'absolute', right: 0, top: '50%', transform: 'translateY(-50%)' }}
+            value={currentView}
+            onChange={(value) => {
+              calendarRef.current?.getApi().changeView(value as string)
+            }}
+            options={[
+              { label: '월', value: 'dayGridMonth' },
+              { label: '주', value: 'timeGridWeek' },
+              { label: '일', value: 'timeGridDay' },
+            ]}
+          />
+          */}
+        </div>
         <FullCalendar
           ref={calendarRef}
           plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin, listPlugin]}
           initialView={currentView}
           locale={koLocale}
-          headerToolbar={{
-            left: 'prev,next today',
-            center: 'title',
-            right: 'dayGridMonth,timeGridWeek,timeGridDay'
-          }}
+          headerToolbar={false}
           events={filteredEvents}
           eventClick={handleEventClick}
           dateClick={handleDateClick}
@@ -375,12 +429,6 @@ export default function ProjectCalendar() {
             minute: '2-digit',
             meridiem: false
           }}
-          buttonText={{
-            today: '오늘',
-            month: '월',
-            week: '주',
-            day: '일'
-          }}
           views={{
             dayGridMonth: {
               titleFormat: { year: 'numeric', month: 'long' },
@@ -395,6 +443,7 @@ export default function ProjectCalendar() {
           }}
           datesSet={(dateInfo) => {
             setCurrentView(dateInfo.view.type)
+            setPickerValue(dayjs(dateInfo.view.currentStart))
           }}
         />
       </Card>
@@ -413,11 +462,11 @@ export default function ProjectCalendar() {
           setSelectedEvent(null)
         }}
         footer={[
-          <Button 
-            key="detail" 
+          <Button
+            key="detail"
             type="primary"
             onClick={() => {
-              router.push(`/projects/${selectedEvent?.extendedProps.projectId}`)
+              window.open(`/projects/${selectedEvent?.extendedProps.projectId}`, '_blank')
             }}
           >
             상세 페이지로 이동
@@ -562,27 +611,27 @@ export default function ProjectCalendar() {
         onClose={() => setDateDrawerVisible(false)}
         open={dateDrawerVisible}
         width={400}
-        extra={
-          <Button 
-            type="primary" 
-            icon={<PlusOutlined />}
-            onClick={() => router.push('/projects/new')}
-          >
-            새 프로젝트
-          </Button>
-        }
       >
+        <Button
+          type="dashed"
+          icon={<PlusOutlined />}
+          block
+          style={{ marginBottom: 16 }}
+          onClick={() => window.open('/projects/new', '_blank')}
+        >
+          새 프로젝트
+        </Button>
         {selectedDateProjects.length > 0 ? (
           <List
             dataSource={selectedDateProjects}
             renderItem={(project) => (
               <List.Item
                 actions={[
-                  <Button 
+                  <Button
                     key="view"
                     type="link"
                     onClick={() => {
-                      router.push(`/projects/${project.extendedProps.projectId}`)
+                      window.open(`/projects/${project.extendedProps.projectId}`, '_blank')
                     }}
                   >
                     상세보기

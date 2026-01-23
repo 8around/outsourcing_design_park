@@ -1,10 +1,15 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { Select, DatePicker, Button } from 'antd';
+import { ClearOutlined } from '@ant-design/icons';
+import dayjs from 'dayjs';
 import { reportService } from '@/lib/services/report.service';
 import { WeeklyReportHistory, REPORT_STATUS } from '@/types/report';
 import { Loading } from '@/components/common/ui/Loading';
 import { Alert } from '@/components/common/ui/Alert';
+
+const { Option } = Select;
 
 export function ReportHistoryList() {
   const [history, setHistory] = useState<WeeklyReportHistory[]>([]);
@@ -155,62 +160,76 @@ export function ReportHistoryList() {
       </div>
 
       {/* Filters */}
-      <div className="flex flex-wrap items-center gap-4 p-4 bg-gray-50 rounded-lg">
+      <div className="flex flex-wrap items-end gap-4 p-4 bg-gray-50 rounded-lg">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">상태</label>
-          <select
-            value={statusFilter}
-            onChange={(e) => {
-              setStatusFilter(e.target.value);
+          <Select
+            value={statusFilter || undefined}
+            onChange={(value) => {
+              setStatusFilter(value || '');
               setCurrentPage(1);
             }}
-            className="px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+            placeholder="전체"
+            allowClear
+            style={{ width: 120 }}
           >
-            <option value="">전체</option>
-            <option value="sent">발송완료</option>
-            <option value="failed">발송실패</option>
-            <option value="pending">대기중</option>
-          </select>
+            <Option value="sent">발송완료</Option>
+            <Option value="failed">발송실패</Option>
+            <Option value="pending">대기중</Option>
+          </Select>
         </div>
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">시작일</label>
-          <input
-            type="date"
-            value={startDate}
-            onChange={(e) => {
-              setStartDate(e.target.value);
+          <DatePicker
+            value={startDate ? dayjs(startDate) : null}
+            onChange={(date) => {
+              setStartDate(date ? date.format('YYYY-MM-DD') : '');
               setCurrentPage(1);
             }}
-            className="px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+            placeholder="시작일 선택"
+            style={{ width: 140 }}
+            disabledDate={(current) => {
+              if (endDate) {
+                return current && current.isAfter(dayjs(endDate), 'day');
+              }
+              return false;
+            }}
           />
         </div>
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">종료일</label>
-          <input
-            type="date"
-            value={endDate}
-            onChange={(e) => {
-              setEndDate(e.target.value);
+          <DatePicker
+            value={endDate ? dayjs(endDate) : null}
+            onChange={(date) => {
+              setEndDate(date ? date.format('YYYY-MM-DD') : '');
               setCurrentPage(1);
             }}
-            className="px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+            placeholder="종료일 선택"
+            style={{ width: 140 }}
+            disabledDate={(current) => {
+              if (startDate) {
+                return current && current.isBefore(dayjs(startDate), 'day');
+              }
+              return false;
+            }}
           />
         </div>
 
-        <div className="flex items-end">
-          <button
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1 invisible">액션</label>
+          <Button
+            icon={<ClearOutlined />}
             onClick={() => {
               setStatusFilter('');
               setStartDate('');
               setEndDate('');
               setCurrentPage(1);
             }}
-            className="px-4 py-2 text-sm text-gray-700 hover:text-gray-900"
           >
             필터 초기화
-          </button>
+          </Button>
         </div>
       </div>
 

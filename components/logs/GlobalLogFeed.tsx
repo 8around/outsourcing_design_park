@@ -268,13 +268,13 @@ export default function GlobalLogFeed({
   }
 
   // 사용자 필터 선택 핸들러
-  const handleUserSelect = (user: User) => {
+  const handleUserSelect = (user: User | null) => {
     setFilterUser(user)
-    setFilterUserId(user.id)
+    setFilterUserId(user?.id || null)
     setCurrentPage(1)
     setShowUserSelectModal(false)
-    updateURL({ ...getCurrentParams(), logUser: user.id, logPage: 1 })
-    message.success(`${user.name}님의 로그를 필터링합니다.`)
+    updateURL({ ...getCurrentParams(), logUser: user?.id || null, logPage: 1 })
+    message.success(user ? `${user.name}님의 로그를 필터링합니다.` : '사용자 필터를 초기화합니다.')
   }
 
   // 필터 초기화
@@ -531,20 +531,10 @@ export default function GlobalLogFeed({
               <Tag
                 color="blue"
                 closable
-                onClose={handleResetFilter}
-                className="ml-2"
+                onClose={() => handleUserSelect(null)}
+                className="ml-2 user-filter-tag"
               >
                 {filterUser.name} 필터링 중
-              </Tag>
-            )}
-            {filterCategory && (
-              <Tag
-                color="green"
-                closable
-                onClose={() => handleCategoryChange(null)}
-                className="ml-2"
-              >
-                {filterCategory} 필터링 중
               </Tag>
             )}
           </div>
@@ -554,7 +544,6 @@ export default function GlobalLogFeed({
               value={pageSize}
               onChange={handlePageSizeChange}
               style={{ width: 85 }}
-              size="small"
             >
               <Select.Option value={5}>5개</Select.Option>
               <Select.Option value={10}>10개</Select.Option>
@@ -570,7 +559,6 @@ export default function GlobalLogFeed({
               placeholder="카테고리 선택"
               allowClear
               style={{ width: 140 }}
-              size="small"
               value={filterCategory}
               onChange={handleCategoryChange}
             >
@@ -590,7 +578,6 @@ export default function GlobalLogFeed({
               <Button
                 icon={<FilterOutlined />}
                 onClick={() => setShowUserSelectModal(true)}
-                size="small"
                 type={filterUserId ? "primary" : "default"}
               >
                 사용자 필터
@@ -601,7 +588,6 @@ export default function GlobalLogFeed({
               <Button
                 icon={<CloseCircleOutlined />}
                 onClick={handleResetFilter}
-                size="small"
                 danger
               >
                 초기화
@@ -613,7 +599,6 @@ export default function GlobalLogFeed({
                 icon={<ReloadOutlined spin={refreshing} />}
                 onClick={handleRefresh}
                 loading={refreshing}
-                size="small"
               >
                 새로고침
               </Button>
@@ -708,6 +693,14 @@ export default function GlobalLogFeed({
         :global(.project-name-tooltip) {
           max-width: 400px;
           word-break: break-word;
+        }
+
+        /* 사용자 필터 태그 - Select middle 사이즈와 동일하게 */
+        :global(.user-filter-tag) {
+          height: 32px;
+          border-radius: 8px;
+          display: inline-flex;
+          align-items: center;
         }
 
         @media (max-width: 768px) {

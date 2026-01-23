@@ -338,7 +338,6 @@ export default function ProjectsPage() {
             value={completionStatus}
             onChange={handleCompletionStatusChange}
             style={{ width: 100 }}
-            size="large"
           >
             <Option value="in_progress">진행중</Option>
             <Option value="completed">완료</Option>
@@ -351,7 +350,6 @@ export default function ProjectsPage() {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             style={{ width: '100%', maxWidth: 400 }}
-            size="large"
             prefix={<SearchOutlined className="text-gray-400" />}
           />
 
@@ -361,7 +359,6 @@ export default function ProjectsPage() {
               value={selectedStage}
               onChange={handleStageChange}
               style={{ width: 160 }}
-              size="large"
               allowClear
             >
               <Option value="">전체</Option>
@@ -376,7 +373,6 @@ export default function ProjectsPage() {
               type={showUrgentOnly ? 'primary' : 'default'}
               icon={<ThunderboltOutlined />}
               onClick={handleUrgentToggle}
-              size="large"
               danger={showUrgentOnly}
             >
               긴급만
@@ -386,7 +382,6 @@ export default function ProjectsPage() {
               type={showFavoritesOnly ? 'primary' : 'default'}
               icon={showFavoritesOnly ? <HeartFilled /> : <HeartOutlined />}
               onClick={handleFavoritesToggle}
-              size="large"
             >
               즐겨찾기
             </Button>
