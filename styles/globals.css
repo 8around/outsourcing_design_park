@@ -43,10 +43,12 @@
   --error-500: #ef4444;
   --error-600: #dc2626;
 
-  /* Layout */
+  /* Layout - 폴백 값 (실제 값은 ThemeProvider, lib/config/layout.constants.ts로 동적 설정) */
   --sidebar-width: 280px;
-  --sidebar-collapsed-width: 80px;
+  --sidebar-collapsed-width: 75px;
+  --current-sidebar-width: 280px; /* DashboardLayout에서 동적 업데이트 */
   --header-height: 72px;
+  --min-rendering-width: 992px;
 
   /* Spacing */
   --spacing-xs: 0.25rem;
@@ -80,6 +82,11 @@
   --text-secondary: var(--gray-700);
   --background-primary: #ffffff;
   --background-secondary: var(--gray-50);
+}
+
+/* 최소 렌더링 폭 고정 */
+html, body {
+  min-width: var(--min-rendering-width);
 }
 
 body {
@@ -201,31 +208,8 @@ body {
 }
 
 /* Animation Utilities */
-.animate-slide-up {
-  animation: slideUp 0.5s ease-out;
-}
-
 .animate-fade-in {
   animation: fadeIn 0.4s ease-out;
-}
-
-.animate-scale-in {
-  animation: scaleIn 0.3s ease-out;
-}
-
-.animate-pulse-soft {
-  animation: pulseSoft 2s ease-in-out infinite;
-}
-
-@keyframes slideUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
 }
 
 @keyframes fadeIn {
@@ -234,36 +218,6 @@ body {
   }
   to {
     opacity: 1;
-  }
-}
-
-@keyframes scaleIn {
-  from {
-    opacity: 0;
-    transform: scale(0.95);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-@keyframes pulseSoft {
-  0%, 100% {
-    opacity: 0.4;
-  }
-  50% {
-    opacity: 0.8;
-  }
-}
-
-/* Mobile Optimizations */
-@media (max-width: 1024px) {
-  .sidebar-mobile-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.5);
-    z-index: 40;
   }
 }
 
@@ -308,4 +262,9 @@ body {
 .ant-btn-primary:hover {
   background: var(--primary-700) !important;
   border-color: var(--primary-700) !important;
+}
+
+/* Main Layout Overflow Prevention */
+.main-layout {
+  overflow-x: hidden;
 }

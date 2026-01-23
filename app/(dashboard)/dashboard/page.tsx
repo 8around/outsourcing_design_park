@@ -15,7 +15,7 @@ const { Title, Text } = Typography
 
 export default function DashboardPage() {
   const router = useRouter()
-  const { user } = useAuth()
+  const { userData } = useAuth()
 
   return (
     <div className="dashboard-container">
@@ -24,7 +24,7 @@ export default function DashboardPage() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <Title level={2} className="mb-2 text-xl sm:text-2xl">
-              안녕하세요, {user?.email?.split('@')[0] || '사용자'}님! 👋
+              안녕하세요, {userData?.name || '사용자'}님! 👋
             </Title>
             <Text type="secondary" className="text-base sm:text-lg">
               오늘도 프로젝트 관리를 효율적으로 진행해보세요.

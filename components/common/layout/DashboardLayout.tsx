@@ -1,12 +1,17 @@
 'use client'
 
-import { useState, useEffect, ReactNode } from 'react'
+import { useState, useEffect, useCallback, ReactNode } from 'react'
 import { usePathname } from 'next/navigation'
 import { Layout, FloatButton } from 'antd'
 import { UpOutlined } from '@ant-design/icons'
 import { ThemeProvider } from '@/components/providers/ThemeProvider'
 import Sidebar from './Sidebar'
 import Header from './Header'
+import {
+  SIDEBAR_WIDTH,
+  SIDEBAR_COLLAPSED_WIDTH,
+  MIN_RENDERING_WIDTH,
+} from '@/lib/config/layout.constants'
 
 const { Content } = Layout
 
@@ -21,15 +26,15 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const [collapsed, setCollapsed] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
 
-  const sidebarWidth = 280
-  const collapsedWidth = 80
+  // 현재 사이드바 폭 계산
+  const currentSidebarWidth = isMobile ? 0 : (collapsed ? SIDEBAR_COLLAPSED_WIDTH : SIDEBAR_WIDTH)
 
   // 반응형 처리
   useEffect(() => {
     const checkMobile = () => {
-      const mobile = window.innerWidth < 768
+      const mobile = window.innerWidth < MIN_RENDERING_WIDTH
       setIsMobile(mobile)
-      
+
       // 모바일에서는 기본적으로 사이드바 접기
       if (mobile) {
         setCollapsed(true)
@@ -41,22 +46,39 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     return () => window.removeEventListener('resize', checkMobile)
   }, [])
 
+  // CSS 변수 업데이트
+  useEffect(() => {
+    document.documentElement.style.setProperty(
+      '--current-sidebar-width',
+      `${currentSidebarWidth}px`
+    )
+  }, [currentSidebarWidth])
+
   // 사이드바 토글 핸들러
-  const handleCollapse = (isCollapsed: boolean) => {
+  const handleCollapse = useCallback((isCollapsed: boolean) => {
     setCollapsed(isCollapsed)
-  }
+  }, [])
 
   // 모바일에서 사이드바 바깥 영역 클릭 시 닫기
-  const handleContentClick = () => {
+  const handleContentClick = useCallback(() => {
     if (isMobile && !collapsed) {
       setCollapsed(true)
     }
-  }
+  }, [isMobile, collapsed])
 
   return (
     <ThemeProvider>
       <Layout className="dashboard-layout min-h-screen">
-        {/* 사이드바 */}
+        {/* 헤더 - 최상위, 전체 폭 */}
+        <Header
+          collapsed={collapsed}
+          onCollapse={handleCollapse}
+          showMobileMenuButton={isMobile}
+          onMobileMenuToggle={() => setCollapsed(!collapsed)}
+          isMobile={isMobile}
+        />
+
+        {/* 사이드바 - 헤더 아래 */}
         <Sidebar
           collapsed={collapsed}
           onCollapse={handleCollapse}
@@ -64,37 +86,30 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           isMobile={isMobile}
         />
 
-        {/* 메인 레이아웃 */}
+        {/* 메인 레이아웃 - 헤더 아래, 사이드바 옆 */}
         <Layout
           className="main-layout"
           style={{
-            marginLeft: isMobile ? 0 : (collapsed ? collapsedWidth : sidebarWidth),
-            transition: 'margin-left 0.2s ease',
-            minHeight: '100vh',
-            width: '100%',
+            marginLeft: currentSidebarWidth,
+            marginTop: 'var(--header-height)',
+            width: `calc(max(100vw, var(--min-rendering-width)) - ${currentSidebarWidth}px)`,
+            maxWidth: `calc(max(100vw, var(--min-rendering-width)) - ${currentSidebarWidth}px)`,
+            transition: 'margin-left 0.2s ease, width 0.2s ease, max-width 0.2s ease',
+            minHeight: 'calc(100vh - var(--header-height))',
             position: 'relative',
+            overflowX: 'hidden',
           }}
         >
-          {/* 헤더 */}
-          <Header
-            collapsed={collapsed}
-            onCollapse={handleCollapse}
-            sidebarWidth={sidebarWidth}
-            showMobileMenuButton={isMobile}
-            onMobileMenuToggle={() => setCollapsed(!collapsed)}
-          />
-
           {/* 메인 콘텐츠 */}
           <Content
             className="main-content"
             style={{
-              marginTop: '72px', // 헤더 높이
               padding: isGanttPage ? '0' : '24px',
               paddingBottom: isGanttPage ? '0' : '24px',
-              minHeight: 'calc(100vh - 72px)',
+              minHeight: 'calc(100vh - var(--header-height))',
               background: 'var(--background-secondary)',
               position: 'relative',
-              zIndex: 1, // Lower z-index than sidebar
+              zIndex: 1,
             }}
             onClick={handleContentClick}
           >
@@ -106,10 +121,10 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                 borderRadius: isGanttPage ? '0' : 'var(--radius-md)',
                 boxShadow: isGanttPage ? 'none' : 'var(--shadow-sm)',
                 border: isGanttPage ? 'none' : '1px solid var(--border-color)',
-                minHeight: 'calc(100vh - 144px)', // 헤더 + 패딩 고려
+                minHeight: 'calc(100vh - 144px)',
                 padding: isGanttPage ? '0' : '24px',
                 position: 'relative',
-                zIndex: 1, // Ensure proper stacking context
+                zIndex: 1,
               }}
             >
               {children}
@@ -132,7 +147,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             className="mobile-overlay"
             style={{
               position: 'fixed',
-              top: 0,
+              top: 'var(--header-height)',
               left: 0,
               right: 0,
               bottom: 0,
@@ -177,7 +192,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             border-radius: 0 !important;
           }
 
-          /* 반응형 스타일 */
+          /* 반응형 스타일 - 최소 폭 992px이므로 1200px 이하만 대응 */
           @media (max-width: 1200px) {
             .main-content {
               padding: 20px;
@@ -190,40 +205,6 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
             .content-wrapper.gantt-page-wrapper {
               padding: 0 !important;
-            }
-          }
-
-          @media (max-width: 768px) {
-            .main-content {
-              padding: 16px;
-            }
-
-            .content-wrapper {
-              padding: 16px;
-              min-height: calc(100vh - 120px);
-              border-radius: 12px;
-            }
-
-            .content-wrapper.gantt-page-wrapper {
-              padding: 0 !important;
-              min-height: calc(100vh - 120px);
-            }
-          }
-
-          @media (max-width: 480px) {
-            .main-content {
-              padding: 12px;
-            }
-
-            .content-wrapper {
-              padding: 12px;
-              min-height: calc(100vh - 108px);
-              border-radius: 8px;
-            }
-
-            .content-wrapper.gantt-page-wrapper {
-              padding: 0 !important;
-              min-height: calc(100vh - 108px);
             }
           }
 
