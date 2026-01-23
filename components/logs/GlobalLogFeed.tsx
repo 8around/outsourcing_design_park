@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Card, List, Avatar, Typography, Tag, Space, Button, Empty, Skeleton, message, Pagination, Select, Tooltip } from 'antd'
+import { Card, List, Typography, Tag, Space, Button, Empty, Skeleton, message, Pagination, Select, Tooltip } from 'antd'
 import {
   FileTextOutlined,
   CheckCircleOutlined,
@@ -404,12 +404,6 @@ export default function GlobalLogFeed({
         actions={actions}
       >
         <List.Item.Meta
-          avatar={
-            <Avatar
-              icon={config.icon}
-              style={{ backgroundColor: `var(--ant-color-${config.color})` }}
-            />
-          }
           title={
             <div className="log-tag-container" style={{
               display: 'flex',
