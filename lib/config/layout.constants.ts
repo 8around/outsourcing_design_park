@@ -10,7 +10,7 @@
  */
 
 // 사이드바 폭 (px)
-export const SIDEBAR_WIDTH = 280
+export const SIDEBAR_WIDTH = 200
 export const SIDEBAR_COLLAPSED_WIDTH = 75
 
 // Header 높이 (px)
