@@ -241,7 +241,7 @@ export default function GanttPage() {
                 </Descriptions.Item>
               )}
               <Descriptions.Item label="현장명">
-                {selectedTask.name}
+                {selectedTask.siteName || '-'}
               </Descriptions.Item>
               <Descriptions.Item label="제품명">
                 {selectedTask.productName || '-'}
