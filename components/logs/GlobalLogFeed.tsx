@@ -398,9 +398,6 @@ export default function GlobalLogFeed({
     return (
       <List.Item
         key={log.id}
-        onClick={() => handleLogClick(log)}
-        style={{ cursor: log.project_id ? 'pointer' : 'default' }}
-        className="log-item-clickable"
         actions={actions}
       >
         <List.Item.Meta
@@ -446,12 +443,19 @@ export default function GlobalLogFeed({
               <Text>{log.content}</Text>
               {log.project_name && (
                 <div>
-                  <Tooltip 
-                      title={log.project_name} 
+                  <Tooltip
+                      title={`${log.project_name}`}
                       placement="bottom"
                       rootClassName="project-name-tooltip"
                     >
-                    <Tag color="blue" className="mt-1 project-name-tag">
+                    <Tag
+                      color="blue"
+                      className="mt-1 project-name-tag project-name-clickable"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleLogClick(log)
+                      }}
+                    >
                       {log.project_name}
                     </Tag>
                   </Tooltip>
@@ -513,86 +517,97 @@ export default function GlobalLogFeed({
   return (
     <Card
       title={
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Title level={4} className="mb-0">전체 활동 로그</Title>
-            {filterUser && (
-              <Tag
-                color="blue"
-                closable
-                onClose={() => handleUserSelect(null)}
-                className="ml-2 user-filter-tag"
+        <div className="flex items-center gap-2">
+          {/* 타이틀 (고정) */}
+          <Title level={4} className='!m-0'>전체 활동 로그</Title>
+
+          {/* 새로고침 버튼 - 아이콘만 (고정) */}
+          {showRefresh && (
+            <Button
+              type="text"
+              icon={<ReloadOutlined spin={refreshing} />}
+              onClick={handleRefresh}
+              loading={refreshing}
+            />
+          )}
+
+          {/* 구분선 (고정) */}
+          <div className='w-[1px] h-5 bg-gray-200' />
+
+          {/* 필터 영역 (스크롤 가능) */}
+          <div className="filter-scroll-container">
+            <div className="flex items-center gap-2" style={{ whiteSpace: 'nowrap' }}>
+              {/* 사용자 필터 태그 */}
+              {filterUser && (
+                <Tag
+                  color="blue"
+                  closable
+                  onClose={() => handleUserSelect(null)}
+                  className="user-filter-tag flex-shrink-0"
+                >
+                  {filterUser.name} 필터링 중
+                </Tag>
+              )}
+
+              {/* 페이지 크기 Select */}
+              <Select
+                value={pageSize}
+                onChange={handlePageSizeChange}
+                className="w-20 flex-shrink-0"
               >
-                {filterUser.name} 필터링 중
-              </Tag>
-            )}
+                <Select.Option value={5}>5개</Select.Option>
+                <Select.Option value={10}>10개</Select.Option>
+                <Select.Option value={20}>20개</Select.Option>
+                <Select.Option value={30}>30개</Select.Option>
+                <Select.Option value={40}>40개</Select.Option>
+                <Select.Option value={50}>50개</Select.Option>
+                <Select.Option value={100}>100개</Select.Option>
+              </Select>
+
+              {/* 카테고리 필터 Select */}
+              <Select
+                placeholder="카테고리 선택"
+                allowClear
+                className="w-35 flex-shrink-0"
+                value={filterCategory}
+                onChange={handleCategoryChange}
+              >
+                <Select.Option value="사양변경">사양변경</Select.Option>
+                <Select.Option value="도면설계">도면설계</Select.Option>
+                <Select.Option value="구매발주">구매발주</Select.Option>
+                <Select.Option value="생산제작">생산제작</Select.Option>
+                <Select.Option value="상하차">상하차</Select.Option>
+                <Select.Option value="현장설치시공">현장설치시공</Select.Option>
+                <Select.Option value="설치인증">설치인증</Select.Option>
+                <Select.Option value="설비">설비</Select.Option>
+                <Select.Option value="기타">기타</Select.Option>
+              </Select>
+
+              {/* 관리자인 경우에만 사용자 필터 버튼 표시 */}
+              {userData?.role === 'admin' && (
+                <Button
+                  icon={<FilterOutlined />}
+                  onClick={() => setShowUserSelectModal(true)}
+                  type={filterUserId ? "primary" : "default"}
+                  className="flex-shrink-0"
+                >
+                  사용자 필터
+                </Button>
+              )}
+
+              {/* 필터가 적용된 경우 초기화 버튼 표시 */}
+              {(filterUserId || filterCategory) && (
+                <Button
+                  icon={<CloseCircleOutlined />}
+                  onClick={handleResetFilter}
+                  danger
+                  className="flex-shrink-0"
+                >
+                  초기화
+                </Button>
+              )}
+            </div>
           </div>
-          <Space>
-            {/* 페이지 크기 Select */}
-            <Select
-              value={pageSize}
-              onChange={handlePageSizeChange}
-              style={{ width: 85 }}
-            >
-              <Select.Option value={5}>5개</Select.Option>
-              <Select.Option value={10}>10개</Select.Option>
-              <Select.Option value={20}>20개</Select.Option>
-              <Select.Option value={30}>30개</Select.Option>
-              <Select.Option value={40}>40개</Select.Option>
-              <Select.Option value={50}>50개</Select.Option>
-              <Select.Option value={100}>100개</Select.Option>
-            </Select>
-
-            {/* 카테고리 필터 Select */}
-            <Select
-              placeholder="카테고리 선택"
-              allowClear
-              style={{ width: 140 }}
-              value={filterCategory}
-              onChange={handleCategoryChange}
-            >
-              <Select.Option value="사양변경">사양변경</Select.Option>
-              <Select.Option value="도면설계">도면설계</Select.Option>
-              <Select.Option value="구매발주">구매발주</Select.Option>
-              <Select.Option value="생산제작">생산제작</Select.Option>
-              <Select.Option value="상하차">상하차</Select.Option>
-              <Select.Option value="현장설치시공">현장설치시공</Select.Option>
-              <Select.Option value="설치인증">설치인증</Select.Option>
-              <Select.Option value="설비">설비</Select.Option>
-              <Select.Option value="기타">기타</Select.Option>
-            </Select>
-
-            {/* 관리자인 경우에만 사용자 필터 버튼 표시 */}
-            {userData?.role === 'admin' && (
-              <Button
-                icon={<FilterOutlined />}
-                onClick={() => setShowUserSelectModal(true)}
-                type={filterUserId ? "primary" : "default"}
-              >
-                사용자 필터
-              </Button>
-            )}
-            {/* 필터가 적용된 경우 초기화 버튼 표시 */}
-            {(filterUserId || filterCategory) && (
-              <Button
-                icon={<CloseCircleOutlined />}
-                onClick={handleResetFilter}
-                danger
-              >
-                초기화
-              </Button>
-            )}
-            {showRefresh && (
-              <Button
-                type="text"
-                icon={<ReloadOutlined spin={refreshing} />}
-                onClick={handleRefresh}
-                loading={refreshing}
-              >
-                새로고침
-              </Button>
-            )}
-          </Space>
         </div>
       }
       className="global-log-feed"
@@ -604,7 +619,6 @@ export default function GlobalLogFeed({
           <List
             dataSource={logs}
             renderItem={renderLogItem}
-            className="log-list"
           />
           {totalCount > pageSize && (
             <div className="pagination-container">
@@ -634,29 +648,18 @@ export default function GlobalLogFeed({
       />
 
       <style jsx>{`
+        /* 필터 영역 가로 스크롤 */
+        .filter-scroll-container {
+          flex: 1;
+          min-width: 0;
+          overflow-x: auto;
+          overflow-y: hidden;
+          scrollbar-width: thin;
+          padding: 0 8px;
+        }
+
         .log-tag-container::-webkit-scrollbar {
           display: none;
-        }
-
-        .global-log-feed :global(.ant-card-body) {
-          padding: 0;
-          max-height: 500px;
-          overflow-y: auto;
-        }
-
-        .log-list :global(.ant-list-item) {
-          padding: 16px 20px;
-          border-bottom: 1px solid var(--border-light);
-          transition: background-color 0.2s;
-        }
-
-        .log-list :global(.log-item-clickable:hover) {
-          background-color: #f5f5f5;
-          cursor: pointer;
-        }
-
-        .log-list :global(.ant-list-item:last-child) {
-          border-bottom: none;
         }
 
         .pagination-container {
@@ -679,7 +682,16 @@ export default function GlobalLogFeed({
           text-overflow: ellipsis;
           white-space: nowrap;
           display: inline-block;
+        }
+
+        /* 프로젝트명 태그 클릭 가능 스타일 */
+        :global(.project-name-clickable) {
           cursor: pointer;
+          transition: all 0.2s ease;
+        }
+
+        :global(.project-name-clickable:hover) {
+          transform: scale(1.02);
         }
 
         /* 프로젝트명 툴팁 */

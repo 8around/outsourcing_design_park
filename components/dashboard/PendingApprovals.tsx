@@ -565,21 +565,16 @@ export default function PendingApprovals({
   return (
     <Card
       title={
-        <div className="flex items-center justify-between">
-          <Space>
-            <Title level={4} className="mb-0">승인 대기 목록</Title>
-          </Space>
-          <Tooltip title="새로고침">
-            <Button
-              type="text"
-              icon={<ReloadOutlined spin={refreshing} />}
-              onClick={handleRefresh}
-              loading={refreshing}
-              disabled={loading}
-            >
-              새로고침
-            </Button>
-          </Tooltip>
+        <div className="flex items-center gap-2">
+          <Title level={4} className='!m-0'>승인 대기 목록</Title>
+          
+          <Button
+            type="text"
+            icon={<ReloadOutlined spin={refreshing} />}
+            onClick={handleRefresh}
+            loading={refreshing}
+            disabled={loading}
+          />
         </div>
       }
       className="pending-approvals"
