@@ -2,6 +2,7 @@
 
 import { Row, Col, Button, Typography } from 'antd'
 import {
+  HomeOutlined,
   ProjectOutlined,
   CalendarOutlined,
   CloudServerOutlined,
@@ -19,14 +20,14 @@ export default function DashboardPage() {
 
   return (
     <div className="dashboard-container">
-      {/* 웰컴 섹션 */}
+      {/* 헤더 */}
       <div className="mb-6">
         <div className="flex flex-row items-center justify-between gap-4">
           <div>
-            <Title level={2} className="mb-2 text-2xl">
+            <Title level={2} className="mb-2 flex items-center gap-3">
               안녕하세요, {userData?.name || '사용자'}님! 👋
             </Title>
-            <Text type="secondary" className="text-lg">
+            <Text type="secondary" className="text-base">
               오늘도 프로젝트 관리를 효율적으로 진행해보세요.
             </Text>
           </div>

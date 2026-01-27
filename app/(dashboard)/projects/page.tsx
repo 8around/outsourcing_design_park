@@ -296,10 +296,11 @@ export default function ProjectsPage() {
 
   return (
     <div className="p-6">
-      {/* 헤더 섹션 */}
-      <div className="flex flex-row items-center justify-between mb-8 gap-4">
+      {/* 헤더 */}
+      <div className="flex flex-row items-center justify-between mb-6 gap-4">
         <div>
-          <Title level={2} className="mb-2">
+          <Title level={2} className="mb-2 flex items-center gap-3">
+            <ProjectOutlined />
             프로젝트 관리
           </Title>
           <Text type="secondary" className="text-base">

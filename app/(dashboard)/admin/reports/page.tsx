@@ -1,28 +1,35 @@
-'use client';
+'use client'
 
-import { useState } from 'react';
-import { ReportConfiguration } from '@/components/reports/ReportConfiguration';
-import { ReportHistoryList } from '@/components/reports/ReportHistoryList';
-import { Alert } from '@/components/common/ui/Alert';
+import { useState } from 'react'
+import { Typography, Alert } from 'antd'
+import { FileTextOutlined } from '@ant-design/icons'
+import { ReportConfiguration } from '@/components/reports/ReportConfiguration'
+import { ReportHistoryList } from '@/components/reports/ReportHistoryList'
+
+const { Title, Text } = Typography
 
 export default function ReportsPage() {
-  const [activeTab, setActiveTab] = useState<'config' | 'history'>('config');
+  const [activeTab, setActiveTab] = useState<'config' | 'history'>('config')
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      {/* Page Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">리포트 관리</h1>
-        <p className="mt-2 text-gray-600">
-          주간 리포트 발송 설정 및 발송 내역을 관리합니다.
-        </p>
+    <div className="container mx-auto px-6 py-8">
+      {/* 헤더 */}
+      <div className="mb-6">
+        <Title level={2} className="mb-2 flex items-center gap-3">
+          <FileTextOutlined />
+          리포트 관리
+        </Title>
+        <Text type="secondary" className="text-base">
+          주간 리포트 발송 설정 및 발송 내역을 관리합니다
+        </Text>
       </div>
 
       {/* Info Alert */}
-      <Alert 
-        type="info" 
+      <Alert
+        type="info"
         className="mb-6"
         message="주간 리포트는 설정된 시간에 자동으로 생성되어 이메일로 발송됩니다."
+        showIcon
       />
 
       {/* Tabs */}
@@ -63,5 +70,5 @@ export default function ReportsPage() {
         </div>
       </div>
     </div>
-  );
+  )
 }

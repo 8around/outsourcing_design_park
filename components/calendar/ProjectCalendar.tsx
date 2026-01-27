@@ -99,8 +99,9 @@ const statusLabels = {
 export default function ProjectCalendar() {
   const router = useRouter()
   const calendarRef = useRef<FullCalendar>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
   const supabase = createClient()
-  
+
   const [loading, setLoading] = useState(true)
   const [projects, setProjects] = useState<Project[]>([])
   const [eventModalVisible, setEventModalVisible] = useState(false)
@@ -220,6 +221,25 @@ export default function ProjectCalendar() {
     fetchProjects()
   }, [fetchProjects])
 
+  // 컨테이너 크기 변경 감지 및 FullCalendar 리사이즈
+  useEffect(() => {
+    const container = containerRef.current
+    if (!container) return
+
+    const resizeObserver = new ResizeObserver(() => {
+      // debounce를 위한 requestAnimationFrame 사용
+      requestAnimationFrame(() => {
+        calendarRef.current?.getApi().updateSize()
+      })
+    })
+
+    resizeObserver.observe(container)
+
+    return () => {
+      resizeObserver.disconnect()
+    }
+  }, [])
+
   // 이벤트 클릭 핸들러
   const handleEventClick = useCallback((clickInfo: EventClickArg) => {
     const event = clickInfo.event
@@ -294,16 +314,19 @@ export default function ProjectCalendar() {
   }, [])
 
   return (
-    <div className="calendar-page">
+    <div className="calendar-page" ref={containerRef}>
       {/* 헤더 */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <Title level={2} className="mb-2">프로젝트 캘린더</Title>
+          <Title level={2} className="mb-2 flex items-center gap-3">
+            <CalendarOutlined />
+            프로젝트 캘린더
+          </Title>
           <Text type="secondary" className="text-base">
             프로젝트 일정을 한눈에 확인하고 관리하세요
           </Text>
         </div>
-        <Button 
+        <Button
           icon={<PlusOutlined />}
           type="primary"
           onClick={() => router.push('/projects/new')}
@@ -608,9 +631,14 @@ export default function ProjectCalendar() {
 
       <style jsx global>{`
         .calendar-page {
-          min-height: 100vh;
-          background: #f5f5f5;
           padding: 24px;
+        }
+
+        /* FullCalendar 카드 스타일 */
+        .calendar-page .ant-card {
+          border: 1px solid #e8e8e8;
+          border-radius: 8px;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
         }
 
         /* FullCalendar 스타일 커스터마이징 */
