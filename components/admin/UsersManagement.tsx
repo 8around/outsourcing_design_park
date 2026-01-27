@@ -56,52 +56,57 @@ export default function UsersManagement() {
   const [rejectModalVisible, setRejectModalVisible] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [rejectReason, setRejectReason] = useState('');
+  const [pageSize, setPageSize] = useState(10);
 
   // 데이터 로딩
   const loadUsers = useCallback(async (status: UserStatus) => {
     setLoading(true);
     try {
       const data = await approvalService.getUsersByStatus(status);
-      
-      // Filter out the current admin user to avoid showing themselves in the list
-      const filteredData = data.filter(u => u.id !== user?.id);
-      
-      setUsers(filteredData);
+
+      setUsers(data);
     } catch (error) {
       message.error('사용자 데이터를 불러오는데 실패했습니다.');
       console.error('Error loading users:', error);
     } finally {
       setLoading(false);
     }
-  }, [user?.id]);
+  }, []);
 
   // 통계 데이터 로딩
   const loadStats = useCallback(async () => {
     try {
-      const [pendingUsers, approvedUsers, rejectedUsers] = await Promise.all([
-        approvalService.getUsersByStatus('pending'),
-        approvalService.getUsersByStatus('approved'),
-        approvalService.getUsersByStatus('rejected')
-      ]);
+      const allUsers = await approvalService.getAllUsers();
 
-      // Filter out the current admin user from stats
-      const filteredPending = pendingUsers.filter(u => u.id !== user?.id);
-      const filteredApproved = approvedUsers.filter(u => u.id !== user?.id);
-      const filteredRejected = rejectedUsers.filter(u => u.id !== user?.id);
+      let pendingUsersCount = 0;
+      let approvedUsersCount = 0;
+      let rejectedUsersCount = 0;
+
+      allUsers.forEach(user => {
+        if (user.is_approved) {
+          approvedUsersCount++;
+        } else {
+          if (user.approved_at === null) {
+            pendingUsersCount++;
+          } else {
+            rejectedUsersCount++;
+          }
+        }
+      });
 
       setStats({
-        total: filteredPending.length + filteredApproved.length + filteredRejected.length,
-        pending: filteredPending.length,
-        approved: filteredApproved.length,
-        rejected: filteredRejected.length
+        total: allUsers.length,
+        pending: pendingUsersCount,
+        approved: approvedUsersCount,
+        rejected: rejectedUsersCount
       });
     } catch (error) {
       console.error('Error loading stats:', error);
     }
-  }, [user?.id]);
+  }, []);
 
   // 사용자 승인
-  const handleApprove = async (userId: string) => {
+  const handleApprove = async (userId: string, onSuccess?: () => void) => {
     if (!user?.id) return;
 
     confirm({
@@ -114,6 +119,7 @@ export default function UsersManagement() {
             message.success('사용자가 성공적으로 승인되었습니다.');
             loadUsers(activeTab);
             loadStats();
+            onSuccess?.();
           } else {
             message.error('승인 처리 중 오류가 발생했습니다.');
           }
@@ -160,7 +166,7 @@ export default function UsersManagement() {
   };
 
   // 승인 취소 (재거절)
-  const handleRevoke = async (userId: string) => {
+  const handleRevoke = async (userId: string, onSuccess?: () => void) => {
     if (!user?.id) return;
 
     confirm({
@@ -173,6 +179,7 @@ export default function UsersManagement() {
             message.success('승인이 취소되었습니다.');
             loadUsers(activeTab);
             loadStats();
+            onSuccess?.();
           } else {
             message.error('승인 취소 중 오류가 발생했습니다.');
           }
@@ -184,7 +191,7 @@ export default function UsersManagement() {
   };
 
   // 매니저 지정
-  const handleSetManager = async (userId: string) => {
+  const handleSetManager = async (userId: string, onSuccess?: () => void) => {
     if (!user?.id) return;
 
     confirm({
@@ -203,6 +210,7 @@ export default function UsersManagement() {
             message.success('관리자로 지정되었습니다.');
             loadUsers(activeTab);
             loadStats();
+            onSuccess?.();
           } else {
             message.error('관리자 지정 중 오류가 발생했습니다.');
           }
@@ -214,7 +222,7 @@ export default function UsersManagement() {
   };
 
   // 매니저 해제
-  const handleRevokeManager = async (userId: string) => {
+  const handleRevokeManager = async (userId: string, onSuccess?: () => void) => {
     if (!user?.id) return;
 
     confirm({
@@ -227,6 +235,7 @@ export default function UsersManagement() {
             message.success('관리자 권한이 해제되었습니다.');
             loadUsers(activeTab);
             loadStats();
+            onSuccess?.();
           } else {
             message.error('관리자 해제 중 오류가 발생했습니다.');
           }
@@ -255,6 +264,11 @@ export default function UsersManagement() {
   const handleRefresh = () => {
     loadUsers(activeTab);
     loadStats();
+  };
+
+  // 페이지 크기 변경
+  const handlePageSizeChange = (_current: number, size: number) => {
+    setPageSize(size);
   };
 
 
@@ -313,13 +327,19 @@ export default function UsersManagement() {
                     <div className="w-2 h-2 bg-warning-500 rounded-full animate-pulse"></div>
                     <span className="font-semibold">승인 대기</span>
                   </div>
+                  <Badge
+                    count={stats.pending}
+                    className="badge-warning"
+                  />
                 </div>
               ),
               children: (
                 <UserTable
                   users={filteredUsers}
                   loading={loading}
-                  status="pending"
+                  currentUserId={user?.id}
+                  pageSize={pageSize}
+                  onPageSizeChange={handlePageSizeChange}
                   onApprove={handleApprove}
                   onReject={handleReject}
                   onRevoke={handleRevoke}
@@ -336,24 +356,19 @@ export default function UsersManagement() {
                     <div className="w-2 h-2 bg-success-500 rounded-full"></div>
                     <span className="font-semibold">승인됨</span>
                   </div>
-                  {stats.approved > 0 && (
-                    <Badge 
-                      count={stats.approved}
-                      className="!bg-success-100 !text-success-700 !border-success-300"
-                      style={{ 
-                        backgroundColor: '#dcfce7',
-                        color: '#166534',
-                        border: '1px solid #bbf7d0'
-                      }}
-                    />
-                  )}
+                  <Badge
+                    count={stats.approved}
+                    className="badge-success"
+                  />
                 </div>
               ),
               children: (
                 <UserTable
                   users={filteredUsers}
                   loading={loading}
-                  status="approved"
+                  currentUserId={user?.id}
+                  pageSize={pageSize}
+                  onPageSizeChange={handlePageSizeChange}
                   onApprove={handleApprove}
                   onReject={handleReject}
                   onRevoke={handleRevoke}
@@ -369,24 +384,19 @@ export default function UsersManagement() {
                   <div className="flex items-center gap-2">
                     <span className="font-semibold">거절됨</span>
                   </div>
-                  {stats.rejected > 0 && (
-                    <Badge 
-                      count={stats.rejected}
-                      className="!bg-error-100 !text-error-700 !border-error-300"
-                      style={{ 
-                        backgroundColor: '#fee2e2',
-                        color: '#991b1b',
-                        border: '1px solid #fecaca'
-                      }}
-                    />
-                  )}
+                  <Badge
+                    count={stats.rejected}
+                    className="badge-error"
+                  />
                 </div>
               ),
               children: (
                 <UserTable
                   users={filteredUsers}
                   loading={loading}
-                  status="rejected"
+                  currentUserId={user?.id}
+                  pageSize={pageSize}
+                  onPageSizeChange={handlePageSizeChange}
                   onApprove={handleApprove}
                   onReject={handleReject}
                   onRevoke={handleRevoke}

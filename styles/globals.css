@@ -257,3 +257,35 @@ body {
 .main-layout {
   overflow-x: hidden;
 }
+
+/* Custom Badge Styles for Ant Design */
+/* Wrapper는 배경 투명, 내부 sup 요소에만 스타일 적용 */
+.badge-success {
+  background: transparent !important;
+}
+.badge-success .ant-badge-count {
+  background-color: var(--success-100) !important;
+  color: var(--success-700) !important;
+  border: 1px solid #bbf7d0 !important;
+  box-shadow: none !important;
+}
+
+.badge-warning {
+  background: transparent !important;
+}
+.badge-warning .ant-badge-count {
+  background-color: var(--warning-100) !important;
+  color: #92400e !important;
+  border: 1px solid #fde68a !important;
+  box-shadow: none !important;
+}
+
+.badge-error {
+  background: transparent !important;
+}
+.badge-error .ant-badge-count {
+  background-color: var(--error-100) !important;
+  color: #991b1b !important;
+  border: 1px solid #fecaca !important;
+  box-shadow: none !important;
+}
