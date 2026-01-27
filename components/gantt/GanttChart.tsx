@@ -133,7 +133,7 @@ export function GanttChart({
   const [expandedProjects, setExpandedProjects] = useState<Set<string>>(new Set())
   const [isAllExpanded, setIsAllExpanded] = useState(true)
   const [columnWidths, setColumnWidths] = useState({
-    project: 350,
+    project: 250,
     progress: 100,
     status: 100
   })
@@ -428,9 +428,10 @@ export function GanttChart({
             locale={locale}
             barCornerRadius={3}
             barFill={60}
-            columnWidth={viewMode === ViewMode.Month ? 300 : viewMode === ViewMode.Week ? 250 : 65}
+            columnWidth={viewMode === ViewMode.Month ? 75 : viewMode === ViewMode.Week ? 65 : 45}
             listCellWidth={`${totalListWidth}px`}
             rowHeight={40}
+            headerHeight={50}
             fontSize="14px"
             fontFamily="'Segoe UI', 'Noto Sans KR', sans-serif"
             todayColor="rgba(252, 248, 227, 0.5)"
@@ -509,7 +510,7 @@ export function GanttChart({
         :global(.gantt-task-list-header-row) {
           display: flex;
           width: 100%;
-          height: 40px;
+          height: 50px;
           align-items: center;
         }
 

@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { Button, Select, Space, Typography, Modal, Descriptions, Progress, Tag } from 'antd'
+import { useState, useRef, useEffect } from 'react'
+import { Button, Select, Space, Modal, Descriptions, Progress, Tag, Typography } from 'antd'
 import {
   FullscreenOutlined,
   CompressOutlined,
@@ -44,6 +44,7 @@ const VIEW_MODES = [
  */
 export default function GanttPage() {
   const router = useRouter()
+  const ganttPageRef = useRef<HTMLDivElement>(null)
 
   // ===== 상태 관리 =====
   const [viewMode, setViewMode] = useState<ViewMode>(ViewMode.Day)
@@ -65,16 +66,36 @@ export default function GanttPage() {
   }
 
   /**
+   * 전체화면 변경 이벤트 리스너
+   * - 외부 요인(ESC, 새 탭 열기 등)으로 전체화면 해제 시 상태 동기화
+   */
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement)
+    }
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange)
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange)
+    }
+  }, [])
+
+  /**
    * 전체화면 토글
    */
-  const toggleFullscreen = () => {
+  const toggleFullscreen = async () => {
     const element = document.querySelector('.gantt-page')
-    if (!isFullscreen && element?.requestFullscreen) {
-      element.requestFullscreen()
-    } else if (document.exitFullscreen) {
-      document.exitFullscreen()
+
+    try {
+      if (!document.fullscreenElement && element?.requestFullscreen) {
+        await element.requestFullscreen()
+      } else if (document.fullscreenElement) {
+        await document.exitFullscreen()
+      }
+    } catch {
+      // 전체화면 전환 실패 시 상태 동기화
+      setIsFullscreen(!!document.fullscreenElement)
     }
-    setIsFullscreen(!isFullscreen)
   }
 
   /**
@@ -122,7 +143,7 @@ export default function GanttPage() {
   // ===== 렌더링 =====
 
   return (
-    <div className="gantt-page w-full px-0 py-0">
+    <div className="gantt-page w-full px-0 py-0" ref={ganttPageRef}>
       {/* 페이지 헤더 */}
       <div className="flex items-center justify-between mb-1 px-2">
         <div>
@@ -162,7 +183,7 @@ export default function GanttPage() {
           <Select
             value={viewMode}
             onChange={setViewMode}
-            style={{ width: 120 }}
+            style={{ width: 100 }}
           >
             <Select.Option value={ViewMode.Hour}>시간</Select.Option>
             <Select.Option value={ViewMode.QuarterDay}>6시간</Select.Option>
@@ -174,18 +195,20 @@ export default function GanttPage() {
           </Select>
 
           {/* 확대/축소 버튼 */}
-          <Button
-            icon={<ZoomInOutlined />}
-            onClick={() => handleZoom('in')}
-          >
-            확대
-          </Button>
-          <Button
-            icon={<ZoomOutOutlined />}
-            onClick={() => handleZoom('out')}
-          >
-            축소
-          </Button>
+          <Space.Compact>
+            <Button
+              icon={<ZoomInOutlined />}
+              onClick={() => handleZoom('in')}
+            >
+              확대
+            </Button>
+            <Button
+              icon={<ZoomOutOutlined />}
+              onClick={() => handleZoom('out')}
+            >
+              축소
+            </Button>
+          </Space.Compact>
         </Space>
       </div>
 
@@ -206,6 +229,7 @@ export default function GanttPage() {
           setIsProjectSelectModalVisible(false)
         }}
         selectedProjectIds={selectedProjectIds}
+        getContainer={() => isFullscreen ? ganttPageRef.current as HTMLDivElement : document.body}
       />
 
       {/* Task 상세 정보 모달 */}
@@ -227,6 +251,7 @@ export default function GanttPage() {
         ]}
         width={600}
         zIndex={Z_INDEX.MODAL}
+        getContainer={() => isFullscreen ? ganttPageRef.current as HTMLDivElement : document.body}
       >
         {selectedTask && (() => {
           const isProject = selectedTask.type === 'project'
@@ -273,6 +298,8 @@ export default function GanttPage() {
         .gantt-page:fullscreen {
           padding: 20px;
           background: white;
+          overflow: auto;
+          height: 100vh;
         }
       `}</style>
     </div>

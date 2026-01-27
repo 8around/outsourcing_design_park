@@ -15,13 +15,15 @@ interface ProjectSelectModalProps {
   onClose: () => void
   onApply: (projectIds: string[]) => void
   selectedProjectIds: string[]
+  getContainer?: () => HTMLElement
 }
 
 export default function ProjectSelectModal({
   visible,
   onClose,
   onApply,
-  selectedProjectIds
+  selectedProjectIds,
+  getContainer
 }: ProjectSelectModalProps) {
   const [projects, setProjects] = useState<Project[]>([])
   const [loading, setLoading] = useState(false)
@@ -123,6 +125,7 @@ export default function ProjectSelectModal({
       onCancel={onClose}
       width={700}
       zIndex={Z_INDEX.MODAL}
+      getContainer={getContainer}
       footer={
         <div className="flex justify-between">
           <Button onClick={handleClearAll} disabled={allSelectedIds.size === 0}>
