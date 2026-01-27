@@ -35,11 +35,10 @@ import timeGridPlugin from '@fullcalendar/timegrid'
 import interactionPlugin from '@fullcalendar/interaction'
 import listPlugin from '@fullcalendar/list'
 import koLocale from '@fullcalendar/core/locales/ko'
-import { EventClickArg, EventDropArg, EventContentArg } from '@fullcalendar/core'
+import { EventClickArg, EventContentArg } from '@fullcalendar/core'
 import { DateClickArg } from '@fullcalendar/interaction'
 import { createClient } from '@/lib/supabase/client'
 import { Project, ProcessStage, PROCESS_STAGES } from '@/types/project'
-import { useAuth } from '@/lib/hooks/useAuth'
 import { Z_INDEX } from '@/lib/config/layout.constants'
 
 const { Title, Text } = Typography
@@ -100,7 +99,6 @@ const statusLabels = {
 export default function ProjectCalendar() {
   const router = useRouter()
   const calendarRef = useRef<FullCalendar>(null)
-  const { user } = useAuth()
   const supabase = createClient()
   
   const [loading, setLoading] = useState(true)
@@ -111,13 +109,9 @@ export default function ProjectCalendar() {
   const [dateDrawerVisible, setDateDrawerVisible] = useState(false)
   const [selectedDate, setSelectedDate] = useState<string>('')
   const [selectedDateProjects, setSelectedDateProjects] = useState<CalendarEvent[]>([])
-  const [confirmModalVisible, setConfirmModalVisible] = useState(false)
-  const [draggedEvent, setDraggedEvent] = useState<EventDropArg | null>(null)
 
   // DatePicker용 state - Ant Design은 dayjs를 사용
   const [pickerValue, setPickerValue] = useState<Dayjs>(dayjs())
-
-  const isAdmin = user?.role === 'admin'
 
   // 프로젝트 데이터 가져오기
   const fetchProjects = useCallback(async () => {
@@ -264,50 +258,6 @@ export default function ProjectCalendar() {
     setDateDrawerVisible(true)
   }, [filteredEvents])
 
-  // 드래그 앤 드롭 핸들러
-  const handleEventDrop = useCallback((arg: EventDropArg) => {
-    if (!isAdmin) {
-      message.warning('관리자만 일정을 변경할 수 있습니다')
-      arg.revert()
-      return
-    }
-    
-    setDraggedEvent(arg)
-    setConfirmModalVisible(true)
-  }, [isAdmin])
-
-  // 일정 변경 확인
-  const confirmScheduleChange = useCallback(async () => {
-    if (!draggedEvent) return
-    
-    try {
-      const projectId = draggedEvent.event.extendedProps.projectId
-      const newStart = draggedEvent.event.startStr
-      const newEnd = moment(draggedEvent.event.endStr).subtract(1, 'day').format('YYYY-MM-DD')
-      
-      // 프로젝트 업데이트
-      const { error } = await supabase
-        .from('projects')
-        .update({
-          order_date: newStart,
-          expected_completion_date: newEnd,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', projectId)
-      
-      if (error) throw error
-      
-      message.success('일정이 변경되었습니다')
-      setConfirmModalVisible(false)
-      setDraggedEvent(null)
-      fetchProjects()
-    } catch (error) {
-      console.error('Error updating schedule:', error)
-      message.error('일정 변경에 실패했습니다')
-      draggedEvent.revert()
-    }
-  }, [draggedEvent, supabase, fetchProjects])
-
   // 년월 선택 핸들러 - Ant Design DatePicker는 dayjs 사용
   const handleCalendarDateChange = useCallback((date: Dayjs | null) => {
     if (date && calendarRef.current) {
@@ -389,22 +339,8 @@ export default function ProjectCalendar() {
               placeholder="년월 선택"
             />
           </Space>
-
-          {/* 우측: 뷰 선택 (주석처리 - 월 뷰만 사용)
-          <Segmented
-            style={{ position: 'absolute', right: 0, top: '50%', transform: 'translateY(-50%)' }}
-            value={currentView}
-            onChange={(value) => {
-              calendarRef.current?.getApi().changeView(value as string)
-            }}
-            options={[
-              { label: '월', value: 'dayGridMonth' },
-              { label: '주', value: 'timeGridWeek' },
-              { label: '일', value: 'timeGridDay' },
-            ]}
-          />
-          */}
         </div>
+
         <FullCalendar
           ref={calendarRef}
           plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin, listPlugin]}
@@ -414,12 +350,9 @@ export default function ProjectCalendar() {
           events={filteredEvents}
           eventClick={handleEventClick}
           dateClick={handleDateClick}
-          eventDrop={handleEventDrop}
           eventContent={renderEventContent}
           height="auto"
           weekends={true}
-          editable={isAdmin}
-          droppable={isAdmin}
           selectable={true}
           selectMirror={true}
           dayMaxEvents={3}
@@ -672,35 +605,6 @@ export default function ProjectCalendar() {
           </div>
         )}
       </Drawer>
-
-      {/* 일정 변경 확인 모달 */}
-      <Modal
-        title="일정 변경 확인"
-        open={confirmModalVisible}
-        onOk={confirmScheduleChange}
-        onCancel={() => {
-          setConfirmModalVisible(false)
-          draggedEvent?.revert()
-          setDraggedEvent(null)
-        }}
-        okText="변경"
-        cancelText="취소"
-        zIndex={Z_INDEX.MODAL}
-      >
-        <p>프로젝트 일정을 변경하시겠습니까?</p>
-        {draggedEvent && (
-          <div className="mt-4">
-            <Text strong>프로젝트: </Text>
-            <Text>{draggedEvent.event.title}</Text>
-            <br />
-            <Text strong>새로운 기간: </Text>
-            <Text>
-              {moment(draggedEvent.event.startStr).format('YYYY-MM-DD')} ~ {' '}
-              {moment(draggedEvent.event.endStr).subtract(1, 'day').format('YYYY-MM-DD')}
-            </Text>
-          </div>
-        )}
-      </Modal>
 
       <style jsx global>{`
         .calendar-page {
