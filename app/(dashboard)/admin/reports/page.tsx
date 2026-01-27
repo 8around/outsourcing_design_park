@@ -1,59 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { createClient } from '@/lib/supabase/client';
-import { useAuthStore } from '@/lib/store/auth.store';
+import { useState } from 'react';
 import { ReportConfiguration } from '@/components/reports/ReportConfiguration';
 import { ReportHistoryList } from '@/components/reports/ReportHistoryList';
-import { Loading } from '@/components/common/ui/Loading';
 import { Alert } from '@/components/common/ui/Alert';
 
 export default function ReportsPage() {
-  const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'config' | 'history'>('config');
-  const { user } = useAuthStore();
-  const router = useRouter();
-  const supabase = createClient();
-
-  useEffect(() => {
-    checkAdminAccess();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]);
-
-  const checkAdminAccess = async () => {
-    try {
-      if (!user) {
-        router.push('/login');
-        return;
-      }
-
-      // Check if user is admin
-      const { data: profileData, error } = await supabase
-        .from('users')
-        .select('role')
-        .eq('id', user.id)
-        .single();
-
-      if (error || profileData?.role !== 'admin') {
-        router.push('/');
-        return;
-      }
-
-      setIsLoading(false);
-    } catch (error) {
-      console.error('Error checking admin access:', error);
-      router.push('/');
-    }
-  };
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Loading size="large" />
-      </div>
-    );
-  }
 
   return (
     <div className="container mx-auto px-4 py-8">

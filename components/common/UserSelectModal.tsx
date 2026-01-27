@@ -124,12 +124,11 @@ export default function UserSelectModal({
   const getRoleLabel = (role: string | undefined) => {
     switch (role) {
       case 'admin':
-        return '관리자'
       case 'manager':
-        return '매니저'
+        return '관리자'
       case 'user':
       default:
-        return '일반 사용자'
+        return '사용자'
     }
   }
 
