@@ -16,6 +16,7 @@ import type { User } from '@/types/user'
 import { toast } from 'react-hot-toast'
 import Image from 'next/image'
 import type { ProcessStageName } from '@/types/project'
+import { isManager } from '@/lib/utils/permissions'
 
 // 공정 단계 정의
 const PROCESS_STAGES = [
@@ -127,9 +128,9 @@ export default function EditProjectPage() {
 
       // 권한 체크 (작성자 또는 관리자)
       const isOwner = projectData.created_by === user?.id
-      const isAdmin = userData?.role === 'admin'
+      const isManagerUser = isManager(userData?.role)
 
-      if (!isOwner && !isAdmin) {
+      if (!isOwner && !isManagerUser) {
         toast.error('프로젝트 수정 권한이 없습니다.')
         router.push(`/projects/${projectId}`)
         return
@@ -665,8 +666,8 @@ export default function EditProjectPage() {
 
         {/* 제출 버튼 */}
         <div className="flex justify-end gap-4">
-          {/* 왼쪽: Admin 전용 삭제 버튼 */}
-          {userData?.role === 'admin' && (
+          {/* 왼쪽: Admin/Manager 삭제 버튼 */}
+          {isManager(userData?.role) && (
             <button
               type="button"
               onClick={async () => {

@@ -15,6 +15,7 @@ import type {
   ProcessStatus
 } from '@/types/project';
 import type { LogCategory } from '@/types/log';
+import { isManager } from '@/lib/utils/permissions';
 
 export class ProjectService {
   private supabase = createClient();
@@ -442,7 +443,7 @@ export class ProjectService {
         .eq('id', user.id)
         .single();
 
-      if (roleError || userData?.role !== 'admin') {
+      if (roleError || !isManager(userData?.role)) {
         throw new Error('관리자만 프로젝트를 삭제할 수 있습니다.');
       }
       

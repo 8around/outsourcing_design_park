@@ -7,7 +7,7 @@ export interface Database {
           email: string
           name: string
           phone: string
-          role: 'admin' | 'user'
+          role: 'user' | 'admin' | 'manager'
           is_approved: boolean
           approved_by: string | null
           approved_at: string | null
@@ -19,7 +19,7 @@ export interface Database {
           email: string
           name: string
           phone: string
-          role?: 'admin' | 'user'
+          role?: 'user' | 'admin' | 'manager'
           is_approved?: boolean
           approved_by?: string | null
           approved_at?: string | null
@@ -31,7 +31,7 @@ export interface Database {
           email?: string
           name?: string
           phone?: string
-          role?: 'admin' | 'user'
+          role?: 'user' | 'admin' | 'manager'
           is_approved?: boolean
           approved_by?: string | null
           approved_at?: string | null

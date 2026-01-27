@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Card, List, Typography, Tag, Space, Button, Empty, Skeleton, message, Pagination, Select, Tooltip } from 'antd'
+import { Card, List, Typography, Tag, Button, Empty, Skeleton, message, Pagination, Select, Tooltip } from 'antd'
 import {
   FileTextOutlined,
   CheckCircleOutlined,
@@ -21,6 +21,7 @@ import { projectService } from '@/lib/services/projects.service'
 import { useAuth } from '@/lib/hooks/useAuth'
 import UserSelectModal from '@/components/common/UserSelectModal'
 import type { User } from '@/types/user'
+import { isManager } from '@/lib/utils/permissions'
 
 const { Text, Title } = Typography
 
@@ -307,7 +308,7 @@ export default function GlobalLogFeed({
   const handleDeleteLog = async (logId: string, e: React.MouseEvent) => {
     e.stopPropagation() // 로그 클릭 이벤트 전파 방지
 
-    if (!user || userData?.role !== 'admin') {
+    if (!user || !isManager(userData?.role)) {
       message.error('관리자만 삭제할 수 있습니다.')
       return
     }
@@ -362,7 +363,7 @@ export default function GlobalLogFeed({
   const renderLogItem = (log: LogItem) => {
     const config = categoryConfig[log.category] || categoryConfig['기타']
     const isDeleting = deletingLogId === log.id
-    const isAdmin = userData?.role === 'admin'
+    const isAdminUser = isManager(userData?.role)
 
     // 로그 타입과 승인 상태에 따른 액션 텍스트 생성
     let actionText = ''
@@ -381,7 +382,7 @@ export default function GlobalLogFeed({
     }
 
     // 관리자일 경우 삭제 버튼 포함
-    const actions = isAdmin ? [
+    const actions = isAdminUser ? [
       <Button
         key="delete"
         danger
@@ -583,17 +584,14 @@ export default function GlobalLogFeed({
                 <Select.Option value="기타">기타</Select.Option>
               </Select>
 
-              {/* 관리자인 경우에만 사용자 필터 버튼 표시 */}
-              {userData?.role === 'admin' && (
-                <Button
-                  icon={<FilterOutlined />}
-                  onClick={() => setShowUserSelectModal(true)}
-                  type={filterUserId ? "primary" : "default"}
-                  className="flex-shrink-0"
-                >
-                  사용자 필터
-                </Button>
-              )}
+              <Button
+                icon={<FilterOutlined />}
+                onClick={() => setShowUserSelectModal(true)}
+                type={filterUserId ? "primary" : "default"}
+                className="flex-shrink-0"
+              >
+                사용자 필터
+              </Button>
 
               {/* 필터가 적용된 경우 초기화 버튼 표시 */}
               {(filterUserId || filterCategory) && (

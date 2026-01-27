@@ -117,6 +117,7 @@ export default function PendingApprovals({
     }
 
     setLoading(true)
+
     try {
       // 현재 사용자의 승인 대기 목록 조회
       const response = await approvalService.getPendingApprovalsForUser(user.id)

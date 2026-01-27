@@ -19,6 +19,7 @@ import { useAuth } from '@/lib/hooks/useAuth';
 import UserStatsCards from './UserStatsCards';
 import UserTable from './UserTable';
 import { Z_INDEX } from '@/lib/config/layout.constants';
+import { ENUM_USER_ROLE, UserRole } from '@/types/user';
 
 const { Search } = Input;
 const { confirm } = Modal;
@@ -33,7 +34,7 @@ interface User {
   is_approved: boolean;
   approved_at?: string | null;
   approved_by?: string | null;
-  role: 'user' | 'admin';
+  role: UserRole;
 }
 
 interface UserStats {
@@ -182,6 +183,60 @@ export default function UsersManagement() {
     });
   };
 
+  // 매니저 지정
+  const handleSetManager = async (userId: string) => {
+    if (!user?.id) return;
+
+    confirm({
+      title: '관리자 지정',
+      content: (
+        <div>
+          <p>해당 사용자를 관리자로 지정하시겠습니까?</p>
+          <p>회원관리를 제외한 모든 기능을 사용할 수 있게 됩니다.</p>
+        </div>
+      ),
+      onOk: async () => {
+        try {
+          const success = await approvalService.updateUserRole(userId, ENUM_USER_ROLE.MANAGER);
+
+          if (success) {
+            message.success('관리자로 지정되었습니다.');
+            loadUsers(activeTab);
+            loadStats();
+          } else {
+            message.error('관리자 지정 중 오류가 발생했습니다.');
+          }
+        } catch {
+          message.error('관리자 지정 중 오류가 발생했습니다.');
+        }
+      }
+    });
+  };
+
+  // 매니저 해제
+  const handleRevokeManager = async (userId: string) => {
+    if (!user?.id) return;
+
+    confirm({
+      title: '관리자 해제',
+      content: '해당 사용자의 관리자 권한을 해제하시겠습니까?',
+      onOk: async () => {
+        try {
+          const success = await approvalService.updateUserRole(userId, ENUM_USER_ROLE.USER);
+          if (success) {
+            message.success('관리자 권한이 해제되었습니다.');
+            loadUsers(activeTab);
+            loadStats();
+          } else {
+            message.error('관리자 해제 중 오류가 발생했습니다.');
+          }
+        } catch {
+          message.error('관리자 해제 중 오류가 발생했습니다.');
+        }
+      }
+    });
+  };
+
   // 필터링된 사용자 목록
   const filteredUsers = users.filter(user => 
     user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -268,6 +323,8 @@ export default function UsersManagement() {
                   onApprove={handleApprove}
                   onReject={handleReject}
                   onRevoke={handleRevoke}
+                  onSetManager={handleSetManager}
+                  onRevokeManager={handleRevokeManager}
                 />
               ),
             },
@@ -300,6 +357,8 @@ export default function UsersManagement() {
                   onApprove={handleApprove}
                   onReject={handleReject}
                   onRevoke={handleRevoke}
+                  onSetManager={handleSetManager}
+                  onRevokeManager={handleRevokeManager}
                 />
               ),
             },
@@ -331,6 +390,8 @@ export default function UsersManagement() {
                   onApprove={handleApprove}
                   onReject={handleReject}
                   onRevoke={handleRevoke}
+                  onSetManager={handleSetManager}
+                  onRevokeManager={handleRevokeManager}
                 />
               ),
             },

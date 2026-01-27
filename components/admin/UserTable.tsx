@@ -11,6 +11,8 @@ import {
 } from '@ant-design/icons';
 import UserDetailModal from './UserDetailModal';
 import dayjs from 'dayjs';
+import { getRoleColor, getRoleLabel, isManager } from '@/lib/utils/permissions';
+import { UserRole } from '@/types/user';
 
 interface User {
   id: string;
@@ -21,7 +23,7 @@ interface User {
   is_approved: boolean;
   approved_at?: string | null;
   approved_by?: string | null;
-  role: 'user' | 'admin';
+  role: UserRole;
 }
 
 type UserStatus = 'pending' | 'approved' | 'rejected';
@@ -33,6 +35,8 @@ interface UserTableProps {
   onApprove: (userId: string) => void;
   onReject: (user: User) => void;
   onRevoke: (userId: string) => void;
+  onSetManager?: (userId: string) => void;
+  onRevokeManager?: (userId: string) => void;
 }
 
 export default function UserTable({ 
@@ -41,7 +45,9 @@ export default function UserTable({
   status, 
   onApprove, 
   onReject, 
-  onRevoke 
+  onRevoke,
+  onSetManager,
+  onRevokeManager
 }: UserTableProps) {
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [detailModalVisible, setDetailModalVisible] = useState(false);
@@ -66,9 +72,11 @@ export default function UserTable({
             >
               {name}
             </span>
-            {record.role === 'admin' && (
-              <Tag color="red">관리자</Tag>
-            )}
+            {
+              isManager(record.role) && (
+                <Tag color={getRoleColor(record.role)}>{getRoleLabel(record.role)}</Tag>
+              )
+            }
           </Space>
         ),
       },
@@ -162,6 +170,33 @@ export default function UserTable({
             </Tooltip>
           );
         } else if (status === 'approved') {
+          // admin이 아닌 경우에만 매니저 지정/해제 버튼 표시
+          if (!isManager(record.role) && onSetManager) {
+            actions.push(
+              <Tooltip title="관리자 지정" key="setManager">
+                <Button 
+                  type="primary"
+                  size="small" 
+                  onClick={() => onSetManager(record.id)}
+                >
+                  관리자 지정
+                </Button>
+              </Tooltip>
+            );
+          } else {
+            if (onRevokeManager) {
+              actions.push(
+                <Tooltip title="관리자 해제" key="revokeManager">
+                    <Button 
+                      size="small" 
+                      onClick={() => onRevokeManager(record.id)}
+                    >
+                      관리자 해제
+                  </Button>
+                </Tooltip>
+              );
+            }
+          }
           actions.push(
             <Tooltip title="승인 취소" key="revoke">
               <Button 

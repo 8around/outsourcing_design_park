@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useCallback } from 'react'
+import React, { useCallback } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useAuth } from '@/lib/hooks/useAuth'
@@ -23,6 +23,7 @@ import {
   Z_INDEX,
 } from '@/lib/config/layout.constants'
 import { message } from 'antd/lib'
+import { isAdmin, isManager } from '@/lib/utils/permissions'
 
 interface MenuItemType {
   key: string
@@ -30,6 +31,7 @@ interface MenuItemType {
   icon: React.ReactNode
   path: string
   adminOnly?: boolean
+  managerOnly?: boolean  // admin 전용 메뉴 중 manager도 접근 가능한 경우
   badge?: number
 }
 
@@ -76,7 +78,7 @@ const menuItems: MenuItemType[] = [
     label: '리포트',
     icon: <FileTextOutlined />,
     path: '/admin/reports',
-    adminOnly: true,
+    managerOnly: true,
   },
 ]
 
@@ -123,8 +125,11 @@ export default function Sidebar({ collapsed, className, isMobile = false }: Side
   // 권한별 메뉴 필터링
   const filteredMenuItems = menuItems.filter((item) => {
     if (item.adminOnly) {
-      return userData?.role === 'admin'
+      return isAdmin(userData?.role)
+    } else if (item.managerOnly) {
+      return isManager(userData?.role)
     }
+
     return true
   })
 

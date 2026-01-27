@@ -14,6 +14,7 @@ import {
 import { Button, Avatar, Dropdown, Typography } from 'antd'
 import type { MenuProps } from 'antd'
 import { HEADER_HEIGHT, Z_INDEX } from '@/lib/config/layout.constants'
+import { getRoleLabel } from '@/lib/utils/permissions'
 
 const { Text } = Typography
 
@@ -150,7 +151,7 @@ export default function Header({
                 {userData?.name || '사용자'} ({user?.email})
               </Text>
               <Text className="text-xs text-gray-500">
-                {userData?.role === 'admin' ? '관리자' : '일반 사용자'}
+                {getRoleLabel(userData?.role)}
               </Text>
             </div>
           </div>

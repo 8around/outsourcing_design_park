@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/client";
 import { Database } from "@/lib/database/types/supabase";
 import { emailClientService } from "@/lib/services/email.client.service";
 import { kakaoClientService } from "@/lib/services/kakao.client.service";
+import { isAdmin } from "@/lib/utils/permissions";
 
 type User = Database["public"]["Tables"]["users"]["Row"];
 type UserUpdate = Database["public"]["Tables"]["users"]["Update"];
@@ -677,13 +678,14 @@ export class ApprovalService {
     try {
       // 1. 사용자 승인 대기 목록 (관리자인 경우만)
       let userApprovals: Record<string, unknown>[] = [];
+
       const { data: currentUser } = await this.supabase
         .from("users")
         .select("role")
         .eq("id", userId)
         .single();
 
-      if (currentUser?.role === "admin") {
+      if (isAdmin(currentUser?.role)) {
         const { data: pendingUsers } = await this.supabase
           .from("users")
           .select("id, email, name, created_at")
@@ -886,6 +888,38 @@ export class ApprovalService {
     } catch (error) {
       console.error("Error fetching pending approvals:", error);
       throw error;
+    }
+  }
+
+  /**
+   * 사용자 역할 변경 (admin만 가능)
+   * @param userId 대상 사용자 ID
+   * @param newRole 새로운 역할 ('user' | 'manager')
+   * @param adminId 변경을 수행하는 관리자 ID
+   * @returns 성공 여부
+   */
+  async updateUserRole(
+    userId: string,
+    newRole: 'user' | 'manager',
+  ): Promise<boolean> {
+    try {
+      // 역할 변경
+      const { error: updateError } = await this.supabase
+        .from("users")
+        .update({ 
+          role: newRole,
+        })
+        .eq("id", userId);
+
+      if (updateError) {
+        console.error("Error updating user role:", updateError);
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      console.error("Error in updateUserRole:", error);
+      return false;
     }
   }
 }

@@ -16,6 +16,7 @@ import { FileExcelOutlined, LoadingOutlined } from '@ant-design/icons'
 import { generateProjectExcel, downloadExcel, generateExportFileName } from '@/lib/utils/excel'
 import type { AttachmentFile, LogCategory, HistoryLogWithAttachments } from '@/types/log'
 import type { User } from '@/types/user'
+import { isManager } from '@/lib/utils/permissions'
 
 // 공정 단계 정의 (15단계)
 const PROCESS_STAGES = [
@@ -330,7 +331,7 @@ export default function ProjectDetailPage() {
     )
   }
 
-  const canEdit = user?.id === project.created_by || userData?.role === 'admin'
+  const canEdit = user?.id === project.created_by || isManager(userData?.role)
 
   return (
     <>

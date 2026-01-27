@@ -5,6 +5,8 @@ import { Modal, Descriptions, Tag, Badge, Space, Button } from 'antd';
 import { UserOutlined, MailOutlined, PhoneOutlined, CalendarOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { Z_INDEX } from '@/lib/config/layout.constants';
+import { getRoleColor, getRoleLabel, isManager } from '@/lib/utils/permissions';
+import { UserRole } from '@/types/user';
 
 interface User {
   id: string;
@@ -15,7 +17,7 @@ interface User {
   is_approved: boolean;
   approved_at?: string | null;
   approved_by?: string | null;
-  role: 'user' | 'admin';
+  role: UserRole;
   department?: string | null;
   position?: string | null;
   last_login?: string | null;
@@ -132,9 +134,11 @@ export default function UserDetailModal({
         >
           <Space>
             {user.name}
-            {user.role === 'admin' && (
-              <Tag color="red">관리자</Tag>
-            )}
+            {
+              isManager(user.role) && (
+                <Tag color={getRoleColor(user.role)}>{getRoleLabel(user.role)}</Tag>
+              )
+            }
           </Space>
         </Descriptions.Item>
         
@@ -163,12 +167,6 @@ export default function UserDetailModal({
         {user.approved_at && (
           <Descriptions.Item label="승인/거절일">
             {dayjs(user.approved_at).format('YYYY년 MM월 DD일 HH:mm')}
-          </Descriptions.Item>
-        )}
-        
-        {user.last_login && (
-          <Descriptions.Item label="최근 로그인">
-            {dayjs(user.last_login).format('YYYY년 MM월 DD일 HH:mm')}
           </Descriptions.Item>
         )}
       </Descriptions>

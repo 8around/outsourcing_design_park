@@ -7,6 +7,7 @@ import { SearchOutlined, UserOutlined, CheckCircleOutlined } from '@ant-design/i
 import { createClient } from '@/lib/supabase/client'
 import type { User } from '@/types/user'
 import { Z_INDEX } from '@/lib/config/layout.constants'
+import { getRoleLabel, getRoleColor } from '@/lib/utils/permissions'
 
 const { Text } = Typography
 
@@ -107,30 +108,6 @@ export default function UserSelectModal({
     }
   }
 
-  // 역할 태그 색상
-  const getRoleColor = (role: string | undefined) => {
-    switch (role) {
-      case 'admin':
-        return 'red'
-      case 'manager':
-        return 'blue'
-      case 'user':
-      default:
-        return 'green'
-    }
-  }
-
-  // 역할 한글 표시
-  const getRoleLabel = (role: string | undefined) => {
-    switch (role) {
-      case 'admin':
-      case 'manager':
-        return '관리자'
-      case 'user':
-      default:
-        return '사용자'
-    }
-  }
 
   return (
     <Modal
