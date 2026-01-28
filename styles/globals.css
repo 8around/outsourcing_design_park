@@ -110,6 +110,11 @@ body {
   transform: translateY(-2px);
 }
 
+.project-card .thumbnail-section {
+  overflow: hidden;
+  border-radius: 8px 8px 0 0;
+}
+
 .line-clamp-2 {
   display: -webkit-box;
   -webkit-line-clamp: 2;

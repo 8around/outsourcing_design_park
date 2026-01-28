@@ -429,8 +429,7 @@ export default function ProjectsPage() {
                 >
                     {/* 썸네일 섹션 */}
                     <div
-                      className="thumbnail-section"
-                      style={{ position: 'relative' }}
+                      className="thumbnail-section relative"
                     >
                       {(project.project_images && project.project_images.length > 0) || project.thumbnail_url ? (
                         <ImageCarousel
@@ -484,15 +483,17 @@ export default function ProjectsPage() {
                     </div>
 
                     {/* 프로젝트 정보 */}
-                    <div className="p-5">
+                    <div className="p-3">
                       <div className="space-y-3">
                         {/* 현장명 */}
                         <div>
-                          <div className="flex items-center gap-2 mb-1">
-                            <Title level={5} className="mb-0 truncate flex-1">
-                              <EnvironmentOutlined className="mr-2" />
-                              {project.site_name}
-                            </Title>
+                          <div className="flex items-center gap-2">
+                            <Tooltip title={project.site_name}>
+                              <Title level={5} className="mb-0 truncate flex-1">
+                                <EnvironmentOutlined className="mr-2" />
+                                {project.site_name}
+                              </Title>
+                            </Tooltip>
                             {project.is_urgent && (
                               <Tag color="red" className="ml-auto">
                                 <ThunderboltOutlined /> 긴급
@@ -503,17 +504,23 @@ export default function ProjectsPage() {
 
                         {/* 제품 정보 */}
                         <div className="text-sm text-gray-600 space-y-1">
-                          <div className="truncate">
-                            제품: {project.product_name} ({project.product_quantity}개)
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <TeamOutlined />
-                            <span>{project.site_manager_user?.name || '미지정'}</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <UserOutlined />
-                            <span>{project.sales_manager_user?.name || '미지정'}</span>
-                          </div>
+                          <Tooltip title={`${project.product_name} (${project.product_quantity}개)`}>
+                            <div className="truncate">
+                              제품: {project.product_name} ({project.product_quantity}개)
+                            </div>
+                          </Tooltip>
+                            <div className="flex items-center gap-2">
+                              <TeamOutlined />
+                              <Tooltip title="현장담당자" placement="right">
+                                <span>{project.site_manager_user?.name || '미지정'}</span>
+                              </Tooltip>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <UserOutlined />
+                              <Tooltip title="영업담당자" placement="right">
+                                <span>{project.sales_manager_user?.name || '미지정'}</span>
+                              </Tooltip>
+                            </div>
                         </div>
 
                         {/* 상태 및 진행률 */}
