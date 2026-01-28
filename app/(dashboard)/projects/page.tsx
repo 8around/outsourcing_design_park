@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { useAuth } from '@/lib/hooks/useAuth'
+import { isManager } from '@/lib/utils/permissions'
 import {
   Card, Row, Col, Button, Input, Select, Typography, Empty,
   Skeleton, Tag, Progress, message, Tooltip, Pagination, Space
@@ -38,6 +40,7 @@ const { Option } = Select
 export default function ProjectsPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const { user, userData } = useAuth()
 
   // URL에서 초기값 읽기
   const pageFromUrl = parseInt(searchParams.get('page') ?? '1')
@@ -393,7 +396,7 @@ export default function ProjectsPage() {
       {loading ? (
         <Row gutter={[24, 24]}>
           {[1, 2, 3, 4, 5, 6].map(i => (
-            <Col span={6} key={i}>
+            <Col span={12} lg={6} key={i}>
               <Card>
                 <Skeleton active />
               </Card>
@@ -418,7 +421,7 @@ export default function ProjectsPage() {
             const isFavorite = project.favorites && project.favorites.length > 0
 
             return (
-              <Col span={6} key={project.id}>
+              <Col span={12} lg={6} key={project.id}>
                 <Card
                   className="project-card cursor-pointer hover:shadow-lg transition-all h-full"
                   onClick={() => router.push(`/projects/${project.id}`)}
@@ -549,16 +552,18 @@ export default function ProjectsPage() {
                               }}
                             />
                           </Tooltip>
-                          <Tooltip title="수정">
-                            <Button
-                              size="small"
-                              icon={<EditOutlined />}
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                router.push(`/projects/${project.id}/edit`)
-                              }}
-                            />
-                          </Tooltip>
+                          {(user?.id === project.created_by || isManager(userData?.role)) && (
+                            <Tooltip title="수정">
+                              <Button
+                                size="small"
+                                icon={<EditOutlined />}
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  router.push(`/projects/${project.id}/edit`)
+                                }}
+                              />
+                            </Tooltip>
+                          )}
                         </div>
                       </div>
                     </div>
