@@ -141,7 +141,7 @@ export default function ProjectsPage() {
 
       const response = await projectService.getProjects(
         appliedFilters,
-        { sortBy: 'expected_completion_date', order: 'desc' },
+        { sortBy: 'installation_request_date', order: 'desc' },
         { page: currentPage, limit: 12 }
       )
 
@@ -173,7 +173,7 @@ export default function ProjectsPage() {
     setIsExporting(true)
     try {
       // 1. 선택된 프로젝트 데이터 조회
-      const projectsToExport = await projectService.getProjectsByIds(projectIds, { sortBy: 'expected_completion_date', order: 'desc' })
+      const projectsToExport = await projectService.getProjectsByIds(projectIds, { sortBy: 'installation_request_date', order: 'desc' })
 
       // 2. 각 프로젝트별 전체 히스토리 로그 조회 (병렬 처리)
       const logPromises = projectIds.map(async (projectId) => {

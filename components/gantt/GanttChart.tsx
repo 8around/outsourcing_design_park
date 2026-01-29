@@ -155,20 +155,17 @@ export function GanttChart({
         let totalCount: number
 
         if (selectedProjectIds?.length) {
-          // 선택된 프로젝트들을 개별 조회
-          const results = await Promise.all(
-            selectedProjectIds.map(id => projectService.getProject(id))
-          )
-          // 유효한 프로젝트만 필터링하고 준공일 내림차순 정렬
-          projectData = (results.filter(Boolean) as Project[]).sort((a, b) =>
-            new Date(b.expected_completion_date).getTime() - new Date(a.expected_completion_date).getTime()
+          // 선택된 프로젝트 목록 조회
+          projectData = await projectService.getProjectsByIds(
+            selectedProjectIds,
+            { sortBy: 'installation_request_date', order: 'desc' }
           )
           totalCount = projectData.length
         } else {
           // 전체 프로젝트 페이지네이션 조회
           const response = await projectService.getProjects(
             {},
-            { sortBy: 'expected_completion_date', order: 'desc' },
+            { sortBy: 'installation_request_date', order: 'desc' },
             { page: currentPage, limit: pageSize }
           )
           projectData = response.data

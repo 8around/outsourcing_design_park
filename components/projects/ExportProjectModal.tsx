@@ -39,7 +39,7 @@ export default function ExportProjectModal({
     try {
       const response = await projectService.getProjects(
         { search: search || undefined },
-        { sortBy: 'expected_completion_date', order: 'desc' },
+        { sortBy: 'installation_request_date', order: 'desc' },
         { page, limit: pageSize }
       )
 

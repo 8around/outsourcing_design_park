@@ -149,7 +149,7 @@ export interface ProjectFilters {
 }
 
 // 프로젝트 정렬 옵션
-export type ProjectSortBy = 'created_at' | 'updated_at' | 'site_name' | 'expected_completion_date' | 'order_date';
+export type ProjectSortBy = 'created_at' | 'updated_at' | 'site_name' | 'expected_completion_date' | 'order_date' | 'installation_request_date';
 export type SortOrder = 'asc' | 'desc';
 
 export interface ProjectSortOptions {
