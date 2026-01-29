@@ -799,6 +799,7 @@ export class ProjectService {
   }
 
   // 진행중인 프로젝트 목록 조회 (무한스크롤용)
+  // 최적화: history_logs 임베드 쿼리로 N+1 문제 해결 (21회 → 1회)
   async getInProgressProjects(
     page = 1,
     limit = 20
@@ -814,16 +815,27 @@ export class ProjectService {
 
       const completedProjectIds = completedIds?.map((row: { project_id: string }) => row.project_id) || [];
 
-      // 2. 진행중인 프로젝트 조회 (완료된 프로젝트 제외) - 기존 getProjects 패턴 사용
+      // 2. 진행중인 프로젝트 조회 - history_logs 임베드 포함
       let query = this.supabase
         .from('projects')
         .select(`
           *,
           sales_manager_user:sales_manager(id, name, email),
           site_manager_user:site_manager(id, name, email),
-          process_stages(*)
+          process_stages(*),
+          history_logs(
+            id,
+            category,
+            content,
+            author_name,
+            target_user_name,
+            log_type,
+            approval_status,
+            created_at
+          )
         `, { count: 'exact' })
-        .is('deleted_at', null);
+        .is('deleted_at', null)
+        .eq('history_logs.is_deleted', false);
 
       // 완료된 프로젝트 제외
       if (completedProjectIds.length > 0) {
@@ -831,11 +843,16 @@ export class ProjectService {
       }
 
       // 3. 정렬: is_urgent DESC, installation_request_date DESC
+      // history_logs는 created_at DESC로 정렬
       query = query
         .order('is_urgent', { ascending: false })
-        .order('installation_request_date', { ascending: false });
+        .order('installation_request_date', { ascending: false })
+        .order('created_at', { referencedTable: 'history_logs', ascending: false });
 
-      // 4. 페이지네이션
+      // 4. 임베드 테이블 결과 제한 (각 프로젝트당 최신 로그 1개)
+      query = query.limit(1, { referencedTable: 'history_logs' });
+
+      // 5. 페이지네이션
       const from = (page - 1) * limit;
       const to = from + limit - 1;
       query = query.range(from, to);
@@ -843,40 +860,32 @@ export class ProjectService {
       const { data: projects, count, error } = await query;
       if (error) throw error;
 
-      // 5. 각 프로젝트의 최신 로그 조회 (병렬 처리)
-      const projectsWithLogs: ProjectGridItem[] = await Promise.all(
-        (projects || []).map(async (project: Project) => {
-          // 최신 로그 1개 조회
-          const { data: logs } = await this.supabase
-            .from('history_logs')
-            .select('id, category, content, author_name, target_user_name, log_type, approval_status, created_at')
-            .eq('project_id', project.id)
-            .eq('is_deleted', false)
-            .order('created_at', { ascending: false })
-            .limit(1);
+      // 6. 프로젝트 데이터 매핑 (별도 쿼리 없이 바로 사용)
+      const projectsWithLogs: ProjectGridItem[] = (projects || []).map((project) => {
+        // installation 단계 일정 추출
+        const installationStage = project.process_stages?.find(
+          (s: { stage_name: string }) => s.stage_name === 'installation'
+        );
 
-          // installation 단계 일정 추출
-          const installationStage = project.process_stages?.find(
-            (s) => s.stage_name === 'installation'
-          );
+        // history_logs 배열에서 첫 번째 항목 추출 (이미 1개로 제한됨)
+        const latestLog = project.history_logs?.[0];
 
-          return {
-            id: project.id,
-            site_name: project.site_name,
-            product_name: project.product_name,
-            current_process_stage: project.current_process_stage,
-            is_urgent: project.is_urgent,
-            installation_request_date: project.installation_request_date,
-            sales_manager_name: project.sales_manager_user?.name,
-            site_manager_name: project.site_manager_user?.name,
-            latest_log: logs?.[0] as LatestLogInfo | undefined,
-            installation_schedule: installationStage ? {
-              start_date: installationStage.start_date,
-              end_date: installationStage.end_date,
-            } : undefined,
-          };
-        })
-      );
+        return {
+          id: project.id,
+          site_name: project.site_name,
+          product_name: project.product_name,
+          current_process_stage: project.current_process_stage,
+          is_urgent: project.is_urgent,
+          installation_request_date: project.installation_request_date,
+          sales_manager_name: project.sales_manager_user?.name,
+          site_manager_name: project.site_manager_user?.name,
+          latest_log: latestLog as LatestLogInfo | undefined,
+          installation_schedule: installationStage ? {
+            start_date: installationStage.start_date,
+            end_date: installationStage.end_date,
+          } : undefined,
+        };
+      });
 
       const total = count || 0;
       return {
