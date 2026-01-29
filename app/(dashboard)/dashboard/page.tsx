@@ -2,13 +2,13 @@
 
 import { Row, Col, Button, Typography } from 'antd'
 import {
-  HomeOutlined,
   ProjectOutlined,
   CalendarOutlined,
   CloudServerOutlined,
 } from '@ant-design/icons'
 import GlobalLogFeed from '@/components/logs/GlobalLogFeed'
 import PendingApprovals from '@/components/dashboard/PendingApprovals'
+import InProgressProjectsGrid from '@/components/dashboard/InProgressProjectsGrid'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/lib/hooks/useAuth'
 
@@ -60,6 +60,11 @@ export default function DashboardPage() {
         </div>
       </div>
 
+
+      {/* 진행중인 프로젝트 그리드 */}
+      <div className="mb-6">
+        <InProgressProjectsGrid />
+      </div>
 
       {/* 글로벌 활동 로그와 승인 대기 목록 */}
       <Row gutter={[16, 16]} className="mb-6">

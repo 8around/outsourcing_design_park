@@ -294,3 +294,11 @@ body {
   border: 1px solid #fecaca !important;
   box-shadow: none !important;
 }
+
+/* 긴급 프로젝트 행 스타일 (AG Grid rowClassRules) */
+.ag-row.urgent-row {
+  background-color: var(--error-50) !important;
+}
+.ag-row.urgent-row:hover {
+  background-color: var(--error-100) !important;
+}
