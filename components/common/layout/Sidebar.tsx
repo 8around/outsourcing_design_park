@@ -84,7 +84,6 @@ const menuItems: MenuItemType[] = [
 
 interface SidebarProps {
   collapsed: boolean
-  onCollapse: (collapsed: boolean) => void
   className?: string
   isMobile?: boolean
 }

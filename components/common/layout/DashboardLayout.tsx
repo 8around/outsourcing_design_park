@@ -16,6 +16,9 @@ import {
 
 const { Content } = Layout
 
+// localStorage 키 상수
+const SIDEBAR_COLLAPSED_KEY = 'sidebar-collapsed'
+
 interface DashboardLayoutProps {
   children: ReactNode
 }
@@ -29,6 +32,14 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
   // 현재 사이드바 폭 계산
   const currentSidebarWidth = isMobile ? 0 : (collapsed ? SIDEBAR_COLLAPSED_WIDTH : SIDEBAR_WIDTH)
+
+  // localStorage에서 사이드바 상태 복원 (SSR 안전)
+  useEffect(() => {
+    const stored = localStorage.getItem(SIDEBAR_COLLAPSED_KEY)
+    if (stored !== null) {
+      setCollapsed(stored === 'true')
+    }
+  }, [])
 
   // 반응형 처리
   useEffect(() => {
@@ -55,9 +66,10 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     )
   }, [currentSidebarWidth])
 
-  // 사이드바 토글 핸들러
+  // 사이드바 토글 핸들러 (localStorage에 상태 저장)
   const handleCollapse = useCallback((isCollapsed: boolean) => {
     setCollapsed(isCollapsed)
+    localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(isCollapsed))
   }, [])
 
   // 모바일에서 사이드바 바깥 영역 클릭 시 닫기
@@ -82,7 +94,6 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         {/* 사이드바 - 헤더 아래 */}
         <Sidebar
           collapsed={collapsed}
-          onCollapse={handleCollapse}
           className={isMobile ? 'mobile-sidebar' : ''}
           isMobile={isMobile}
         />
