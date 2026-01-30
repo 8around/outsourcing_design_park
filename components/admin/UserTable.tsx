@@ -5,7 +5,7 @@ import { Table, Badge, Space, Tooltip, Tag } from 'antd';
 import { UserOutlined } from '@ant-design/icons';
 import UserDetailModal from './UserDetailModal';
 import dayjs from 'dayjs';
-import { getRoleColor, getRoleLabel, isManager } from '@/lib/utils/permissions';
+import { getRoleColor, getRoleLabel} from '@/lib/utils/permissions';
 import { UserRole } from '@/types/user';
 
 interface User {
