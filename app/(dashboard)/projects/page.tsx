@@ -540,11 +540,15 @@ export default function ProjectsPage() {
                         </div>
 
                         {/* 날짜 정보 */}
-                        <div className="pt-2 border-t flex items-center justify-between text-xs text-gray-500">
-                          <span className="flex items-center gap-1">
+                        <div className="pt-2 border-t space-y-1 text-xs text-gray-500">
+                          <div className="flex items-center gap-1">
                             <CalendarOutlined />
                             준공: {new Date(project.expected_completion_date).toLocaleDateString()}
-                          </span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <CalendarOutlined />
+                            설치: {new Date(project.installation_request_date).toLocaleDateString()}
+                          </div>
                         </div>
 
                         {/* 액션 버튼 */}
