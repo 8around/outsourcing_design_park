@@ -526,6 +526,7 @@ export default function GlobalLogFeed({
           {showRefresh && (
             <Button
               type="text"
+              size="large"
               icon={<ReloadOutlined spin={refreshing} />}
               onClick={handleRefresh}
               loading={refreshing}

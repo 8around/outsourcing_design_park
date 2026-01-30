@@ -12,7 +12,7 @@ import type {
 } from "ag-grid-community";
 import { themeAlpine } from "ag-grid-community";
 import { Card, Tag, Tooltip, Button, Typography, Badge } from "antd";
-import { ReloadOutlined, FireOutlined } from "@ant-design/icons";
+import { ReloadOutlined, FireOutlined, ColumnWidthOutlined } from "@ant-design/icons";
 import { format } from "date-fns";
 import { registerAgGridModules } from "@/lib/agGridSetup";
 import { projectService } from "@/lib/services/projects.service";
@@ -237,6 +237,7 @@ export default function InProgressProjectsGrid() {
       resizable: true,
       sortable: false,
       filter: false,
+      suppressMovable: true, // 컬럼 드래그 이동 비활성화
     }),
     [],
   );
@@ -293,6 +294,22 @@ export default function InProgressProjectsGrid() {
     api.ensureIndexVisible(0, "top");
   }, []);
 
+  // 컬럼 폭 자동 조절
+  const autoSizeAllColumns = useCallback(() => {
+    const api = gridRef.current?.api;
+    if (!api) return;
+
+    const allColumnIds: string[] = [];
+    api.getColumns()?.forEach((column) => {
+      allColumnIds.push(column.getId());
+    });
+
+    api.autoSizeColumns({
+      colIds: allColumnIds,
+      skipHeader: false,
+    });
+  }, []);
+
   // 행 기본 스타일 (커서 포인터)
   const rowStyle = useMemo(() => ({ cursor: "pointer" }), []);
 
@@ -307,17 +324,29 @@ export default function InProgressProjectsGrid() {
   return (
     <Card
       title={
-        <div className="flex items-center gap-2">
-          <Title level={4} className="!m-0">
-            진행중인 프로젝트
-          </Title>
-          <Badge count={total} showZero color="blue" />
+        <div className="flex items-center justify-between">
+          {/* 왼쪽: 제목 + 배지 + 새로고침 */}
+          <div className="flex items-center gap-2">
+            <Title level={4} className="!m-0">
+              진행중인 프로젝트
+            </Title>
+            <Badge count={total} showZero color="blue" />
+            <Button
+              type="text"
+              size="large"
+              icon={<ReloadOutlined />}
+              onClick={refresh}
+              disabled={isInitialLoading}
+            />
+          </div>
+          {/* 오른쪽: 확장 버튼 */}
           <Button
-            type="text"
-            icon={<ReloadOutlined />}
-            onClick={refresh}
+            icon={<ColumnWidthOutlined />}
+            onClick={autoSizeAllColumns}
             disabled={isInitialLoading}
-          />
+          >
+            확장
+          </Button>
         </div>
       }
       styles={{ body: { padding: 0 } }}
