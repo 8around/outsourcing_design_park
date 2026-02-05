@@ -11,8 +11,8 @@ import type {
   RowClassRules,
 } from "ag-grid-community";
 import { themeAlpine } from "ag-grid-community";
-import { Card, Tag, Tooltip, Button, Typography, Badge } from "antd";
-import { ReloadOutlined, FireOutlined, ColumnWidthOutlined } from "@ant-design/icons";
+import { Card, Tag, Tooltip, Button, Typography, Badge, Space } from "antd";
+import { ReloadOutlined, FireOutlined, RollbackOutlined, ArrowsAltOutlined } from "@ant-design/icons";
 import { format } from "date-fns";
 import { registerAgGridModules } from "@/lib/agGridSetup";
 import { projectService } from "@/lib/services/projects.service";
@@ -237,7 +237,6 @@ export default function InProgressProjectsGrid() {
       resizable: true,
       sortable: false,
       filter: false,
-      suppressMovable: true, // 컬럼 드래그 이동 비활성화
     }),
     [],
   );
@@ -294,7 +293,16 @@ export default function InProgressProjectsGrid() {
     api.ensureIndexVisible(0, "top");
   }, []);
 
-  // 컬럼 폭 자동 조절
+  // 컬럼 폭 초기화 (축소)
+  const resetColumnWidths = useCallback(() => {
+    const api = gridRef.current?.api;
+    if (!api) return;
+
+    // 컬럼 상태 초기화 (폭, 순서 등 모두 기본값으로)
+    api.resetColumnState();
+  }, []);
+
+  // 컬럼 폭 자동 조절 (확장)
   const autoSizeAllColumns = useCallback(() => {
     const api = gridRef.current?.api;
     if (!api) return;
@@ -339,14 +347,23 @@ export default function InProgressProjectsGrid() {
               disabled={isInitialLoading}
             />
           </div>
-          {/* 오른쪽: 확장 버튼 */}
-          <Button
-            icon={<ColumnWidthOutlined />}
-            onClick={autoSizeAllColumns}
-            disabled={isInitialLoading}
-          >
-            확장
-          </Button>
+          {/* 오른쪽: 축소/확장 버튼 그룹 */}
+          <Space.Compact>
+            <Button
+              icon={<RollbackOutlined />}
+              onClick={resetColumnWidths}
+              disabled={isInitialLoading}
+            >
+              초기화
+            </Button>
+            <Button
+              icon={<ArrowsAltOutlined />}
+              onClick={autoSizeAllColumns}
+              disabled={isInitialLoading}
+            >
+              확장
+            </Button>
+          </Space.Compact>
         </div>
       }
       styles={{ body: { padding: 0 } }}

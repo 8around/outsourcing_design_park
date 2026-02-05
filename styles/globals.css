@@ -295,6 +295,10 @@ body {
   box-shadow: none !important;
 }
 
+.ag-header-cell-label {
+  cursor: pointer;
+}
+
 /* 긴급 프로젝트 행 스타일 (AG Grid rowClassRules) */
 .ag-row.urgent-row {
   background-color: var(--error-50) !important;
