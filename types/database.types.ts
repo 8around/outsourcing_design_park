@@ -12,6 +12,31 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "13.0.4"
   }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
       approval_requests: {
@@ -128,6 +153,7 @@ export type Database = {
       }
       history_logs: {
         Row: {
+          approval_request_id: string | null
           approval_status: string | null
           author_id: string
           author_name: string
@@ -144,6 +170,7 @@ export type Database = {
           target_user_name: string | null
         }
         Insert: {
+          approval_request_id?: string | null
           approval_status?: string | null
           author_id: string
           author_name: string
@@ -160,6 +187,7 @@ export type Database = {
           target_user_name?: string | null
         }
         Update: {
+          approval_request_id?: string | null
           approval_status?: string | null
           author_id?: string
           author_name?: string
@@ -176,6 +204,13 @@ export type Database = {
           target_user_name?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_history_logs_approval_request"
+            columns: ["approval_request_id"]
+            isOneToOne: false
+            referencedRelation: "approval_requests"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "history_logs_author_id_fkey"
             columns: ["author_id"]
@@ -407,11 +442,13 @@ export type Database = {
           created_at: string | null
           created_by: string
           current_process_stage: string
+          deleted_at: string | null
           expected_completion_date: string
           id: string
           installation_request_date: string
           is_urgent: boolean | null
           last_saved_at: string | null
+          notes: string | null
           order_date: string
           outsourcing_company: string
           product_name: string
@@ -426,11 +463,13 @@ export type Database = {
           created_at?: string | null
           created_by: string
           current_process_stage?: string
+          deleted_at?: string | null
           expected_completion_date: string
           id?: string
           installation_request_date: string
           is_urgent?: boolean | null
           last_saved_at?: string | null
+          notes?: string | null
           order_date: string
           outsourcing_company: string
           product_name: string
@@ -445,11 +484,13 @@ export type Database = {
           created_at?: string | null
           created_by?: string
           current_process_stage?: string
+          deleted_at?: string | null
           expected_completion_date?: string
           id?: string
           installation_request_date?: string
           is_urgent?: boolean | null
           last_saved_at?: string | null
+          notes?: string | null
           order_date?: string
           outsourcing_company?: string
           product_name?: string
@@ -617,38 +658,44 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      gtrgm_compress: {
-        Args: { "": unknown }
-        Returns: unknown
+      check_weekly_report_setup: { Args: never; Returns: Json }
+      get_completed_project_ids: {
+        Args: never
+        Returns: {
+          project_id: string
+        }[]
       }
-      gtrgm_decompress: {
-        Args: { "": unknown }
-        Returns: unknown
+      get_weekly_report_job_runs: {
+        Args: { limit_rows?: number }
+        Returns: {
+          command: string
+          database: string
+          end_time: string
+          job_pid: number
+          jobid: number
+          return_message: string
+          start_time: string
+          status: string
+          username: string
+        }[]
       }
-      gtrgm_in: {
-        Args: { "": unknown }
-        Returns: unknown
+      get_weekly_report_jobs: {
+        Args: never
+        Returns: {
+          active: boolean
+          command: string
+          database: string
+          jobid: number
+          jobname: string
+          nodename: string
+          nodeport: number
+          schedule: string
+          username: string
+        }[]
       }
-      gtrgm_options: {
-        Args: { "": unknown }
-        Returns: undefined
-      }
-      gtrgm_out: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      set_limit: {
-        Args: { "": number }
-        Returns: number
-      }
-      show_limit: {
-        Args: Record<PropertyKey, never>
-        Returns: number
-      }
-      show_trgm: {
-        Args: { "": string }
-        Returns: string[]
-      }
+      show_limit: { Args: never; Returns: number }
+      show_trgm: { Args: { "": string }; Returns: string[] }
+      test_weekly_report_generation: { Args: never; Returns: string }
     }
     Enums: {
       [_ in never]: never
@@ -777,6 +824,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {},
   },

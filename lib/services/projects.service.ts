@@ -1,10 +1,10 @@
 import { createClient } from '@/lib/supabase/client';
 import { generateUniqueFileName } from '@/lib/utils/file';
 import { logService } from './logs.service';
-import type { 
-  Project, 
+import type {
+  Project,
   ProcessStage,
-  CreateProjectDTO, 
+  CreateProjectDTO,
   UpdateProjectDTO,
   UpdateProcessStageDTO,
   ProjectFilters,
@@ -14,7 +14,13 @@ import type {
   ProcessStageName,
   ProcessStatus
 } from '@/types/project';
+import type {
+  ProjectGridItem,
+  InProgressProjectsResponse,
+  LatestLogInfo,
+} from '@/types/dashboard';
 import type { LogCategory } from '@/types/log';
+import { isManager } from '@/lib/utils/permissions';
 
 export class ProjectService {
   private supabase = createClient();
@@ -66,13 +72,47 @@ export class ProjectService {
               .from('project_favorites')
               .select('project_id')
               .eq('user_id', user.id);
-            
+
             // 즐겨찾기가 있든 없든 필터 적용
             const projectIds = favorites?.map(f => f.project_id) || [];
             query = query.in('id', projectIds);
           } else {
             // 사용자가 없으면 빈 결과 반환
             query = query.in('id', []);
+          }
+        }
+
+        // completion_status 필터 적용
+        if (filters.completion_status && filters.completion_status !== 'all') {
+          // RPC 함수로 완료된 프로젝트 ID 조회
+          const { data: completedIds, error: rpcError } = await this.supabase
+            .rpc('get_completed_project_ids');
+
+          if (rpcError) {
+            console.error('완료 프로젝트 조회 실패:', rpcError);
+          }
+
+          const completedProjectIds = completedIds?.map((row: { project_id: string }) => row.project_id) || [];
+
+          if (filters.completion_status === 'completed') {
+            // 완료된 프로젝트만 조회
+            if (completedProjectIds.length > 0) {
+              query = query.in('id', completedProjectIds);
+            } else {
+              // 완료된 프로젝트가 없으면 DB 쿼리 없이 바로 빈 결과 반환
+              return {
+                data: [],
+                total: 0,
+                page: 1,
+                totalPages: 0
+              };
+            }
+          } else if (filters.completion_status === 'in_progress') {
+            // 진행중 프로젝트만 조회 (완료되지 않은 프로젝트)
+            if (completedProjectIds.length > 0) {
+              query = query.not('id', 'in', `(${completedProjectIds.join(',')})`);
+            }
+            // completedProjectIds가 비어있으면 모든 프로젝트가 진행중이므로 추가 필터 불필요
           }
         }
       }
@@ -127,6 +167,55 @@ export class ProjectService {
       return data;
     } catch (error) {
       console.error('프로젝트 조회 실패:', error);
+      throw error;
+    }
+  }
+
+  // 여러 프로젝트 ID로 조회 (내보내기용)
+  async getProjectsByIds(projectIds: string[], sort?: ProjectSortOptions): Promise<Project[]> {
+    if (!projectIds || projectIds.length === 0) return [];
+
+    try {
+      let query = this.supabase
+        .from('projects')
+        .select(`
+          *,
+          creator:created_by(id, name, email),
+          sales_manager_user:sales_manager(id, name, email),
+          site_manager_user:site_manager(id, name, email),
+          process_stages(*),
+          project_images(*)
+        `)
+        .in('id', projectIds)
+        .is('deleted_at', null)
+
+      const sortBy = sort?.sortBy || 'created_at';
+      const order = sort?.order || 'desc';
+
+      query = query.order(sortBy, { ascending: order === 'asc' });
+
+      const { data, error } = await query;
+
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.error('프로젝트 다중 조회 실패:', error);
+      throw error;
+    }
+  }
+
+  // 모든 프로젝트 ID 조회 (전체 선택용)
+  async getAllProjectIds(): Promise<string[]> {
+    try {
+      const { data, error } = await this.supabase
+        .from('projects')
+        .select('id')
+        .is('deleted_at', null);
+
+      if (error) throw error;
+      return data?.map(p => p.id) || [];
+    } catch (error) {
+      console.error('전체 프로젝트 ID 조회 실패:', error);
       throw error;
     }
   }
@@ -359,7 +448,7 @@ export class ProjectService {
         .eq('id', user.id)
         .single();
 
-      if (roleError || userData?.role !== 'admin') {
+      if (roleError || !isManager(userData?.role)) {
         throw new Error('관리자만 프로젝트를 삭제할 수 있습니다.');
       }
       
@@ -705,6 +794,108 @@ export class ProjectService {
       };
     } catch (error) {
       console.error('대시보드 통계 조회 실패:', error);
+      throw error;
+    }
+  }
+
+  // 진행중인 프로젝트 목록 조회 (무한스크롤용)
+  // 최적화: history_logs 임베드 쿼리로 N+1 문제 해결 (21회 → 1회)
+  async getInProgressProjects(
+    page = 1,
+    limit = 20
+  ): Promise<InProgressProjectsResponse> {
+    try {
+      // 1. 완료된 프로젝트 ID 조회 (기존 RPC 활용)
+      const { data: completedIds, error: rpcError } = await this.supabase
+        .rpc('get_completed_project_ids');
+
+      if (rpcError) {
+        console.error('완료 프로젝트 조회 실패:', rpcError);
+      }
+
+      const completedProjectIds = completedIds?.map((row: { project_id: string }) => row.project_id) || [];
+
+      // 2. 진행중인 프로젝트 조회 - history_logs 임베드 포함
+      let query = this.supabase
+        .from('projects')
+        .select(`
+          *,
+          sales_manager_user:sales_manager(id, name, email),
+          site_manager_user:site_manager(id, name, email),
+          process_stages(*),
+          history_logs(
+            id,
+            category,
+            content,
+            author_name,
+            target_user_name,
+            log_type,
+            approval_status,
+            created_at
+          )
+        `, { count: 'exact' })
+        .is('deleted_at', null)
+        .eq('history_logs.is_deleted', false);
+
+      // 완료된 프로젝트 제외
+      if (completedProjectIds.length > 0) {
+        query = query.not('id', 'in', `(${completedProjectIds.join(',')})`);
+      }
+
+      // 3. 정렬: is_urgent DESC, installation_request_date DESC
+      // history_logs는 created_at DESC로 정렬
+      query = query
+        .order('is_urgent', { ascending: false })
+        .order('installation_request_date', { ascending: false })
+        .order('created_at', { referencedTable: 'history_logs', ascending: false });
+
+      // 4. 임베드 테이블 결과 제한 (각 프로젝트당 최신 로그 1개)
+      query = query.limit(1, { referencedTable: 'history_logs' });
+
+      // 5. 페이지네이션
+      const from = (page - 1) * limit;
+      const to = from + limit - 1;
+      query = query.range(from, to);
+
+      const { data: projects, count, error } = await query;
+      if (error) throw error;
+
+      // 6. 프로젝트 데이터 매핑 (별도 쿼리 없이 바로 사용)
+      const projectsWithLogs: ProjectGridItem[] = (projects || []).map((project) => {
+        // installation 단계 일정 추출
+        const installationStage = project.process_stages?.find(
+          (s: { stage_name: string }) => s.stage_name === 'installation'
+        );
+
+        // history_logs 배열에서 첫 번째 항목 추출 (이미 1개로 제한됨)
+        const latestLog = project.history_logs?.[0];
+
+        return {
+          id: project.id,
+          site_name: project.site_name,
+          product_name: project.product_name,
+          current_process_stage: project.current_process_stage,
+          is_urgent: project.is_urgent,
+          installation_request_date: project.installation_request_date,
+          sales_manager_name: project.sales_manager_user?.name,
+          site_manager_name: project.site_manager_user?.name,
+          latest_log: latestLog as LatestLogInfo | undefined,
+          installation_schedule: installationStage ? {
+            start_date: installationStage.start_date,
+            end_date: installationStage.end_date,
+          } : undefined,
+        };
+      });
+
+      const total = count || 0;
+      return {
+        items: projectsWithLogs,
+        total,
+        page,
+        hasMore: page * limit < total,
+      };
+    } catch (error) {
+      console.error('진행중인 프로젝트 조회 실패:', error);
       throw error;
     }
   }

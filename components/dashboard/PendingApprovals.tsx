@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Card, List, Typography, Tag, Space, Button, Empty, Skeleton, Tooltip, message, Pagination, Modal, Input } from 'antd'
+import { Card, List, Typography, Tag, Button, Empty, Skeleton, Tooltip, message, Pagination, Modal, Input } from 'antd'
 import {
   ClockCircleOutlined,
   CheckOutlined,
@@ -15,11 +15,11 @@ import {
   DownloadOutlined,
   // DeleteOutlined, // 삭제 기능 제거
 } from '@ant-design/icons'
-import { formatDistanceToNow } from 'date-fns'
-import { ko } from 'date-fns/locale'
+import { format } from 'date-fns'
 import { useRouter } from 'next/navigation'
 import { approvalService } from '@/lib/services/approval.service'
 import { useAuth } from '@/lib/hooks/useAuth'
+import { Z_INDEX } from '@/lib/config/layout.constants'
 
 const { Text, Title } = Typography
 const { TextArea } = Input
@@ -117,6 +117,7 @@ export default function PendingApprovals({
     }
 
     setLoading(true)
+
     try {
       // 현재 사용자의 승인 대기 목록 조회
       const response = await approvalService.getPendingApprovalsForUser(user.id)
@@ -482,10 +483,7 @@ export default function PendingApprovals({
                 )}
                 <Text type="secondary" style={{ flexShrink: 0 }}>•</Text>
                 <Text type="secondary" style={{ flexShrink: 0 }}>
-                  {formatDistanceToNow(new Date(approval.created_at), {
-                    addSuffix: true,
-                    locale: ko
-                  })}
+                  {format(new Date(approval.created_at), 'yyyy-MM-dd HH:mm:ss')}
                 </Text>
               </div>
               {/* 첨부파일 표시 - 항상 보이기 */}
@@ -568,21 +566,17 @@ export default function PendingApprovals({
   return (
     <Card
       title={
-        <div className="flex items-center justify-between">
-          <Space>
-            <Title level={4} className="mb-0">승인 대기 목록</Title>
-          </Space>
-          <Tooltip title="새로고침">
-            <Button
-              type="text"
-              icon={<ReloadOutlined spin={refreshing} />}
-              onClick={handleRefresh}
-              loading={refreshing}
-              disabled={loading}
-            >
-              새로고침
-            </Button>
-          </Tooltip>
+        <div className="flex items-center gap-2">
+          <Title level={4} className='!m-0'>승인 대기 목록</Title>
+          
+          <Button
+            type="text"
+            size="large"
+            icon={<ReloadOutlined spin={refreshing} />}
+            onClick={handleRefresh}
+            loading={refreshing}
+            disabled={loading}
+          />
         </div>
       }
       className="pending-approvals"
@@ -668,41 +662,6 @@ export default function PendingApprovals({
           overflow-wrap: break-word;
         }
 
-        /* 모바일 전용 스타일 개선 */
-        @media (max-width: 768px) {
-          .approval-list :global(.ant-list-item) {
-            padding: 12px 16px;
-          }
-
-          .approval-list :global(.ant-list-item-meta) {
-            width: 100%;
-            overflow: hidden;
-          }
-
-          .approval-list :global(.ant-list-item-meta-title) {
-            width: 100%;
-            overflow: visible;
-          }
-
-          .approval-description {
-            max-width: 100%;
-            word-break: keep-all;
-            overflow-wrap: break-word;
-          }
-
-          .approval-meta-info {
-            width: 100%;
-            overflow-x: auto;
-          }
-
-          .approval-list :global(.ant-list-item-action) {
-            margin-top: 12px;
-            margin-left: 0;
-            display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
-          }
-        }
       `}</style>
 
       {/* 거절 모달 */}
@@ -729,6 +688,7 @@ export default function PendingApprovals({
           setSelectedApproval(null)
           setRejectReason('')
         }}
+        zIndex={Z_INDEX.MODAL}
         okText="거절하기"
         cancelText="취소"
         okType="danger"

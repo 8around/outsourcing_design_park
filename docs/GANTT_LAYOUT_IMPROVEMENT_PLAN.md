@@ -199,7 +199,7 @@ export function GanttChart({ ... }: GanttChartProps) {
     <div>
       <Card
         className="gantt-chart-container"
-        bodyStyle={{ padding: '0' }}  // Card body 패딩 제거
+        styles={{ body: { padding: '0' } }}  // Card body 패딩 제거 (styles.body 사용 - bodyStyle deprecated)
       >
         {/* 전체 펼치기/접기 버튼 */}
         <div style={{ padding: '12px', borderBottom: '1px solid #f0f0f0', display: 'flex', gap: '8px' }}>
@@ -240,7 +240,7 @@ export function GanttChart({ ... }: GanttChartProps) {
 ```
 
 **변경 내용**:
-- Card `bodyStyle={{ padding: '0' }}` 추가
+- Card `styles={{ body: { padding: '0' } }}` 추가 (bodyStyle deprecated)
 - `gantt-wrapper` 최소 높이 증가
 - 페이지네이션 여백 조정 (24px → 12px)
 - **효과**: 상하 여백 약 20px 추가 확보
@@ -302,7 +302,7 @@ export function GanttChart({ ... }: GanttChartProps) {
   - [ ] 시각적 확인 및 조정
 
 - [ ] **GanttChart.tsx** 수정
-  - [ ] Card `bodyStyle` 추가
+  - [x] Card `styles.body` 추가 (bodyStyle deprecated)
   - [ ] `gantt-wrapper` 최소 높이 조정
   - [ ] 페이지네이션 여백 조정
   - [ ] 스타일 최종 검증

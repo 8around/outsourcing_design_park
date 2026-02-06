@@ -1,51 +1,41 @@
 'use client'
 
-import React from 'react'
-import { usePathname, useRouter } from 'next/navigation'
+import React, { useCallback, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import Image from 'next/image'
 import { useAuth } from '@/lib/hooks/useAuth'
 import {
   UserOutlined,
   MenuOutlined,
   LogoutOutlined,
+  MenuFoldOutlined,
+  MenuUnfoldOutlined,
 } from '@ant-design/icons'
 import { Button, Avatar, Dropdown, Typography } from 'antd'
 import type { MenuProps } from 'antd'
+import { HEADER_HEIGHT, Z_INDEX } from '@/lib/config/layout.constants'
+import { getRoleLabel } from '@/lib/utils/permissions'
 
 const { Text } = Typography
 
 interface HeaderProps {
   onMobileMenuToggle?: () => void
   showMobileMenuButton?: boolean
-  collapsed?: boolean
-  onCollapse?: (collapsed: boolean) => void
-  sidebarWidth?: number
+  collapsed: boolean
+  onCollapse: (collapsed: boolean) => void
+  isMobile: boolean
 }
 
-// 페이지 제목 매핑
-const getPageTitle = (pathname: string): string => {
-  if (pathname === '/' || pathname === '/dashboard') return '대시보드'
-  if (pathname === '/projects' || pathname.startsWith('/projects')) return '프로젝트'
-  if (pathname === '/gantt' || pathname.startsWith('/gantt')) return '간트차트'
-  if (pathname === '/calendar' || pathname.startsWith('/calendar')) return '캘린더'
-  if (pathname === '/notifications' || pathname.startsWith('/notifications')) return '알림'
-  if (pathname.startsWith('/admin/users')) return '사용자 관리'
-  if (pathname.startsWith('/admin/reports')) return '리포트'
-  if (pathname.startsWith('/profile')) return '프로필'
-  return '대시보드'
-}
-
-export default function Header({ 
-  onMobileMenuToggle, 
+export default function Header({
+  onMobileMenuToggle,
   showMobileMenuButton = false,
   collapsed,
-  sidebarWidth = 280
+  onCollapse,
+  isMobile,
 }: HeaderProps) {
-  const pathname = usePathname()
   const router = useRouter()
   const { user, userData, signOut } = useAuth()
-  
-  // 사이드바 너비 계산
-  const sidebarOffset = showMobileMenuButton ? 0 : (collapsed ? 80 : sidebarWidth)
+  const [dropdownOpen, setDropdownOpen] = useState(false)
 
   // 사용자 드롭다운 메뉴
   const userMenuItems: MenuProps['items'] = [
@@ -65,7 +55,10 @@ export default function Header({
     },
   ]
 
-  const handleUserMenuClick: MenuProps['onClick'] = async ({ key }) => {
+  const handleUserMenuClick = useCallback<NonNullable<MenuProps['onClick']>>(async ({ key }) => {
+    // 메뉴 클릭 시 드롭다운 닫기
+    setDropdownOpen(false)
+    
     switch (key) {
       case 'profile':
         router.push('/profile')
@@ -79,48 +72,72 @@ export default function Header({
         }
         break
     }
-  }
+  }, [router, signOut])
 
   return (
-    <header 
-      className="fixed top-0 right-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between" 
-      style={{ 
-        height: '72px',
-        left: `${sidebarOffset}px`,
-        transition: 'left 0.2s ease',
-        zIndex: 10, // Lower than sidebar (1000) but higher than content
-      }}>
-      {/* 왼쪽 영역 */}
-      <div className="flex items-center space-x-4">
+    <header
+      className="fixed top-0 left-0 right-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between"
+      style={{
+        height: 'var(--header-height)',
+        zIndex: Z_INDEX.HEADER,
+      }}
+    >
+      {/* 왼쪽 영역: Collapse 토글 + 로고 + 브랜드 */}
+      <div className="flex items-center gap-4">
         {/* 모바일 메뉴 버튼 */}
         {showMobileMenuButton && (
           <Button
             type="text"
             icon={<MenuOutlined />}
             onClick={onMobileMenuToggle}
-            className="lg:hidden"
+            className="flex items-center justify-center"
           />
         )}
 
-        {/* 페이지 제목 */}
-        <div>
-          <Text className="text-2xl font-bold text-gray-900">
-            {getPageTitle(pathname)}
+        {/* Collapse 토글 버튼 - 데스크탑에서만 표시 (먼저!) */}
+        {!isMobile && (
+          <Button
+            type="text"
+            icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
+            onClick={() => onCollapse(!collapsed)}
+            className="flex items-center justify-center"
+          />
+        )}
+
+        {/* 로고 - 헤더 높이의 절반, 비율 자동 유지 */}
+        <div
+          className="relative rounded-lg overflow-hidden"
+          style={{ height: HEADER_HEIGHT / 2, aspectRatio: '961/390'}}
+        >
+          <Image
+            src="/images/logo.png"
+            alt="디자인파크"
+            fill
+            className="object-contain"
+            priority
+            unoptimized
+          />
+        </div>
+
+        {/* 브랜드 텍스트 - sm(640px) 이상에서만 표시 */}
+        <div className="hidden sm:block">
+          <Text strong className="text-gray-900 block leading-tight">
+            프로젝트 관리 시스템
           </Text>
-          <Text className="text-sm text-gray-500 block">
-            {userData?.role === 'admin' ? '관리자 권한' : '일반 사용자'}
-          </Text>
+          <Text className="text-xs text-gray-500">(주)디자인파크</Text>
         </div>
       </div>
 
       {/* 오른쪽 영역 */}
       <div className="flex items-center space-x-3">
-
         {/* 사용자 드롭다운 */}
         <Dropdown
           menu={{ items: userMenuItems, onClick: handleUserMenuClick }}
           placement="bottomRight"
           arrow
+          trigger={['click']}
+          open={dropdownOpen}
+          onOpenChange={setDropdownOpen}
         >
           <div className="flex items-center space-x-2 cursor-pointer hover:bg-gray-50 rounded-lg px-3 py-2 transition-all duration-200">
             <Avatar
@@ -128,26 +145,19 @@ export default function Header({
               icon={<UserOutlined />}
               className="bg-primary-100 text-primary-600"
             />
+            {/* 사용자 정보 텍스트 - sm(640px) 이상에서만 표시 */}
             <div className="hidden sm:block">
               <Text className="text-sm font-medium text-gray-900 block">
-                {user?.email?.split('@')[0] || '사용자'}
+                {userData?.name || '사용자'} ({user?.email})
               </Text>
               <Text className="text-xs text-gray-500">
-                {userData?.role === 'admin' ? '관리자' : '사용자'}
+                {getRoleLabel(userData?.role)}
               </Text>
             </div>
           </div>
         </Dropdown>
       </div>
 
-      <style jsx>{`
-        /* 반응형 스타일 */
-        @media (max-width: 768px) {
-          header {
-            padding: 1rem 1rem;
-          }
-        }
-      `}</style>
     </header>
   )
 }

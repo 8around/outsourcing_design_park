@@ -1,9 +1,8 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useCallback } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import Image from 'next/image'
 import { useAuth } from '@/lib/hooks/useAuth'
 import { useNotifications } from '@/lib/hooks/useNotifications'
 import {
@@ -14,14 +13,17 @@ import {
   UserOutlined,
   BellOutlined,
   LogoutOutlined,
-  MenuFoldOutlined,
-  MenuUnfoldOutlined,
   FileTextOutlined,
   UserSwitchOutlined,
 } from '@ant-design/icons'
-import { Button, Avatar, Typography, Badge } from 'antd'
-
-const { Text } = Typography
+import { Badge, Tooltip } from 'antd'
+import {
+  SIDEBAR_WIDTH,
+  SIDEBAR_COLLAPSED_WIDTH,
+  Z_INDEX,
+} from '@/lib/config/layout.constants'
+import { message } from 'antd/lib'
+import { isAdmin, isManager } from '@/lib/utils/permissions'
 
 interface MenuItemType {
   key: string
@@ -29,6 +31,7 @@ interface MenuItemType {
   icon: React.ReactNode
   path: string
   adminOnly?: boolean
+  managerOnly?: boolean  // admin 전용 메뉴 중 manager도 접근 가능한 경우
   badge?: number
 }
 
@@ -75,27 +78,26 @@ const menuItems: MenuItemType[] = [
     label: '리포트',
     icon: <FileTextOutlined />,
     path: '/admin/reports',
-    adminOnly: true,
+    managerOnly: true,
   },
 ]
 
 interface SidebarProps {
   collapsed: boolean
-  onCollapse: (collapsed: boolean) => void
   className?: string
   isMobile?: boolean
 }
 
-export default function Sidebar({ collapsed, onCollapse, className, isMobile = false }: SidebarProps) {
+export default function Sidebar({ collapsed, className, isMobile = false }: SidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
-  const { user, userData, signOut } = useAuth()
+  const { userData, signOut } = useAuth()
   const { unreadCount } = useNotifications()
-  const [loading, setLoading] = useState(false)
 
   // 현재 경로에서 선택된 키 결정
   const getSelectedKey = () => {
     if (pathname === '/' || pathname === '/dashboard') return 'dashboard'
+    if (pathname.startsWith('/profile')) return 'profile'
     if (pathname.startsWith('/gantt')) return 'gantt'
     if (pathname.startsWith('/calendar')) return 'calendar'
     if (pathname.startsWith('/notifications')) return 'notifications'
@@ -104,82 +106,80 @@ export default function Sidebar({ collapsed, onCollapse, className, isMobile = f
     if (pathname.startsWith('/admin/reports')) return 'reports'
     return 'dashboard'
   }
-  
-  const selectedKey = getSelectedKey()
 
+  const selectedKey = getSelectedKey()
+  const isProfileActive = selectedKey === 'profile'
 
   // 로그아웃 핸들러
-  const handleLogout = async () => {
-    setLoading(true)
+  const handleLogout = useCallback(async () => {
     try {
       await signOut()
       router.push('/login')
     } catch (error) {
       console.error('로그아웃 실패:', error)
-    } finally {
-      setLoading(false)
+      message.error('로그아웃 실패')
     }
-  }
+  }, [signOut, router])
 
   // 권한별 메뉴 필터링
-  const filteredMenuItems = menuItems.filter(item => {
+  const filteredMenuItems = menuItems.filter((item) => {
     if (item.adminOnly) {
-      return userData?.role === 'admin'
+      return isAdmin(userData?.role)
+    } else if (item.managerOnly) {
+      return isManager(userData?.role)
     }
+
     return true
   })
 
-  // 메뉴 아이템 렌더링
-  const renderMenuItem = (item: MenuItemType) => {
+  // Collapsed 상태의 메뉴 아이템 렌더링
+  const renderCollapsedMenuItem = (item: MenuItemType) => {
     const isSelected = selectedKey === item.key
-    // 알림 메뉴일 경우 실시간 알림 개수 표시
     const badgeCount = item.key === 'notifications' ? unreadCount : item.badge
     const shouldShowBadge = badgeCount !== undefined && badgeCount !== null && badgeCount > 0
-    
+
+    return (
+      <Tooltip key={item.key} title={item.label} placement="right" mouseEnterDelay={0} mouseLeaveDelay={0}>
+        <Link
+          href={item.path}
+          className={`collapsed-menu-item ${isSelected ? 'active' : ''}`}
+        >
+          <div className="icon-wrapper">
+            {shouldShowBadge ? (
+              <Badge count={badgeCount} size="small" offset={[8, -4]} showZero={false}>
+                {item.icon}
+              </Badge>
+            ) : (
+              item.icon
+            )}
+          </div>
+        </Link>
+      </Tooltip>
+    )
+  }
+
+  // Expanded 상태의 메뉴 아이템 렌더링
+  const renderExpandedMenuItem = (item: MenuItemType) => {
+    const isSelected = selectedKey === item.key
+    const badgeCount = item.key === 'notifications' ? unreadCount : item.badge
+    const shouldShowBadge = badgeCount !== undefined && badgeCount !== null && badgeCount > 0
+
     return (
       <Link
         key={item.key}
         href={item.path}
-        className={`
-          group flex items-center px-4 py-3 rounded-lg mx-3 my-1 cursor-pointer no-underline
-          transition-all duration-200 hover:bg-primary-50
-          ${isSelected ? 'bg-primary-100 text-primary-600' : 'text-gray-700 hover:text-primary-600'}
-        `}
-        style={{ display: 'flex', textDecoration: 'none' }}
+        className={`expanded-menu-item ${isSelected ? 'active' : ''}`}
       >
-        <div className={`
-          flex items-center justify-center w-5 h-5 mr-3 relative
-          ${isSelected ? 'text-primary-600' : 'text-gray-500 group-hover:text-primary-600'}
-        `}>
-          {/* collapsed 상태에서도 알림 개수 표시 */}
-          {collapsed && item.key === 'notifications' && shouldShowBadge ? (
-            <Badge
-              count={badgeCount}
-              size="small"
-              offset={[0, 0]}
-              showZero={false}
-              style={{ backgroundColor: '#ff4d4f' }}
-            >
-              {item.icon}
-            </Badge>
-          ) : (
-            item.icon
-          )}
-        </div>
-        
-        {!collapsed && (
-          <div className="flex-1 flex items-center justify-between">
-            <span className="font-medium">{item.label}</span>
-            {shouldShowBadge && (
-              <Badge
-                count={badgeCount}
-                size="small"
-                className="ml-2"
-                showZero={false}
-                style={{ backgroundColor: '#ff4d4f' }}
-              />
-            )}
-          </div>
+        <div className="icon-wrapper">{item.icon}</div>
+        <span className="menu-label">{item.label}</span>
+        {shouldShowBadge && (
+          <Badge
+            count={badgeCount}
+            size="small"
+            className="ml-auto"
+            showZero={false}
+            style={{ backgroundColor: '#ff4d4f' }}
+          />
         )}
       </Link>
     )
@@ -187,136 +187,238 @@ export default function Sidebar({ collapsed, onCollapse, className, isMobile = f
 
   return (
     <>
-    <div
-      className={`fixed left-0 top-0 h-full bg-white border-r border-gray-200 flex flex-col ${className || ''}`}
-      style={{
-        width: collapsed ? '80px' : '280px',
-        transform: isMobile && collapsed ? 'translateX(-100%)' : 'translateX(0)',
-        transition: 'transform 0.3s ease, width 0.2s ease',
-        zIndex: 1050, // Higher than overlay (999)
-        display: 'flex',
-        flexDirection: 'column',
-        height: '100vh',
-      }}>
-      {/* 헤더 */}
-      <div className="p-4 border-b border-gray-100">
-        <div className="flex items-center justify-between">
-          {!collapsed && (
-            <div className="flex items-center space-x-3">
-              <div className="h-8 rounded-lg overflow-hidden flex items-center justify-center">
-                <Image
-                  src="/images/logo.png"
-                  alt="디자인파크"
-                  width={961/390*32}
-                  height={32}
-                  className="object-contain"
-                  priority
-                  unoptimized
-                />
-              </div>
-              <div>
-                <Text strong className="text-gray-900">프로젝트 관리 시스템</Text>
-                <Text className="text-xs text-gray-500 block">(주)디자인파크</Text>
-              </div>
-            </div>
-          )}
-          
-          <Button
-            type="text"
-            icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
-            onClick={() => onCollapse(!collapsed)}
-            className="flex items-center justify-center"
-          />
-        </div>
-      </div>
-
-      {/* 사용자 정보 */}
-      {!collapsed && (
-        <div className="p-4 border-b border-gray-100">
-          <div className="flex items-center space-x-3">
-            <Avatar
-              size={40}
-              icon={<UserOutlined />}
-              className="bg-primary-100 text-primary-600"
-            />
-            <div className="flex-1 min-w-0">
-              <Text strong className="block truncate text-sm">
-                {user?.email || '사용자'}
-              </Text>
-              <Text className="text-xs text-gray-500">
-                {userData?.role === 'admin' ? '관리자' : '일반 사용자'}
-              </Text>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* 네비게이션 메뉴 */}
-      <div className="py-4 overflow-y-auto overflow-x-hidden" style={{ 
-        flex: '1 1 auto',
-        minHeight: 0, // Important for flexbox overflow
-        maxHeight: 'calc(100vh - 300px)', // 헤더(약 140px) + 하단 액션(약 160px) 제외
-        scrollbarWidth: 'thin',
-        scrollbarColor: '#e5e7eb #ffffff'
-      }}>
-        <nav>
-          {filteredMenuItems.map(renderMenuItem)}
+      <aside
+        className={`sidebar-container ${className || ''}`}
+        style={{
+          width: collapsed ? SIDEBAR_COLLAPSED_WIDTH : SIDEBAR_WIDTH,
+          transform: isMobile && collapsed ? 'translateX(-100%)' : 'translateX(0)',
+          transition: 'transform 0.3s ease',
+        }}
+      >
+        {/* 네비게이션 메뉴 */}
+        <nav className="nav-section">
+          {collapsed
+            ? filteredMenuItems.map(renderCollapsedMenuItem)
+            : filteredMenuItems.map(renderExpandedMenuItem)}
         </nav>
-      </div>
 
-      {/* 하단 액션 */}
-      <div className="p-4 border-t border-gray-100 space-y-2">
-        <div
-          className="group flex items-center px-4 py-3 rounded-lg cursor-pointer
-                     transition-all duration-200 hover:bg-gray-50 text-gray-700 hover:text-gray-900"
-          onClick={() => router.push('/profile')}
-        >
-          <UserOutlined className="w-5 h-5 mr-3 text-gray-500 group-hover:text-gray-700" />
-          {!collapsed && <span className="font-medium">프로필</span>}
-        </div>
-        
-        <div
-          className="group flex items-center px-4 py-3 rounded-lg cursor-pointer
-                     transition-all duration-200 hover:bg-red-50 text-gray-700 hover:text-red-600"
-          onClick={handleLogout}
-        >
-          <LogoutOutlined className="w-5 h-5 mr-3 text-gray-500 group-hover:text-red-600" />
-          {!collapsed && (
-            <span className="font-medium">
-              {loading ? '로그아웃 중...' : '로그아웃'}
-            </span>
+        {/* 하단 액션 */}
+        <div className="bottom-actions">
+          {collapsed ? (
+            <>
+              <Tooltip title="프로필" placement="right" mouseEnterDelay={0} mouseLeaveDelay={0}>
+                <div
+                  className={`collapsed-action-item profile ${isProfileActive ? 'active' : ''}`}
+                  onClick={() => router.push('/profile')}
+                >
+                  <div className="icon-wrapper">
+                    <UserOutlined />
+                  </div>
+                </div>
+              </Tooltip>
+              <Tooltip title="로그아웃" placement="right" mouseEnterDelay={0} mouseLeaveDelay={0}>
+                <div className="collapsed-action-item logout" onClick={handleLogout}>
+                  <div className="icon-wrapper">
+                    <LogoutOutlined />
+                  </div>
+                </div>
+              </Tooltip>
+            </>
+          ) : (
+            <>
+              <div
+                className={`expanded-action-item profile ${isProfileActive ? 'active' : ''}`}
+                onClick={() => router.push('/profile')}
+              >
+                <div className="icon-wrapper">
+                  <UserOutlined />
+                </div>
+                <span>프로필</span>
+              </div>
+              <div className="expanded-action-item logout" onClick={handleLogout}>
+                <div className="icon-wrapper">
+                  <LogoutOutlined />
+                </div>
+                <span>로그아웃</span>
+              </div>
+            </>
           )}
         </div>
-      </div>
+      </aside>
 
-    </div>
-    
-    {/* Custom scrollbar styles for sidebar */}
-    <style jsx>{`
-      .fixed::-webkit-scrollbar {
-        width: 6px;
-      }
-      
-      .fixed::-webkit-scrollbar-track {
-        background: #f3f4f6;
-        border-radius: 3px;
-      }
-      
-      .fixed::-webkit-scrollbar-thumb {
-        background: #d1d5db;
-        border-radius: 3px;
-      }
-      
-      .fixed::-webkit-scrollbar-thumb:hover {
-        background: #9ca3af;
-      }
-      
-      /* Firefox scrollbar */
-      .fixed {
-        scrollbar-width: thin;
-        scrollbar-color: #d1d5db #f3f4f6;
-      }
-    `}</style>
+      <style jsx>{`
+        .sidebar-container {
+          position: fixed;
+          left: 0;
+          top: var(--header-height);
+          height: calc(100vh - var(--header-height));
+          background: white;
+          border-right: 1px solid #e5e7eb;
+          z-index: ${Z_INDEX.SIDEBAR};
+          display: flex;
+          flex-direction: column;
+        }
+
+        .nav-section {
+          flex: 1;
+          overflow-y: auto;
+          overflow-x: hidden;
+          padding: 16px 0;
+          scrollbar-width: thin;
+          scrollbar-color: #e5e7eb #ffffff;
+        }
+
+        .nav-section::-webkit-scrollbar {
+          width: 6px;
+        }
+
+        .nav-section::-webkit-scrollbar-track {
+          background: #f3f4f6;
+          border-radius: 3px;
+        }
+
+        .nav-section::-webkit-scrollbar-thumb {
+          background: #d1d5db;
+          border-radius: 3px;
+        }
+
+        .nav-section::-webkit-scrollbar-thumb:hover {
+          background: #9ca3af;
+        }
+
+        .bottom-actions {
+          padding: 16px 0;
+          border-top: 1px solid #f3f4f6;
+          display: flex;
+          flex-direction: column;
+          gap: 0;
+        }
+
+        /* Collapsed 메뉴 아이템 */
+        :global(.collapsed-menu-item) {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          height: 48px;
+          margin: 4px 12px;
+          border-radius: 8px;
+          color: #6b7280;
+          text-decoration: none;
+          transition: background-color 0.2s ease, color 0.2s ease;
+        }
+
+        :global(.collapsed-menu-item:hover) {
+          background-color: #eff6ff;
+          color: #2563eb;
+        }
+
+        :global(.collapsed-menu-item.active) {
+          background-color: #dbeafe;
+          color: #1d4ed8;
+        }
+
+        /* Expanded 메뉴 아이템 */
+        :global(.expanded-menu-item) {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          height: 48px;
+          padding: 0 16px;
+          margin: 4px 12px;
+          border-radius: 8px;
+          color: #374151;
+          text-decoration: none;
+          transition: background-color 0.2s ease, color 0.2s ease;
+          font-weight: 500;
+        }
+
+        :global(.expanded-menu-item:hover) {
+          background-color: #eff6ff;
+          color: #2563eb;
+        }
+
+        :global(.expanded-menu-item.active) {
+          background-color: #dbeafe;
+          color: #1d4ed8;
+        }
+
+        /* 아이콘 래퍼 */
+        :global(.icon-wrapper) {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 20px;
+          height: 20px;
+          font-size: 16px;
+        }
+
+        /* Collapsed 액션 아이템 - 상단 메뉴와 동일한 margin 적용 */
+        .collapsed-action-item {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          height: 48px;
+          margin: 4px 12px;
+          border-radius: 8px;
+          color: #6b7280;
+          cursor: pointer;
+          transition: background-color 0.2s ease, color 0.2s ease;
+        }
+
+        /* 프로필 버튼 - primary blue 호버/활성 */
+        .collapsed-action-item.profile:hover {
+          background-color: #eff6ff;
+          color: #2563eb;
+        }
+
+        .collapsed-action-item.profile.active {
+          background-color: #dbeafe;
+          color: #1d4ed8;
+        }
+
+        /* 로그아웃 버튼 - error red 호버 */
+        .collapsed-action-item.logout:hover {
+          background-color: #fef2f2;
+          color: #dc2626;
+        }
+
+        /* Expanded 액션 아이템 - 상단 메뉴와 동일한 높이/margin 적용 */
+        .expanded-action-item {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          height: 48px;
+          padding: 0 16px;
+          margin: 4px 12px;
+          border-radius: 8px;
+          color: #374151;
+          cursor: pointer;
+          transition: background-color 0.2s ease, color 0.2s ease;
+          font-weight: 500;
+        }
+
+        /* 프로필 버튼 - primary blue 호버/활성 */
+        .expanded-action-item.profile:hover {
+          background-color: #eff6ff;
+          color: #2563eb;
+        }
+
+        .expanded-action-item.profile.active {
+          background-color: #dbeafe;
+          color: #1d4ed8;
+        }
+
+        /* 로그아웃 버튼 - error red 호버 */
+        .expanded-action-item.logout:hover {
+          background-color: #fef2f2;
+          color: #dc2626;
+        }
+
+        /* 메뉴 라벨 */
+        :global(.menu-label) {
+          flex: 1;
+        }
+      `}</style>
     </>
   )
 }

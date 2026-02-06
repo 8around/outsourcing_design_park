@@ -12,7 +12,7 @@ export interface Database {
           is_approved: boolean;
           approved_at?: string | null;
           approved_by?: string | null;
-          role: 'user' | 'admin';
+          role: 'user' | 'admin' | 'manager';
           avatar_url?: string | null;
           department?: string | null;
           position?: string | null;
@@ -28,7 +28,7 @@ export interface Database {
           is_approved?: boolean;
           approved_at?: string | null;
           approved_by?: string | null;
-          role?: 'user' | 'admin';
+          role?: 'user' | 'admin' | 'manager';
           avatar_url?: string | null;
           department?: string | null;
           position?: string | null;
@@ -44,7 +44,7 @@ export interface Database {
           is_approved?: boolean;
           approved_at?: string | null;
           approved_by?: string | null;
-          role?: 'user' | 'admin';
+          role?: 'user' | 'admin' | 'manager';
           avatar_url?: string | null;
           department?: string | null;
           position?: string | null;

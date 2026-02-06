@@ -312,6 +312,42 @@ class LogService {
   }
 
   /**
+   * 프로젝트별 전체 로그 조회 (페이지네이션 없음 - Excel 내보내기용)
+   */
+  async getAllProjectLogs(
+    projectId: string,
+    category?: string
+  ): Promise<HistoryLogWithAttachments[]> {
+    const supabase = createClient();
+
+    let query = supabase
+      .from("history_logs")
+      .select(
+        `
+        *,
+        attachments:history_log_attachments(*)
+      `
+      )
+      .eq("project_id", projectId)
+      .eq("is_deleted", false);
+
+    if (category) {
+      query = query.eq("category", category);
+    }
+
+    const { data: logs, error } = await query.order("created_at", {
+      ascending: false,
+    });
+
+    if (error) {
+      console.error("전체 로그 조회 실패:", error);
+      throw new Error("전체 로그 조회에 실패했습니다.");
+    }
+
+    return logs || [];
+  }
+
+  /**
    * 글로벌 로그 피드 조회 (모든 프로젝트)
    */
   async getGlobalLogFeed(

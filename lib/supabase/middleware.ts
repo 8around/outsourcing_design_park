@@ -1,5 +1,6 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { isAdmin, isManager } from "@/lib/utils/permissions";
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
@@ -62,11 +63,14 @@ export async function updateSession(request: NextRequest) {
     "/notifications",
   ];
   
-  // Admin 전용 경로 정의
+  // Admin 이상 접근 가능 경로
   const adminOnlyPaths = [
     "/admin/users",
-    "/admin/reports",
-    "/admin/settings"
+  ];
+
+  // Manager 이상 접근 가능 경로
+  const managerOnlyPaths = [
+    "/admin/reports"
   ];
   const authPaths = ["/login", "/signup", "/reset-password"];
   const pathname = request.nextUrl.pathname;
@@ -120,13 +124,21 @@ export async function updateSession(request: NextRequest) {
         return NextResponse.redirect(url);
       }
 
-      // Admin 경로 접근 권한 체크
-      if (pathname.startsWith("/admin") || adminOnlyPaths.some(path => pathname.startsWith(path))) {
-        if (userData.role !== "admin") {
-          // 일반 사용자가 admin 경로에 접근하려는 경우
+      // Admin + Manager 경로 접근 권한 체크
+      if (managerOnlyPaths.some(path => pathname.startsWith(path))) {
+        if (!isManager(userData.role)) {
+          // 일반 사용자가 admin/manager 경로에 접근하려는 경우
           const url = request.nextUrl.clone();
           url.pathname = "/";
-          url.searchParams.set("message", "unauthorized");
+          return NextResponse.redirect(url);
+        }
+      }
+      // Admin 전용 경로 접근 권한 체크
+      else if (adminOnlyPaths.some(path => pathname.startsWith(path))) {
+        if (!isAdmin(userData.role)) {
+          // 일반 사용자 또는 manager가 admin 전용 경로에 접근하려는 경우
+          const url = request.nextUrl.clone();
+          url.pathname = "/";
           return NextResponse.redirect(url);
         }
       }

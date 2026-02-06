@@ -11,33 +11,40 @@ import {
   Descriptions,
   Drawer,
   List,
-  message
+  message,
+  Tooltip,
+  DatePicker,
 } from 'antd'
 import {
   CalendarOutlined,
   UserOutlined,
   ProjectOutlined,
   ExclamationCircleOutlined,
-  PlusOutlined
+  PlusOutlined,
+  LeftOutlined,
+  RightOutlined
 } from '@ant-design/icons'
 import { useRouter } from 'next/navigation'
 import moment from 'moment'
 import 'moment/locale/ko'
+import dayjs, { Dayjs } from 'dayjs'
+import 'dayjs/locale/ko'
 import FullCalendar from '@fullcalendar/react'
 import dayGridPlugin from '@fullcalendar/daygrid'
 import timeGridPlugin from '@fullcalendar/timegrid'
 import interactionPlugin from '@fullcalendar/interaction'
 import listPlugin from '@fullcalendar/list'
 import koLocale from '@fullcalendar/core/locales/ko'
-import { EventClickArg, EventDropArg, EventContentArg } from '@fullcalendar/core'
+import { EventClickArg, EventContentArg } from '@fullcalendar/core'
 import { DateClickArg } from '@fullcalendar/interaction'
 import { createClient } from '@/lib/supabase/client'
 import { Project, ProcessStage, PROCESS_STAGES } from '@/types/project'
-import { useAuth } from '@/lib/hooks/useAuth'
+import { Z_INDEX } from '@/lib/config/layout.constants'
 
 const { Title, Text } = Typography
 
 moment.locale('ko')
+dayjs.locale('ko')
 
 // 프로젝트 상태 타입
 type ProjectStatus = 'normal' | 'delayed' | 'completed' | 'waiting' | 'urgent'
@@ -58,14 +65,16 @@ interface CalendarEvent {
     siteName: string
     status: ProjectStatus
     salesManager?: string
+    salesManagerEmail?: string
     siteManager?: string
+    siteManagerEmail?: string
     currentStage: string
     isUrgent: boolean
     processStages?: ProcessStage[]
     productName: string
     productQuantity: number
-    contractDate?: string
-    completionDate?: string
+    installationStartDate?: string
+    installationEndDate?: string
   }
 }
 
@@ -90,9 +99,9 @@ const statusLabels = {
 export default function ProjectCalendar() {
   const router = useRouter()
   const calendarRef = useRef<FullCalendar>(null)
-  const { user } = useAuth()
+  const containerRef = useRef<HTMLDivElement>(null)
   const supabase = createClient()
-  
+
   const [loading, setLoading] = useState(true)
   const [projects, setProjects] = useState<Project[]>([])
   const [eventModalVisible, setEventModalVisible] = useState(false)
@@ -101,21 +110,22 @@ export default function ProjectCalendar() {
   const [dateDrawerVisible, setDateDrawerVisible] = useState(false)
   const [selectedDate, setSelectedDate] = useState<string>('')
   const [selectedDateProjects, setSelectedDateProjects] = useState<CalendarEvent[]>([])
-  const [confirmModalVisible, setConfirmModalVisible] = useState(false)
-  const [draggedEvent, setDraggedEvent] = useState<EventDropArg | null>(null)
-  
-  const isAdmin = user?.role === 'admin'
+
+  // DatePicker용 state - Ant Design은 dayjs를 사용
+  const [pickerValue, setPickerValue] = useState<Dayjs>(dayjs())
 
   // 프로젝트 데이터 가져오기
   const fetchProjects = useCallback(async () => {
     try {
       setLoading(true)
-      // 먼저 프로젝트 데이터만 가져옵니다
+      // 프로젝트 데이터와 담당자 정보를 함께 가져옵니다
       const { data: projectsData, error: projectsError } = await supabase
         .from('projects')
         .select(`
           *,
-          process_stages (*)
+          process_stages (*),
+          sales_manager_user:users!projects_sales_manager_id_fkey(id, name, email),
+          site_manager_user:users!projects_site_manager_id_fkey(id, name, email)
         `)
         .is('deleted_at', null)
         .order('created_at', { ascending: false })
@@ -145,15 +155,20 @@ export default function ProjectCalendar() {
   }, [supabase])
 
   // 프로젝트를 캘린더 이벤트로 변환
-  const convertProjectsToEvents = useCallback((projects: Project[]): CalendarEvent[] => {
+  const convertProjectsToEvents = useCallback((projects: Project[]): (CalendarEvent | null)[] => {
     return projects.map(project => {
-      // 계약 시작일과 준공 종료일 결정
-      const contractStage = project.process_stages?.find(s => s.stage_name === 'contract')
+      // 설치 단계 시작일과 종료일 결정
+      const installationStage = project.process_stages?.find(s => s.stage_name === 'installation')
       const completionStage = project.process_stages?.find(s => s.stage_name === 'completion')
-      
-      const startDate = contractStage?.start_date || project.order_date
-      const endDate = completionStage?.end_date || project.expected_completion_date
-      
+
+      // 설치 단계 날짜가 없으면 캘린더에서 제외
+      if (!installationStage?.start_date || !installationStage?.end_date) {
+        return null
+      }
+
+      const startDate = installationStage.start_date
+      const endDate = installationStage.end_date
+
       // 프로젝트 상태 결정
       let status: ProjectStatus = 'normal'
       if (project.is_urgent) {
@@ -165,7 +180,7 @@ export default function ProjectCalendar() {
       } else if (project.process_stages?.some(s => s.status === 'waiting')) {
         status = 'waiting'
       }
-      
+
       return {
         id: project.id,
         title: project.site_name,
@@ -180,29 +195,50 @@ export default function ProjectCalendar() {
           projectId: project.id,
           siteName: project.site_name,
           status: status,
-          salesManager: project.sales_manager || '',
-          siteManager: project.site_manager || '',
+          salesManager: project.sales_manager_user?.name || '',
+          salesManagerEmail: project.sales_manager_user?.email || '',
+          siteManager: project.site_manager_user?.name || '',
+          siteManagerEmail: project.site_manager_user?.email || '',
           currentStage: PROCESS_STAGES[project.current_process_stage],
           isUrgent: project.is_urgent,
           processStages: project.process_stages,
           productName: project.product_name,
           productQuantity: project.product_quantity,
-          contractDate: startDate,
-          completionDate: endDate
+          installationStartDate: startDate,
+          installationEndDate: endDate
         }
       }
     })
   }, [])
 
-  // 이벤트 생성
+  // 이벤트 생성 (설치 단계 날짜가 없는 프로젝트는 필터링)
   const filteredEvents = useMemo(() => {
-    return convertProjectsToEvents(projects)
+    return convertProjectsToEvents(projects).filter((event): event is CalendarEvent => event !== null)
   }, [projects, convertProjectsToEvents])
 
   // 초기 데이터 로드
   useEffect(() => {
     fetchProjects()
   }, [fetchProjects])
+
+  // 컨테이너 크기 변경 감지 및 FullCalendar 리사이즈
+  useEffect(() => {
+    const container = containerRef.current
+    if (!container) return
+
+    const resizeObserver = new ResizeObserver(() => {
+      // debounce를 위한 requestAnimationFrame 사용
+      requestAnimationFrame(() => {
+        calendarRef.current?.getApi().updateSize()
+      })
+    })
+
+    resizeObserver.observe(container)
+
+    return () => {
+      resizeObserver.disconnect()
+    }
+  }, [])
 
   // 이벤트 클릭 핸들러
   const handleEventClick = useCallback((clickInfo: EventClickArg) => {
@@ -242,49 +278,13 @@ export default function ProjectCalendar() {
     setDateDrawerVisible(true)
   }, [filteredEvents])
 
-  // 드래그 앤 드롭 핸들러
-  const handleEventDrop = useCallback((arg: EventDropArg) => {
-    if (!isAdmin) {
-      message.warning('관리자만 일정을 변경할 수 있습니다')
-      arg.revert()
-      return
+  // 년월 선택 핸들러 - Ant Design DatePicker는 dayjs 사용
+  const handleCalendarDateChange = useCallback((date: Dayjs | null) => {
+    if (date && calendarRef.current) {
+      calendarRef.current.getApi().gotoDate(date.toDate())
+      setPickerValue(date)
     }
-    
-    setDraggedEvent(arg)
-    setConfirmModalVisible(true)
-  }, [isAdmin])
-
-  // 일정 변경 확인
-  const confirmScheduleChange = useCallback(async () => {
-    if (!draggedEvent) return
-    
-    try {
-      const projectId = draggedEvent.event.extendedProps.projectId
-      const newStart = draggedEvent.event.startStr
-      const newEnd = moment(draggedEvent.event.endStr).subtract(1, 'day').format('YYYY-MM-DD')
-      
-      // 프로젝트 업데이트
-      const { error } = await supabase
-        .from('projects')
-        .update({
-          order_date: newStart,
-          expected_completion_date: newEnd,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', projectId)
-      
-      if (error) throw error
-      
-      message.success('일정이 변경되었습니다')
-      setConfirmModalVisible(false)
-      setDraggedEvent(null)
-      fetchProjects()
-    } catch (error) {
-      console.error('Error updating schedule:', error)
-      message.error('일정 변경에 실패했습니다')
-      draggedEvent.revert()
-    }
-  }, [draggedEvent, supabase, fetchProjects])
+  }, [])
 
   // 커스텀 이벤트 렌더링
   const renderEventContent = useCallback((eventInfo: EventContentArg) => {
@@ -314,16 +314,19 @@ export default function ProjectCalendar() {
   }, [])
 
   return (
-    <div className="calendar-page">
+    <div className="calendar-page" ref={containerRef}>
       {/* 헤더 */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <Title level={2} className="mb-2">프로젝트 캘린더</Title>
+          <Title level={2} className="mb-2 flex items-center gap-3">
+            <CalendarOutlined />
+            프로젝트 캘린더
+          </Title>
           <Text type="secondary" className="text-base">
             프로젝트 일정을 한눈에 확인하고 관리하세요
           </Text>
         </div>
-        <Button 
+        <Button
           icon={<PlusOutlined />}
           type="primary"
           onClick={() => router.push('/projects/new')}
@@ -334,25 +337,45 @@ export default function ProjectCalendar() {
 
       {/* 캘린더 뷰 */}
       <Card loading={loading}>
+        {/* Ant Design 커스텀 툴바 */}
+        <div style={{ position: 'relative', marginBottom: 16 }}>
+          {/* 중앙: 타이틀 (정가운데 배치) */}
+          <div style={{ textAlign: 'center' }}>
+            <Title level={4} style={{ margin: 0 }}>
+              {pickerValue.format('YYYY년 MM월')}
+            </Title>
+          </div>
+
+          {/* 좌측: 날짜 이동 (절대 위치로 왼쪽 상단에 배치) */}
+          <Space style={{ position: 'absolute', left: 0, top: '50%', transform: 'translateY(-50%)' }}>
+            <Space.Compact>
+              <Button icon={<LeftOutlined />} onClick={() => calendarRef.current?.getApi().prev()} />
+              <Button icon={<RightOutlined />} onClick={() => calendarRef.current?.getApi().next()} />
+            </Space.Compact>
+            <Button onClick={() => calendarRef.current?.getApi().today()}>오늘</Button>
+            <DatePicker
+              picker="month"
+              value={pickerValue}
+              onChange={handleCalendarDateChange}
+              format="YYYY년 MM월"
+              allowClear={false}
+              placeholder="년월 선택"
+            />
+          </Space>
+        </div>
+
         <FullCalendar
           ref={calendarRef}
           plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin, listPlugin]}
           initialView={currentView}
           locale={koLocale}
-          headerToolbar={{
-            left: 'prev,next today',
-            center: 'title',
-            right: 'dayGridMonth,timeGridWeek,timeGridDay'
-          }}
+          headerToolbar={false}
           events={filteredEvents}
           eventClick={handleEventClick}
           dateClick={handleDateClick}
-          eventDrop={handleEventDrop}
           eventContent={renderEventContent}
           height="auto"
           weekends={true}
-          editable={isAdmin}
-          droppable={isAdmin}
           selectable={true}
           selectMirror={true}
           dayMaxEvents={3}
@@ -362,12 +385,6 @@ export default function ProjectCalendar() {
             hour: '2-digit',
             minute: '2-digit',
             meridiem: false
-          }}
-          buttonText={{
-            today: '오늘',
-            month: '월',
-            week: '주',
-            day: '일'
           }}
           views={{
             dayGridMonth: {
@@ -383,6 +400,7 @@ export default function ProjectCalendar() {
           }}
           datesSet={(dateInfo) => {
             setCurrentView(dateInfo.view.type)
+            setPickerValue(dayjs(dateInfo.view.currentStart))
           }}
         />
       </Card>
@@ -400,12 +418,13 @@ export default function ProjectCalendar() {
           setEventModalVisible(false)
           setSelectedEvent(null)
         }}
+        zIndex={Z_INDEX.MODAL}
         footer={[
-          <Button 
-            key="detail" 
+          <Button
+            key="detail"
             type="primary"
             onClick={() => {
-              router.push(`/projects/${selectedEvent?.extendedProps.projectId}`)
+              window.open(`/projects/${selectedEvent?.extendedProps.projectId}`, '_blank')
             }}
           >
             상세 페이지로 이동
@@ -423,82 +442,118 @@ export default function ProjectCalendar() {
         width={700}
       >
         {selectedEvent && (
-          <Descriptions column={2} bordered>
-            <Descriptions.Item label="현장명" span={2}>
-              <strong>{selectedEvent.extendedProps.siteName}</strong>
-              {selectedEvent.extendedProps.isUrgent && (
-                <Tag color="orange" className="ml-2">
-                  <ExclamationCircleOutlined /> 긴급
-                </Tag>
-              )}
-            </Descriptions.Item>
-            
-            <Descriptions.Item label="상태">
-              <Tag color={statusColors[selectedEvent.extendedProps.status]}>
-                {statusLabels[selectedEvent.extendedProps.status]}
-              </Tag>
-            </Descriptions.Item>
-            
-            <Descriptions.Item label="현재 공정">
-              {selectedEvent.extendedProps.currentStage}
-            </Descriptions.Item>
-            
-            <Descriptions.Item label="제품명">
-              {selectedEvent.extendedProps.productName}
-            </Descriptions.Item>
-            
-            <Descriptions.Item label="수량">
-              {selectedEvent.extendedProps.productQuantity}개
-            </Descriptions.Item>
-            
-            <Descriptions.Item label="영업담당자">
-              <Space>
-                <UserOutlined />
-                {selectedEvent.extendedProps.salesManager || '-'}
-              </Space>
-            </Descriptions.Item>
-            
-            <Descriptions.Item label="현장담당자">
-              <Space>
-                <UserOutlined />
-                {selectedEvent.extendedProps.siteManager || '-'}
-              </Space>
-            </Descriptions.Item>
-            
-            <Descriptions.Item label="계약일">
-              <Space>
-                <CalendarOutlined />
-                {moment(selectedEvent.extendedProps.contractDate).format('YYYY-MM-DD')}
-              </Space>
-            </Descriptions.Item>
-            
-            <Descriptions.Item label="준공예정일">
-              <Space>
-                <CalendarOutlined />
-                {moment(selectedEvent.extendedProps.completionDate).format('YYYY-MM-DD')}
-              </Space>
-            </Descriptions.Item>
-            
-            {selectedEvent.extendedProps.processStages && 
-             selectedEvent.extendedProps.processStages.length > 0 && (
-              <Descriptions.Item label="공정 단계별 일정" span={2}>
-                <List
-                  size="small"
-                  dataSource={selectedEvent.extendedProps.processStages}
-                  renderItem={(stage) => (
-                    <List.Item>
-                      <Text>{PROCESS_STAGES[stage.stage_name]}</Text>
-                      {stage.start_date && stage.end_date && (
-                        <Text type="secondary" className="ml-2">
-                          ({moment(stage.start_date).format('MM/DD')} ~ {moment(stage.end_date).format('MM/DD')})
-                        </Text>
-                      )}
-                    </List.Item>
-                  )}
-                />
+          <div className="project-detail-descriptions">
+            <Descriptions column={2} bordered>
+              <Descriptions.Item label="현장명" span={2}>
+                <strong>{selectedEvent.extendedProps.siteName}</strong>
+                {selectedEvent.extendedProps.isUrgent && (
+                  <Tag color="orange" className="ml-2">
+                    <ExclamationCircleOutlined /> 긴급
+                  </Tag>
+                )}
               </Descriptions.Item>
-            )}
-          </Descriptions>
+              
+              <Descriptions.Item label="상태">
+                <Tag color={statusColors[selectedEvent.extendedProps.status]}>
+                  {statusLabels[selectedEvent.extendedProps.status]}
+                </Tag>
+              </Descriptions.Item>
+              
+              <Descriptions.Item label="현재 공정">
+                {selectedEvent.extendedProps.currentStage}
+              </Descriptions.Item>
+              
+              <Descriptions.Item label="제품명">
+                {selectedEvent.extendedProps.productName}
+              </Descriptions.Item>
+              
+              <Descriptions.Item label="수량">
+                {selectedEvent.extendedProps.productQuantity}개
+              </Descriptions.Item>
+              
+              <Descriptions.Item label="영업담당자">
+                <Tooltip
+                  title={selectedEvent.extendedProps.salesManager && selectedEvent.extendedProps.salesManagerEmail
+                    ? `${selectedEvent.extendedProps.salesManager} (${selectedEvent.extendedProps.salesManagerEmail})`
+                    : selectedEvent.extendedProps.salesManager || '-'
+                  }
+                  placement="bottom"
+                >
+                  <div className="manager-info-wrapper">
+                    <UserOutlined />
+                    <span className="manager-info">
+                      {selectedEvent.extendedProps.salesManager
+                        ? selectedEvent.extendedProps.salesManagerEmail
+                          ? `${selectedEvent.extendedProps.salesManager} (${selectedEvent.extendedProps.salesManagerEmail})`
+                          : selectedEvent.extendedProps.salesManager
+                        : '-'
+                      }
+                    </span>
+                  </div>
+                </Tooltip>
+              </Descriptions.Item>
+
+              <Descriptions.Item label="현장담당자">
+                <Tooltip
+                  title={selectedEvent.extendedProps.siteManager && selectedEvent.extendedProps.siteManagerEmail
+                    ? `${selectedEvent.extendedProps.siteManager} (${selectedEvent.extendedProps.siteManagerEmail})`
+                    : selectedEvent.extendedProps.siteManager || '-'
+                  }
+                  placement="bottom"
+                >
+                  <div className="manager-info-wrapper">
+                    <UserOutlined />
+                    <span className="manager-info">
+                      {selectedEvent.extendedProps.siteManager
+                        ? selectedEvent.extendedProps.siteManagerEmail
+                          ? `${selectedEvent.extendedProps.siteManager} (${selectedEvent.extendedProps.siteManagerEmail})`
+                          : selectedEvent.extendedProps.siteManager
+                        : '-'
+                      }
+                    </span>
+                  </div>
+                </Tooltip>
+              </Descriptions.Item>
+              
+              <Descriptions.Item label="설치 시작일">
+                <Space>
+                  <CalendarOutlined />
+                  {selectedEvent.extendedProps.installationStartDate
+                    ? moment(selectedEvent.extendedProps.installationStartDate).format('YYYY-MM-DD')
+                    : '-'}
+                </Space>
+              </Descriptions.Item>
+
+              <Descriptions.Item label="설치 종료일">
+                <Space>
+                  <CalendarOutlined />
+                  {selectedEvent.extendedProps.installationEndDate
+                    ? moment(selectedEvent.extendedProps.installationEndDate).format('YYYY-MM-DD')
+                    : '-'}
+                </Space>
+              </Descriptions.Item>
+              
+              {selectedEvent.extendedProps.processStages && 
+              selectedEvent.extendedProps.processStages.length > 0 && (
+                <Descriptions.Item label="공정 단계별 일정" span={2}>
+                  <List
+                    size="small"
+                    dataSource={selectedEvent.extendedProps.processStages}
+                    renderItem={(stage) => (
+                      <List.Item>
+                        <Text>{PROCESS_STAGES[stage.stage_name]}</Text>
+                        {stage.start_date && stage.end_date && (
+                          <Text type="secondary" className="ml-2">
+                            ({moment(stage.start_date).format('MM/DD')} ~ {moment(stage.end_date).format('MM/DD')})
+                          </Text>
+                        )}
+                      </List.Item>
+                    )}
+                  />
+                </Descriptions.Item>
+              )}
+            </Descriptions>
+          </div>
         )}
       </Modal>
 
@@ -514,27 +569,28 @@ export default function ProjectCalendar() {
         onClose={() => setDateDrawerVisible(false)}
         open={dateDrawerVisible}
         width={400}
-        extra={
-          <Button 
-            type="primary" 
-            icon={<PlusOutlined />}
-            onClick={() => router.push('/projects/new')}
-          >
-            새 프로젝트
-          </Button>
-        }
+        zIndex={Z_INDEX.DRAWER}
       >
+        <Button
+          type="dashed"
+          icon={<PlusOutlined />}
+          block
+          style={{ marginBottom: 16 }}
+          onClick={() => window.open('/projects/new', '_blank')}
+        >
+          새 프로젝트
+        </Button>
         {selectedDateProjects.length > 0 ? (
           <List
             dataSource={selectedDateProjects}
             renderItem={(project) => (
               <List.Item
                 actions={[
-                  <Button 
+                  <Button
                     key="view"
                     type="link"
                     onClick={() => {
-                      router.push(`/projects/${project.extendedProps.projectId}`)
+                      window.open(`/projects/${project.extendedProps.projectId}`, '_blank')
                     }}
                   >
                     상세보기
@@ -573,39 +629,16 @@ export default function ProjectCalendar() {
         )}
       </Drawer>
 
-      {/* 일정 변경 확인 모달 */}
-      <Modal
-        title="일정 변경 확인"
-        open={confirmModalVisible}
-        onOk={confirmScheduleChange}
-        onCancel={() => {
-          setConfirmModalVisible(false)
-          draggedEvent?.revert()
-          setDraggedEvent(null)
-        }}
-        okText="변경"
-        cancelText="취소"
-      >
-        <p>프로젝트 일정을 변경하시겠습니까?</p>
-        {draggedEvent && (
-          <div className="mt-4">
-            <Text strong>프로젝트: </Text>
-            <Text>{draggedEvent.event.title}</Text>
-            <br />
-            <Text strong>새로운 기간: </Text>
-            <Text>
-              {moment(draggedEvent.event.startStr).format('YYYY-MM-DD')} ~ {' '}
-              {moment(draggedEvent.event.endStr).subtract(1, 'day').format('YYYY-MM-DD')}
-            </Text>
-          </div>
-        )}
-      </Modal>
-
       <style jsx global>{`
         .calendar-page {
-          min-height: 100vh;
-          background: #f5f5f5;
           padding: 24px;
+        }
+
+        /* FullCalendar 카드 스타일 */
+        .calendar-page .ant-card {
+          border: 1px solid #e8e8e8;
+          border-radius: 8px;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
         }
 
         /* FullCalendar 스타일 커스터마이징 */
@@ -694,6 +727,36 @@ export default function ProjectCalendar() {
         .fc-day-sun .fc-daygrid-day-number,
         .fc-day-sat .fc-daygrid-day-number {
           color: #ff4d4f;
+        }
+
+        /* 프로젝트 상세 Descriptions 스타일 */
+        .project-detail-descriptions .ant-descriptions-view {
+          table-layout: fixed !important;
+        }
+
+        .project-detail-descriptions .ant-descriptions-item-label {
+          width: 100px !important;
+          white-space: nowrap !important;
+        }
+
+        .project-detail-descriptions .ant-descriptions-item-content {
+          overflow: hidden !important;
+          max-width: 0 !important;
+        }
+
+        /* 담당자 정보 스타일 */
+        .project-detail-descriptions .manager-info-wrapper {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+        }
+
+        .project-detail-descriptions .manager-info {
+          flex: 1;
+          min-width: 0;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
         }
       `}</style>
     </div>
