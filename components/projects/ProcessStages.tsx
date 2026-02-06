@@ -16,6 +16,7 @@ import {
 import { PROCESS_STAGES, type ProcessStage, type ProcessStatus, type ProcessStageName } from '@/types/project'
 import { projectService } from '@/lib/services/projects.service'
 import dayjs, { type Dayjs } from 'dayjs'
+import { Z_INDEX } from '@/lib/config/layout.constants'
 
 const { Title, Text } = Typography
 
@@ -316,6 +317,7 @@ export default function ProcessStages({
         onCancel={() => setEditModalVisible(false)}
         footer={null}
         width={600}
+        zIndex={Z_INDEX.MODAL}
       >
         <Form
           form={form}

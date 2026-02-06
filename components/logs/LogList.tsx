@@ -5,6 +5,7 @@ import { logService } from '@/lib/services/logs.service'
 import { useAuth } from '@/lib/hooks/useAuth'
 import { CalendarIcon, PaperClipIcon, UserIcon, TrashIcon, ArrowDownTrayIcon, ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline'
 import { toast } from 'react-hot-toast'
+import { isManager } from '@/lib/utils/permissions'
 
 interface HistoryLog {
   id: string
@@ -286,7 +287,7 @@ export default function LogList({ projectId, refreshTrigger = 0, onRefresh }: Lo
                       {formatDate(log.created_at)}
                     </div>
                     {/* 관리자인 경우 삭제 버튼 표시 */}
-                    {userData?.role === 'admin' && (
+                    {isManager(userData?.role) && (
                       <button
                         onClick={(e) => {
                           e.stopPropagation()

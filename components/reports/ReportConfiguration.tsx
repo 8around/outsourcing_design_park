@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { reportService } from '@/lib/services/report.service';
-import { WeeklyReportConfig } from '@/types/report';
 import { Loading } from '@/components/common/ui/Loading';
 import { Alert } from '@/components/common/ui/Alert';
 

@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
-import { Card, List, Avatar, Typography, Tag, Space, Button, Empty, Skeleton, message, Pagination, Select } from 'antd'
+import { useState, useEffect, useCallback } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { Card, List, Typography, Tag, Button, Empty, Skeleton, message, Pagination, Select, Tooltip } from 'antd'
 import {
   FileTextOutlined,
   CheckCircleOutlined,
@@ -15,13 +15,13 @@ import {
   FilterOutlined,
   CloseCircleOutlined,
 } from '@ant-design/icons'
-import { formatDistanceToNow } from 'date-fns'
-import { ko } from 'date-fns/locale'
+import { format } from 'date-fns'
 import { logService } from '@/lib/services/logs.service'
 import { projectService } from '@/lib/services/projects.service'
 import { useAuth } from '@/lib/hooks/useAuth'
 import UserSelectModal from '@/components/common/UserSelectModal'
 import type { User } from '@/types/user'
+import { isManager } from '@/lib/utils/permissions'
 
 const { Text, Title } = Typography
 
@@ -77,24 +77,83 @@ interface GlobalLogFeedProps {
   refreshInterval?: number // 초 단위
 }
 
-export default function GlobalLogFeed({ 
-  limit = 10, 
+export default function GlobalLogFeed({
+  limit = 5,
   showRefresh = true,
   autoRefresh = false,
   refreshInterval = 30
 }: GlobalLogFeedProps) {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { user, userData } = useAuth()
+
+  // URL에서 초기값 읽기
+  const pageFromUrl = parseInt(searchParams.get('logPage') ?? '1')
+  const categoryFromUrl = searchParams.get('logCategory')
+  const userIdFromUrl = searchParams.get('logUser')
+  const limitFromUrl = parseInt(searchParams.get('logLimit') ?? String(limit))
+
   const [logs, setLogs] = useState<LogItem[]>([])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
-  const [currentPage, setCurrentPage] = useState(1)
+  const [currentPage, setCurrentPage] = useState(pageFromUrl)
   const [totalCount, setTotalCount] = useState(0)
   const [deletingLogId, setDeletingLogId] = useState<string | null>(null)
-  const [filterUserId, setFilterUserId] = useState<string | null>(null)
+  const [filterUserId, setFilterUserId] = useState<string | null>(userIdFromUrl)
   const [filterUser, setFilterUser] = useState<User | null>(null)
   const [showUserSelectModal, setShowUserSelectModal] = useState(false)
-  const [filterCategory, setFilterCategory] = useState<string | null>(null)
+  const [filterCategory, setFilterCategory] = useState<string | null>(categoryFromUrl)
+  const [pageSize, setPageSize] = useState(limitFromUrl)
+
+  // URL 업데이트 함수
+  const updateURL = useCallback((params: {
+    logPage?: number
+    logCategory?: string | null
+    logUser?: string | null
+    logLimit?: number
+  }) => {
+    const newParams = new URLSearchParams(searchParams.toString())
+
+    // 페이지 (1이 아닐 때만 URL에 추가)
+    if (params.logPage && params.logPage > 1) {
+      newParams.set('logPage', String(params.logPage))
+    } else {
+      newParams.delete('logPage')
+    }
+
+    // 카테고리 필터
+    if (params.logCategory) {
+      newParams.set('logCategory', params.logCategory)
+    } else {
+      newParams.delete('logCategory')
+    }
+
+    // 사용자 필터
+    if (params.logUser) {
+      newParams.set('logUser', params.logUser)
+    } else {
+      newParams.delete('logUser')
+    }
+
+    // 페이지 크기 (기본값 5가 아닐 때만)
+    if (params.logLimit && params.logLimit !== 5) {
+      newParams.set('logLimit', String(params.logLimit))
+    } else {
+      newParams.delete('logLimit')
+    }
+
+    const queryString = newParams.toString()
+    const url = queryString ? `/dashboard?${queryString}` : '/dashboard'
+    router.push(url, { scroll: false })
+  }, [router, searchParams])
+
+  // 현재 파라미터 가져오기
+  const getCurrentParams = useCallback(() => ({
+    logPage: currentPage,
+    logCategory: filterCategory,
+    logUser: filterUserId,
+    logLimit: pageSize
+  }), [currentPage, filterCategory, filterUserId, pageSize])
 
   // 로그 데이터 로드
   const loadLogs = async (page = currentPage, isRefresh = false) => {
@@ -108,14 +167,14 @@ export default function GlobalLogFeed({
       // 글로벌 로그 피드 조회 (사용자 필터링 + 카테고리 필터링 적용)
       const response = await logService.getGlobalLogFeed(
         page,
-        limit,
+        pageSize,
         filterUserId || undefined,
         filterCategory || undefined
       )
-      
+
       // 프로젝트 정보 조회를 위한 프로젝트 ID 수집
       const projectIds = [...new Set(response.logs.filter(log => log.project_id).map(log => log.project_id!))]
-      
+
       // 프로젝트 정보 조회
       const projectInfo: Record<string, string> = {}
       for (const projectId of projectIds) {
@@ -143,7 +202,7 @@ export default function GlobalLogFeed({
         project_name: log.project_id ? projectInfo[log.project_id] : undefined,
         log_type: log.log_type,
         approval_status: log.approval_status || undefined,
-        attachments: log.attachments && log.attachments.length > 0 
+        attachments: log.attachments && log.attachments.length > 0
           ? log.attachments.map((att: Record<string, unknown>) => ({
               id: att.id as string,
               file_path: att.file_path as string,
@@ -169,9 +228,9 @@ export default function GlobalLogFeed({
 
   // 초기 로드 및 필터 변경 시 재로드
   useEffect(() => {
-    setCurrentPage(1)
-    loadLogs(1)
-  }, [limit, filterUserId, filterCategory])
+    loadLogs(currentPage)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pageSize, filterUserId, filterCategory, currentPage])
 
   // 자동 새로고침
   useEffect(() => {
@@ -192,15 +251,31 @@ export default function GlobalLogFeed({
   // 페이지 변경 핸들러
   const handlePageChange = (page: number) => {
     setCurrentPage(page)
-    loadLogs(page)
+    updateURL({ ...getCurrentParams(), logPage: page })
+  }
+
+  // 페이지 크기 변경 핸들러
+  const handlePageSizeChange = (value: number) => {
+    setPageSize(value)
+    setCurrentPage(1)
+    updateURL({ ...getCurrentParams(), logLimit: value, logPage: 1 })
+  }
+
+  // 카테고리 필터 변경 핸들러
+  const handleCategoryChange = (value: string | null) => {
+    setFilterCategory(value)
+    setCurrentPage(1)
+    updateURL({ ...getCurrentParams(), logCategory: value, logPage: 1 })
   }
 
   // 사용자 필터 선택 핸들러
-  const handleUserSelect = (user: User) => {
+  const handleUserSelect = (user: User | null) => {
     setFilterUser(user)
-    setFilterUserId(user.id)
+    setFilterUserId(user?.id || null)
+    setCurrentPage(1)
     setShowUserSelectModal(false)
-    message.success(`${user.name}님의 로그를 필터링합니다.`)
+    updateURL({ ...getCurrentParams(), logUser: user?.id || null, logPage: 1 })
+    message.success(user ? `${user.name}님의 로그를 필터링합니다.` : '사용자 필터를 초기화합니다.')
   }
 
   // 필터 초기화
@@ -208,13 +283,15 @@ export default function GlobalLogFeed({
     setFilterUser(null)
     setFilterUserId(null)
     setFilterCategory(null)
+    setCurrentPage(1)
+    updateURL({ logPage: 1, logCategory: null, logUser: null, logLimit: pageSize })
     message.info('전체 로그를 표시합니다.')
   }
 
   // 로그 클릭 시 프로젝트 상세 페이지로 이동
   const handleLogClick = (log: LogItem) => {
     if (log.project_id) {
-      router.push(`/projects/${log.project_id}`)
+      window.open(`/projects/${log.project_id}`, '_blank')
     }
   }
 
@@ -230,8 +307,8 @@ export default function GlobalLogFeed({
   // 로그 삭제 핸들러 (관리자만)
   const handleDeleteLog = async (logId: string, e: React.MouseEvent) => {
     e.stopPropagation() // 로그 클릭 이벤트 전파 방지
-    
-    if (!user || userData?.role !== 'admin') {
+
+    if (!user || !isManager(userData?.role)) {
       message.error('관리자만 삭제할 수 있습니다.')
       return
     }
@@ -240,7 +317,7 @@ export default function GlobalLogFeed({
     try {
       await logService.deleteLog(logId, user.id)
       message.success('로그가 삭제되었습니다.')
-      
+
       // 목록에서 제거
       setLogs(prev => prev.filter(log => log.id !== logId))
       setTotalCount(prev => prev - 1)
@@ -256,17 +333,17 @@ export default function GlobalLogFeed({
   const handleDownloadAttachment = async (attachment: AttachmentInfo, e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation() // 로그 클릭 이벤트 전파 방지
-    
+
     try {
       // Supabase storage public URL 생성
       const publicUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/log-attachments/${attachment.file_path}`
-      
+
       const response = await fetch(publicUrl)
-      
+
       if (!response.ok) {
         throw new Error('파일 다운로드 실패')
       }
-      
+
       const blob = await response.blob()
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement('a')
@@ -286,8 +363,8 @@ export default function GlobalLogFeed({
   const renderLogItem = (log: LogItem) => {
     const config = categoryConfig[log.category] || categoryConfig['기타']
     const isDeleting = deletingLogId === log.id
-    const isAdmin = userData?.role === 'admin'
-    
+    const isAdminUser = isManager(userData?.role)
+
     // 로그 타입과 승인 상태에 따른 액션 텍스트 생성
     let actionText = ''
     if (log.log_type === 'approval_request') {
@@ -303,9 +380,9 @@ export default function GlobalLogFeed({
     } else if (log.category === '사양변경') {
       actionText = '사양 변경'
     }
-    
+
     // 관리자일 경우 삭제 버튼 포함
-    const actions = isAdmin ? [
+    const actions = isAdminUser ? [
       <Button
         key="delete"
         danger
@@ -318,24 +395,15 @@ export default function GlobalLogFeed({
         삭제
       </Button>
     ] : undefined
-    
+
     return (
-      <List.Item 
+      <List.Item
         key={log.id}
-        onClick={() => handleLogClick(log)}
-        style={{ cursor: log.project_id ? 'pointer' : 'default' }}
-        className="log-item-clickable"
         actions={actions}
       >
         <List.Item.Meta
-          avatar={
-            <Avatar 
-              icon={config.icon} 
-              style={{ backgroundColor: `var(--ant-color-${config.color})` }}
-            />
-          }
           title={
-            <div style={{
+            <div className="log-tag-container" style={{
               display: 'flex',
               alignItems: 'center',
               gap: '8px',
@@ -369,11 +437,6 @@ export default function GlobalLogFeed({
                   첨부 {log.attachments.length}
                 </Tag>
               )}
-              <style jsx>{`
-                div::-webkit-scrollbar {
-                  display: none;
-                }
-              `}</style>
             </div>
           }
           description={
@@ -381,9 +444,22 @@ export default function GlobalLogFeed({
               <Text>{log.content}</Text>
               {log.project_name && (
                 <div>
-                  <Tag color="blue" className="mt-1">
-                    {log.project_name}
-                  </Tag>
+                  <Tooltip
+                      title={`${log.project_name}`}
+                      placement="bottom"
+                      rootClassName="project-name-tooltip"
+                    >
+                    <Tag
+                      color="blue"
+                      className="mt-1 project-name-tag project-name-clickable"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleLogClick(log)
+                      }}
+                    >
+                      {log.project_name}
+                    </Tag>
+                  </Tooltip>
                 </div>
               )}
               {/* 첨부파일 표시 - PendingApprovals와 동일한 스타일 */}
@@ -395,7 +471,7 @@ export default function GlobalLogFeed({
                       {log.attachments.map((attachment) => {
                         // Supabase storage public URL 생성
                         const publicUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/log-attachments/${attachment.file_path}`
-                        
+
                         return (
                           <div
                             key={attachment.id}
@@ -430,10 +506,7 @@ export default function GlobalLogFeed({
                 </div>
               )}
               <Text type="secondary" className="text-xs">
-                {formatDistanceToNow(new Date(log.created_at), { 
-                  addSuffix: true, 
-                  locale: ko 
-                })}
+                {format(new Date(log.created_at), 'yyyy-MM-dd HH:mm:ss')}
               </Text>
             </div>
           }
@@ -445,85 +518,95 @@ export default function GlobalLogFeed({
   return (
     <Card
       title={
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Title level={4} className="mb-0">전체 활동 로그</Title>
-            {filterUser && (
-              <Tag
-                color="blue"
-                closable
-                onClose={handleResetFilter}
-                className="ml-2"
-              >
-                {filterUser.name} 필터링 중
-              </Tag>
-            )}
-            {filterCategory && (
-              <Tag
-                color="green"
-                closable
-                onClose={() => setFilterCategory(null)}
-                className="ml-2"
-              >
-                {filterCategory} 필터링 중
-              </Tag>
-            )}
-          </div>
-          <Space>
-            {/* 카테고리 필터 Select 추가 */}
-            <Select
-              placeholder="카테고리 선택"
-              allowClear
-              style={{ width: 140 }}
-              size="small"
-              value={filterCategory}
-              onChange={(value) => setFilterCategory(value || null)}
-            >
-              <Select.Option value="사양변경">사양변경</Select.Option>
-              <Select.Option value="도면설계">도면설계</Select.Option>
-              <Select.Option value="구매발주">구매발주</Select.Option>
-              <Select.Option value="생산제작">생산제작</Select.Option>
-              <Select.Option value="상하차">상하차</Select.Option>
-              <Select.Option value="현장설치시공">현장설치시공</Select.Option>
-              <Select.Option value="설치인증">설치인증</Select.Option>
-              <Select.Option value="설비">설비</Select.Option>
-              <Select.Option value="기타">기타</Select.Option>
-            </Select>
+        <div className="flex items-center gap-2">
+          {/* 타이틀 (고정) */}
+          <Title level={4} className='!m-0'>전체 활동 로그</Title>
 
-            {/* 관리자인 경우에만 사용자 필터 버튼 표시 */}
-            {userData?.role === 'admin' && (
+          {/* 새로고침 버튼 - 아이콘만 (고정) */}
+          {showRefresh && (
+            <Button
+              type="text"
+              size="large"
+              icon={<ReloadOutlined spin={refreshing} />}
+              onClick={handleRefresh}
+              loading={refreshing}
+            />
+          )}
+
+          {/* 구분선 (고정) */}
+          <div className='w-[1px] h-5 bg-gray-200' />
+
+          {/* 필터 영역 (스크롤 가능) */}
+          <div className="filter-scroll-container">
+            <div className="flex items-center gap-2" style={{ whiteSpace: 'nowrap' }}>
+              {/* 사용자 필터 태그 */}
+              {filterUser && (
+                <Tag
+                  color="blue"
+                  closable
+                  onClose={() => handleUserSelect(null)}
+                  className="user-filter-tag flex-shrink-0"
+                >
+                  {filterUser.name} 필터링 중
+                </Tag>
+              )}
+
+              {/* 페이지 크기 Select */}
+              <Select
+                value={pageSize}
+                onChange={handlePageSizeChange}
+                className="w-20 flex-shrink-0"
+              >
+                <Select.Option value={5}>5개</Select.Option>
+                <Select.Option value={10}>10개</Select.Option>
+                <Select.Option value={20}>20개</Select.Option>
+                <Select.Option value={30}>30개</Select.Option>
+                <Select.Option value={40}>40개</Select.Option>
+                <Select.Option value={50}>50개</Select.Option>
+                <Select.Option value={100}>100개</Select.Option>
+              </Select>
+
+              {/* 카테고리 필터 Select */}
+              <Select
+                placeholder="카테고리 선택"
+                allowClear
+                className="w-35 flex-shrink-0"
+                value={filterCategory}
+                onChange={handleCategoryChange}
+              >
+                <Select.Option value="사양변경">사양변경</Select.Option>
+                <Select.Option value="도면설계">도면설계</Select.Option>
+                <Select.Option value="구매발주">구매발주</Select.Option>
+                <Select.Option value="생산제작">생산제작</Select.Option>
+                <Select.Option value="상하차">상하차</Select.Option>
+                <Select.Option value="현장설치시공">현장설치시공</Select.Option>
+                <Select.Option value="설치인증">설치인증</Select.Option>
+                <Select.Option value="설비">설비</Select.Option>
+                <Select.Option value="기타">기타</Select.Option>
+              </Select>
+
               <Button
                 icon={<FilterOutlined />}
                 onClick={() => setShowUserSelectModal(true)}
-                size="small"
                 type={filterUserId ? "primary" : "default"}
+                className="flex-shrink-0"
               >
                 사용자 필터
               </Button>
-            )}
-            {/* 필터가 적용된 경우 초기화 버튼 표시 */}
-            {(filterUserId || filterCategory) && (
-              <Button
-                icon={<CloseCircleOutlined />}
-                onClick={handleResetFilter}
-                size="small"
-                danger
-              >
-                초기화
-              </Button>
-            )}
-            {showRefresh && (
-              <Button
-                type="text"
-                icon={<ReloadOutlined spin={refreshing} />}
-                onClick={handleRefresh}
-                loading={refreshing}
-                size="small"
-              >
-                새로고침
-              </Button>
-            )}
-          </Space>
+
+              {/* 필터가 적용된 경우 초기화 버튼 표시 */}
+              {(filterUserId || filterCategory) && (
+                <Button
+                  icon={<CloseCircleOutlined />}
+                  onClick={handleResetFilter}
+                  danger
+                  className="flex-shrink-0"
+                >
+                  초기화
+                </Button>
+              )}
+            </div>
+          </div>
         </div>
       }
       className="global-log-feed"
@@ -535,14 +618,13 @@ export default function GlobalLogFeed({
           <List
             dataSource={logs}
             renderItem={renderLogItem}
-            className="log-list"
           />
-          {totalCount > limit && (
+          {totalCount > pageSize && (
             <div className="pagination-container">
               <Pagination
                 current={currentPage}
                 total={totalCount}
-                pageSize={limit}
+                pageSize={pageSize}
                 onChange={handlePageChange}
                 showSizeChanger={false}
                 showTotal={(total, range) => `${range[0]}-${range[1]} / 전체 ${total}개`}
@@ -565,25 +647,18 @@ export default function GlobalLogFeed({
       />
 
       <style jsx>{`
-        .global-log-feed :global(.ant-card-body) {
-          padding: 0;
-          max-height: 500px;
-          overflow-y: auto;
+        /* 필터 영역 가로 스크롤 */
+        .filter-scroll-container {
+          flex: 1;
+          min-width: 0;
+          overflow-x: auto;
+          overflow-y: hidden;
+          scrollbar-width: thin;
+          padding: 0 8px;
         }
 
-        .log-list :global(.ant-list-item) {
-          padding: 16px 20px;
-          border-bottom: 1px solid var(--border-light);
-          transition: background-color 0.2s;
-        }
-
-        .log-list :global(.log-item-clickable:hover) {
-          background-color: #f5f5f5;
-          cursor: pointer;
-        }
-
-        .log-list :global(.ant-list-item:last-child) {
-          border-bottom: none;
+        .log-tag-container::-webkit-scrollbar {
+          display: none;
         }
 
         .pagination-container {
@@ -599,20 +674,39 @@ export default function GlobalLogFeed({
           overflow-x: visible;
         }
 
-        @media (max-width: 768px) {
-          .global-log-feed :global(.ant-card-body) {
-            max-height: 400px;
-          }
-
-          .log-list :global(.ant-list-item) {
-            padding: 12px 16px;
-          }
-
-          .pagination-container {
-            padding: 12px;
-          }
-
+        /* 프로젝트명 태그 - 말줄임 처리 */
+        :global(.project-name-tag) {
+          max-width: 100%;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+          display: inline-block;
         }
+
+        /* 프로젝트명 태그 클릭 가능 스타일 */
+        :global(.project-name-clickable) {
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+
+        :global(.project-name-clickable:hover) {
+          transform: scale(1.02);
+        }
+
+        /* 프로젝트명 툴팁 */
+        :global(.project-name-tooltip) {
+          max-width: 400px;
+          word-break: break-word;
+        }
+
+        /* 사용자 필터 태그 - Select middle 사이즈와 동일하게 */
+        :global(.user-filter-tag) {
+          height: 32px;
+          border-radius: 8px;
+          display: inline-flex;
+          align-items: center;
+        }
+
       `}</style>
     </Card>
   )

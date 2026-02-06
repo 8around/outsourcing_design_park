@@ -238,7 +238,7 @@ async function sendWeeklyReport(data: any) {
           <h2>금주 활동 요약 리포트입니다</h2>
           <div class="info-box">
             <p><strong>리포트 기간:</strong> ${dateRange}</p>
-            <p><strong>생성 시간:</strong> ${new Date().toLocaleString("ko-KR")}</p>
+            <p><strong>생성 시간:</strong> ${new Date().toLocaleString("ko-KR", { timeZone: "Asia/Seoul" })}</p>
           </div>
           <div class="stats-grid">
             <div class="stat-item">
@@ -458,6 +458,7 @@ function formatDate(date: Date): string {
 function formatDateTime(dateString: string): string {
   try {
     return new Date(dateString).toLocaleString("ko-KR", {
+      timeZone: "Asia/Seoul",
       year: "numeric",
       month: "2-digit",
       day: "2-digit",

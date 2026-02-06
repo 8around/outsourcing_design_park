@@ -40,3 +40,6 @@ coverage/
 # tasks.json
 # tasks/ 
 # /docs/*
+
+supabase/.temp/
+.serena/

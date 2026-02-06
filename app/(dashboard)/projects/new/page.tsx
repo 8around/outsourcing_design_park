@@ -118,9 +118,10 @@ export default function NewProjectPage() {
       return
     }
 
-    // 계약 및 준공일 단계의 날짜 필수 검증
+    // 계약, 준공일, 설치 단계의 날짜 필수 검증
     const contractStage = processStages.find(stage => stage.stage_name === 'contract')
     const completionStage = processStages.find(stage => stage.stage_name === 'completion')
+    const installationStage = processStages.find(stage => stage.stage_name === 'installation')
 
     if (!contractStage?.start_date || !contractStage?.end_date) {
       toast.error('계약 단계의 시작일과 종료일은 필수 입력 항목입니다.')
@@ -129,6 +130,11 @@ export default function NewProjectPage() {
 
     if (!completionStage?.start_date || !completionStage?.end_date) {
       toast.error('준공일 단계의 시작일과 종료일은 필수 입력 항목입니다.')
+      return
+    }
+
+    if (!installationStage?.start_date || !installationStage?.end_date) {
+      toast.error('설치 단계의 시작일과 종료일은 필수 입력 항목입니다.')
       return
     }
 
@@ -179,7 +185,7 @@ export default function NewProjectPage() {
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <h2 className="text-xl font-semibold mb-4">기본 정보</h2>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-2 gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 현장명 <span className="text-red-500">*</span>
@@ -258,7 +264,7 @@ export default function NewProjectPage() {
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <h2 className="text-xl font-semibold mb-4">담당자 정보</h2>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-2 gap-6">
             <UserSelector
               label="영업담당자"
               value={formData.sales_manager}
@@ -281,7 +287,7 @@ export default function NewProjectPage() {
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <h2 className="text-xl font-semibold mb-4">일정 정보</h2>
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-3 gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 발주일 <span className="text-red-500">*</span>

@@ -2,8 +2,11 @@
 
 import React from 'react';
 import { Modal, Descriptions, Tag, Badge, Space, Button } from 'antd';
-import { UserOutlined, MailOutlined, PhoneOutlined, CalendarOutlined } from '@ant-design/icons';
+import { UserOutlined, MailOutlined, PhoneOutlined, CalendarOutlined, CheckCircleOutlined, ClockCircleOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
+import { Z_INDEX } from '@/lib/config/layout.constants';
+import { getRoleColor, getRoleLabel, isManager } from '@/lib/utils/permissions';
+import { UserRole } from '@/types/user';
 
 interface User {
   id: string;
@@ -14,7 +17,7 @@ interface User {
   is_approved: boolean;
   approved_at?: string | null;
   approved_by?: string | null;
-  role: 'user' | 'admin';
+  role: UserRole;
   department?: string | null;
   position?: string | null;
   last_login?: string | null;
@@ -23,19 +26,25 @@ interface User {
 interface UserDetailModalProps {
   open: boolean;
   user: User | null;
+  currentUserId?: string;
   onClose: () => void;
   onApprove?: (userId: string) => void;
   onReject?: (user: User) => void;
   onRevoke?: (userId: string) => void;
+  onSetManager?: (userId: string) => void;
+  onRevokeManager?: (userId: string) => void;
 }
 
 export default function UserDetailModal({
   open,
   user,
+  currentUserId,
   onClose,
   onApprove,
   onReject,
-  onRevoke
+  onRevoke,
+  onSetManager,
+  onRevokeManager
 }: UserDetailModalProps) {
   if (!user) return null;
 
@@ -50,6 +59,9 @@ export default function UserDetailModal({
   };
 
   const getActionButtons = () => {
+    // 자기 자신인 경우 액션 버튼 없음
+    if (user.id === currentUserId) return [];
+
     const buttons = [];
     
     if (!user.is_approved && !user.approved_at && onApprove) {
@@ -112,27 +124,55 @@ export default function UserDetailModal({
       open={open}
       onCancel={onClose}
       width={600}
-      footer={[
-        <Button key="close" onClick={onClose}>
-          닫기
-        </Button>,
-        ...getActionButtons()
-      ]}
+      zIndex={Z_INDEX.MODAL}
+      footer={
+        <div className='flex justify-between items-center'>
+          {/* 좌측: 관리자 지정/해제 버튼 (자기 자신이 아니고 승인된 사용자만) */}
+          <div>
+            {user.id !== currentUserId && user.is_approved && (
+              isManager(user.role) ? (
+                <Button
+                  onClick={() => onRevokeManager?.(user.id)}
+                  danger
+                  variant='outlined'
+                >
+                  관리자 해제
+                </Button>
+              ) : (
+                <Button
+                  onClick={() => onSetManager?.(user.id)}
+                  variant='outlined'
+                  color='blue'
+                >
+                  관리자 지정
+                </Button>
+              )
+            )}
+          </div>
+          {/* 우측: 기존 액션 버튼들 + 닫기 */}
+          <Space>
+            {user.id !== currentUserId && getActionButtons()}
+            <Button onClick={onClose}>닫기</Button>
+          </Space>
+        </div>
+      }
     >
       <Descriptions
         column={1}
         bordered
         size="small"
-        labelStyle={{ width: '120px', fontWeight: 'bold' }}
+        styles={{ label: { width: '120px', fontWeight: 'bold' } }}
       >
         <Descriptions.Item 
           label={<Space><UserOutlined />이름</Space>}
         >
           <Space>
             {user.name}
-            {user.role === 'admin' && (
-              <Tag color="red">관리자</Tag>
-            )}
+            {
+              isManager(user.role) && (
+                <Tag color={getRoleColor(user.role)}>{getRoleLabel(user.role)}</Tag>
+              )
+            }
           </Space>
         </Descriptions.Item>
         
@@ -148,7 +188,9 @@ export default function UserDetailModal({
           {user.phone || '-'}
         </Descriptions.Item>
         
-        <Descriptions.Item label="상태">
+        <Descriptions.Item
+          label={<Space><CheckCircleOutlined />상태</Space>}
+        >
           {getUserStatus()}
         </Descriptions.Item>
         
@@ -159,14 +201,15 @@ export default function UserDetailModal({
         </Descriptions.Item>
         
         {user.approved_at && (
-          <Descriptions.Item label="승인/거절일">
+          <Descriptions.Item
+            label={
+              <Space>
+                <ClockCircleOutlined />
+                {user.is_approved ? '승인일' : '거절일'}
+              </Space>
+            }
+          >
             {dayjs(user.approved_at).format('YYYY년 MM월 DD일 HH:mm')}
-          </Descriptions.Item>
-        )}
-        
-        {user.last_login && (
-          <Descriptions.Item label="최근 로그인">
-            {dayjs(user.last_login).format('YYYY년 MM월 DD일 HH:mm')}
           </Descriptions.Item>
         )}
       </Descriptions>

@@ -1343,6 +1343,66 @@ CREATE TRIGGER on_auth_user_email_updated
 
 ---
 
+### RPC Functions (Remote Procedure Calls)
+
+Supabase를 통해 호출 가능한 PostgreSQL 함수들입니다.
+
+#### get_completed_project_ids()
+
+완료된 프로젝트(모든 공정 단계가 completed 상태)의 ID 목록을 반환합니다.
+
+```sql
+-- 함수 정의
+-- bool_and()를 사용하여 모든 공정 단계가 completed인 프로젝트만 반환
+-- 장점: 단계 수에 관계없이 "모든 단계 완료" 로직을 정확히 표현
+CREATE OR REPLACE FUNCTION get_completed_project_ids()
+RETURNS TABLE (project_id UUID)
+LANGUAGE SQL
+STABLE
+SECURITY DEFINER
+AS $$
+  SELECT ps.project_id
+  FROM process_stages ps
+  GROUP BY ps.project_id
+  HAVING bool_and(ps.status = 'completed');
+$$;
+
+-- 권한 설정 (인증된 사용자만 호출 가능)
+REVOKE EXECUTE ON FUNCTION get_completed_project_ids() FROM PUBLIC;
+REVOKE EXECUTE ON FUNCTION get_completed_project_ids() FROM anon;
+GRANT EXECUTE ON FUNCTION get_completed_project_ids() TO authenticated;
+```
+
+**사용 목적:**
+- 프로젝트 목록에서 '완료' / '진행중' 필터링 구현
+- 대시보드 통계에서 완료된 프로젝트 수 조회
+
+**반환값:**
+- `TABLE (project_id UUID)`: 완료된 프로젝트들의 UUID 목록
+
+**호출 예시 (Supabase JS):**
+```typescript
+const { data: completedIds } = await supabase.rpc('get_completed_project_ids');
+// data: [{ project_id: 'uuid-1' }, { project_id: 'uuid-2' }, ...]
+```
+
+**호출 예시 (SQL):**
+```sql
+SELECT * FROM get_completed_project_ids();
+```
+
+**핵심 로직 - `bool_and()` 함수:**
+- PostgreSQL 집계 함수로, 그룹 내 **모든 행**이 조건을 만족하면 `true` 반환
+- `process_stages`가 없는 프로젝트는 자연스럽게 제외됨 (GROUP BY에 포함 안 됨)
+- 단계 수(15개)에 의존하지 않아 향후 단계 수 변경에도 함수 수정 불필요
+
+**성능 특성:**
+- `process_stages` 테이블의 `status` 인덱스 활용
+- `GROUP BY` + `HAVING`으로 효율적인 집계
+- `STABLE` 옵션으로 같은 트랜잭션 내 캐싱 지원
+
+---
+
 ## Migration Strategy
 
 ### 단계별 마이그레이션 계획

@@ -16,6 +16,7 @@ import type { User } from '@/types/user'
 import { toast } from 'react-hot-toast'
 import Image from 'next/image'
 import type { ProcessStageName } from '@/types/project'
+import { isManager } from '@/lib/utils/permissions'
 
 // 공정 단계 정의
 const PROCESS_STAGES = [
@@ -127,9 +128,9 @@ export default function EditProjectPage() {
 
       // 권한 체크 (작성자 또는 관리자)
       const isOwner = projectData.created_by === user?.id
-      const isAdmin = userData?.role === 'admin'
+      const isManagerUser = isManager(userData?.role)
 
-      if (!isOwner && !isAdmin) {
+      if (!isOwner && !isManagerUser) {
         toast.error('프로젝트 수정 권한이 없습니다.')
         router.push(`/projects/${projectId}`)
         return
@@ -394,7 +395,7 @@ export default function EditProjectPage() {
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <h2 className="text-xl font-semibold mb-4">기본 정보</h2>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-2 gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 현장명 <span className="text-red-500">*</span>
@@ -473,7 +474,7 @@ export default function EditProjectPage() {
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <h2 className="text-xl font-semibold mb-4">담당자 정보</h2>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-2 gap-6">
             <UserSelector
               label="영업담당자"
               value={formData.sales_manager}
@@ -496,7 +497,7 @@ export default function EditProjectPage() {
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <h2 className="text-xl font-semibold mb-4">일정 정보</h2>
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-3 gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 발주일 <span className="text-red-500">*</span>
@@ -590,7 +591,7 @@ export default function EditProjectPage() {
           {existingImages.length > 0 && (
             <div className="mb-6">
               <h3 className="text-sm font-medium text-gray-700 mb-3">기존 이미지</h3>
-              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
+              <div className="grid grid-cols-6 gap-3">
                 {existingImages.map((image) => (
                   <div
                     key={image.id}
@@ -665,8 +666,8 @@ export default function EditProjectPage() {
 
         {/* 제출 버튼 */}
         <div className="flex justify-end gap-4">
-          {/* 왼쪽: Admin 전용 삭제 버튼 */}
-          {userData?.role === 'admin' && (
+          {/* 왼쪽: Admin/Manager 삭제 버튼 */}
+          {isManager(userData?.role) && (
             <button
               type="button"
               onClick={async () => {

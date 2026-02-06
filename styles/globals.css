@@ -43,10 +43,12 @@
   --error-500: #ef4444;
   --error-600: #dc2626;
 
-  /* Layout */
+  /* Layout - 폴백 값 (실제 값은 ThemeProvider, lib/config/layout.constants.ts로 동적 설정) */
   --sidebar-width: 280px;
-  --sidebar-collapsed-width: 80px;
+  --sidebar-collapsed-width: 75px;
+  --current-sidebar-width: 280px; /* DashboardLayout에서 동적 업데이트 */
   --header-height: 72px;
+  --min-rendering-width: 992px;
 
   /* Spacing */
   --spacing-xs: 0.25rem;
@@ -82,6 +84,11 @@
   --background-secondary: var(--gray-50);
 }
 
+/* 최소 렌더링 폭 고정 */
+html, body {
+  min-width: var(--min-rendering-width);
+}
+
 body {
   background: var(--background-primary);
   color: var(--text-primary);
@@ -101,6 +108,11 @@ body {
 
 .project-card:hover {
   transform: translateY(-2px);
+}
+
+.project-card .thumbnail-section {
+  overflow: hidden;
+  border-radius: 8px 8px 0 0;
 }
 
 .line-clamp-2 {
@@ -128,17 +140,6 @@ body {
 
 .ant-card:hover .ant-card-cover img {
   transform: scale(1.05);
-}
-
-/* Responsive adjustments */
-@media (max-width: 768px) {
-  .project-card .ant-card-body {
-    padding: 12px;
-  }
-  
-  .project-card .ant-card-cover {
-    height: 160px;
-  }
 }
 
 /* Loading and empty states */
@@ -201,31 +202,8 @@ body {
 }
 
 /* Animation Utilities */
-.animate-slide-up {
-  animation: slideUp 0.5s ease-out;
-}
-
 .animate-fade-in {
   animation: fadeIn 0.4s ease-out;
-}
-
-.animate-scale-in {
-  animation: scaleIn 0.3s ease-out;
-}
-
-.animate-pulse-soft {
-  animation: pulseSoft 2s ease-in-out infinite;
-}
-
-@keyframes slideUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
 }
 
 @keyframes fadeIn {
@@ -234,36 +212,6 @@ body {
   }
   to {
     opacity: 1;
-  }
-}
-
-@keyframes scaleIn {
-  from {
-    opacity: 0;
-    transform: scale(0.95);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-@keyframes pulseSoft {
-  0%, 100% {
-    opacity: 0.4;
-  }
-  50% {
-    opacity: 0.8;
-  }
-}
-
-/* Mobile Optimizations */
-@media (max-width: 1024px) {
-  .sidebar-mobile-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.5);
-    z-index: 40;
   }
 }
 
@@ -308,4 +256,53 @@ body {
 .ant-btn-primary:hover {
   background: var(--primary-700) !important;
   border-color: var(--primary-700) !important;
+}
+
+/* Main Layout Overflow Prevention */
+.main-layout {
+  overflow-x: hidden;
+}
+
+/* Custom Badge Styles for Ant Design */
+/* Wrapper는 배경 투명, 내부 sup 요소에만 스타일 적용 */
+.badge-success {
+  background: transparent !important;
+}
+.badge-success .ant-badge-count {
+  background-color: var(--success-100) !important;
+  color: var(--success-700) !important;
+  border: 1px solid #bbf7d0 !important;
+  box-shadow: none !important;
+}
+
+.badge-warning {
+  background: transparent !important;
+}
+.badge-warning .ant-badge-count {
+  background-color: var(--warning-100) !important;
+  color: #92400e !important;
+  border: 1px solid #fde68a !important;
+  box-shadow: none !important;
+}
+
+.badge-error {
+  background: transparent !important;
+}
+.badge-error .ant-badge-count {
+  background-color: var(--error-100) !important;
+  color: #991b1b !important;
+  border: 1px solid #fecaca !important;
+  box-shadow: none !important;
+}
+
+.ag-header-cell-label {
+  cursor: pointer;
+}
+
+/* 긴급 프로젝트 행 스타일 (AG Grid rowClassRules) */
+.ag-row.urgent-row {
+  background-color: var(--error-50) !important;
+}
+.ag-row.urgent-row:hover {
+  background-color: var(--error-100) !important;
 }

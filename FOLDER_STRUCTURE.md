@@ -114,6 +114,7 @@ projectAdminManagment/
 │   │   ├── ProjectFilters.tsx         # 필터링 컴포넌트 (구현됨)
 │   │   ├── ProjectSearch.tsx          # 검색 컴포넌트 (구현됨)
 │   │   ├── ProcessStages.tsx          # 공정 단계 관리 (구현됨)
+│   │   ├── ExportProjectModal.tsx     # 프로젝트 내보내기 모달 (구현됨)
 │   │   ├── ProcessStageSelector.tsx
 │   │   ├── FavoriteButton.tsx
 │   │   ├── ImageCarousel.tsx          # 이미지 캐러셀 컴포넌트 (구현됨)
@@ -145,7 +146,9 @@ projectAdminManagment/
 │   │   └── CalendarSettings.tsx
 │   │
 │   ├── gantt/                         # 간트차트 관련 컴포넌트
-│   │   ├── GanttChart.tsx
+│   │   ├── GanttChart.tsx             # 간트차트 메인 컴포넌트 (프로젝트 필터링 지원)
+│   │   ├── ProjectSelectModal.tsx     # 프로젝트 선택 모달 (다중 선택, 검색, 페이지네이션)
+│   │   ├── CustomTaskList.tsx         # 커스텀 태스크 리스트
 │   │   ├── GanttTask.tsx
 │   │   ├── GanttTimeline.tsx
 │   │   └── GanttSettings.tsx
@@ -247,7 +250,7 @@ projectAdminManagment/
 │   │   ├── validation.ts            # 유효성 검사
 │   │   ├── constants.ts             # 상수 정의
 │   │   ├── permissions.ts           # 권한 체크 유틸
-│   │   └── excel.ts                 # 엑셀 파일 생성 유틸
+│   │   └── excel.ts                 # 엑셀 파일 생성 및 내보내기 유틸 (구현됨)
 │   │
 │   └── config/                       # 설정 파일
 │       ├── process-stages.ts        # 공정 단계 설정

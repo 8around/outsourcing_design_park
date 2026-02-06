@@ -3,6 +3,12 @@
 import React, { createContext, useContext, useEffect, useState } from 'react'
 import { ConfigProvider, theme as antdTheme } from 'antd'
 import ko_KR from 'antd/locale/ko_KR'
+import {
+  SIDEBAR_WIDTH,
+  SIDEBAR_COLLAPSED_WIDTH,
+  HEADER_HEIGHT,
+  MIN_RENDERING_WIDTH,
+} from '@/lib/config/layout.constants'
 
 type Theme = 'light' | 'dark' | 'system'
 
@@ -67,16 +73,25 @@ export function ThemeProvider({
     }
   }, [storageKey])
 
+  // 레이아웃 CSS 변수 초기화 (JS 상수를 단일 소스로 사용)
+  useEffect(() => {
+    const root = document.documentElement
+    root.style.setProperty('--sidebar-width', `${SIDEBAR_WIDTH}px`)
+    root.style.setProperty('--sidebar-collapsed-width', `${SIDEBAR_COLLAPSED_WIDTH}px`)
+    root.style.setProperty('--header-height', `${HEADER_HEIGHT}px`)
+    root.style.setProperty('--min-rendering-width', `${MIN_RENDERING_WIDTH}px`)
+  }, [])
+
   // DOM 업데이트
   const updateDOM = (resolvedTheme: 'light' | 'dark') => {
     const root = window.document.documentElement
-    
+
     if (resolvedTheme === 'dark') {
       root.classList.add('dark')
     } else {
       root.classList.remove('dark')
     }
-    
+
     // CSS 변수 업데이트 (옵션)
     const isDark = resolvedTheme === 'dark'
     root.style.setProperty('--background-primary', isDark ? '#1a1a1a' : '#ffffff')

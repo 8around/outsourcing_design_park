@@ -142,18 +142,7 @@ export default function NotificationsPage() {
 
   // 시간 포맷팅
   const formatTime = (dateString: string) => {
-    const now = moment()
-    const notificationTime = moment(dateString)
-    
-    if (now.diff(notificationTime, 'minutes') < 60) {
-      return `${now.diff(notificationTime, 'minutes')}분 전`
-    } else if (now.diff(notificationTime, 'hours') < 24) {
-      return `${now.diff(notificationTime, 'hours')}시간 전`
-    } else if (now.diff(notificationTime, 'days') < 7) {
-      return `${now.diff(notificationTime, 'days')}일 전`
-    } else {
-      return notificationTime.format('YYYY-MM-DD')
-    }
+    return moment(dateString).format('YYYY-MM-DD HH:mm:ss')
   }
 
   return (
@@ -176,7 +165,7 @@ export default function NotificationsPage() {
 
       {/* 컨트롤 패널 */}
       <Card className="mb-6">
-        <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between">
+        <div className="flex flex-row gap-4 items-center justify-between">
           {/* 필터 */}
           <Space wrap>
             <Select
@@ -425,28 +414,6 @@ export default function NotificationsPage() {
 
         .space-y-3 > * + * {
           margin-top: 12px;
-        }
-
-        /* 반응형 */
-        @media (max-width: 768px) {
-          .notification-header {
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 8px;
-          }
-
-          .notification-content {
-            padding: 12px;
-            gap: 8px;
-          }
-
-          .notification-title {
-            font-size: 14px;
-          }
-
-          .notification-message {
-            font-size: 13px;
-          }
         }
 
         /* 체크박스 스타일 */

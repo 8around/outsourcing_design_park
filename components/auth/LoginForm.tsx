@@ -116,16 +116,7 @@ export default function LoginForm({ onSubmit }: LoginFormProps) {
             loading={loading}
             className="w-full h-12 text-base font-semibold bg-primary-600 hover:bg-primary-500 active:bg-primary-700 border-primary-600 hover:border-primary-500 rounded-soft shadow-soft hover:shadow-soft-md transition-smooth"
           >
-            <span className="flex items-center justify-center gap-2">
-              {loading ? (
-                <>
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  로그인 중...
-                </>
-              ) : (
-                '로그인'
-              )}
-            </span>
+            {loading ? '로그인 중...' : '로그인'}
           </Button>
         </Form.Item>
       </Form>

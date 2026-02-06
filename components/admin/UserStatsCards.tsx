@@ -24,7 +24,7 @@ interface UserStatsCardsProps {
 export default function UserStatsCards({ stats, loading = false }: UserStatsCardsProps) {
   return (
     <Row gutter={16}>
-      <Col xs={24} sm={6}>
+      <Col span={6}>
         <Card loading={loading}>
           <Statistic 
             title="전체 사용자"
@@ -34,7 +34,7 @@ export default function UserStatsCards({ stats, loading = false }: UserStatsCard
           />
         </Card>
       </Col>
-      <Col xs={24} sm={6}>
+      <Col span={6}>
         <Card loading={loading}>
           <Statistic 
             title="승인 대기"
@@ -44,7 +44,7 @@ export default function UserStatsCards({ stats, loading = false }: UserStatsCard
           />
         </Card>
       </Col>
-      <Col xs={24} sm={6}>
+      <Col span={6}>
         <Card loading={loading}>
           <Statistic 
             title="승인됨"
@@ -54,7 +54,7 @@ export default function UserStatsCards({ stats, loading = false }: UserStatsCard
           />
         </Card>
       </Col>
-      <Col xs={24} sm={6}>
+      <Col span={6}>
         <Card loading={loading}>
           <Statistic 
             title="거절됨"

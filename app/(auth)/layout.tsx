@@ -1,3 +1,5 @@
+'use client'
+
 import React from 'react'
 import Image from 'next/image'
 
@@ -7,7 +9,14 @@ export default function AuthLayout({
   children: React.ReactNode
 }) {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-primary-50/50 flex items-center justify-center p-6 relative overflow-hidden">
+    <>
+      {/* 인증 페이지에서는 최소 폭 제한 해제 */}
+      <style jsx global>{`
+        html, body {
+          min-width: auto !important;
+        }
+      `}</style>
+      <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-primary-50/50 flex items-center justify-center p-4 sm:p-6 relative overflow-hidden">
       {/* Subtle Background Pattern */}
       <div className="absolute inset-0 opacity-[0.02]">
         <div className="absolute inset-0" style={{
@@ -56,5 +65,6 @@ export default function AuthLayout({
       <div className="absolute bottom-10 right-10 w-32 h-32 bg-primary-200/30 rounded-full blur-2xl animate-pulse-soft" style={{animationDelay: '1s'}}></div>
       <div className="absolute top-1/2 left-0 w-16 h-16 bg-primary-50 rounded-full blur-lg animate-pulse-soft" style={{animationDelay: '2s'}}></div>
     </div>
+    </>
   )
 }
