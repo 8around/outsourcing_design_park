@@ -158,14 +158,14 @@ export function GanttChart({
           // 선택된 프로젝트 목록 조회
           projectData = await projectService.getProjectsByIds(
             selectedProjectIds,
-            { sortBy: 'installation_request_date', order: 'desc' }
+            { sortBy: 'installation_request_date', order: 'asc' }
           )
           totalCount = projectData.length
         } else {
           // 전체 프로젝트 페이지네이션 조회
           const response = await projectService.getProjects(
             {},
-            { sortBy: 'installation_request_date', order: 'desc' },
+            { sortBy: 'installation_request_date', order: 'asc' },
             { page: currentPage, limit: pageSize }
           )
           projectData = response.data

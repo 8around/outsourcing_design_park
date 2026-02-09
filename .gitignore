@@ -43,3 +43,4 @@ coverage/
 
 supabase/.temp/
 .serena/
+.omc/
