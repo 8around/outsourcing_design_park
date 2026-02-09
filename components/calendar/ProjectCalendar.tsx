@@ -128,7 +128,6 @@ export default function ProjectCalendar() {
           site_manager_user:users!projects_site_manager_id_fkey(id, name, email)
         `)
         .is('deleted_at', null)
-        .order('created_at', { ascending: false })
 
       if (projectsError) {
         console.error('Error fetching projects:', projectsError)
@@ -137,8 +136,7 @@ export default function ProjectCalendar() {
           .from('projects')
           .select('*')
           .is('deleted_at', null)
-          .order('created_at', { ascending: false })
-        
+
         if (fallbackError) throw fallbackError
         setProjects(fallbackData || [])
         return

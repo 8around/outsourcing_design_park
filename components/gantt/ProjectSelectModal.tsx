@@ -41,7 +41,7 @@ export default function ProjectSelectModal({
     try {
       const response = await projectService.getProjects(
         { search: search || undefined },
-        { sortBy: 'installation_request_date', order: 'desc' },
+        { sortBy: 'installation_request_date', order: 'asc' },
         { page, limit: pageSize }
       )
 

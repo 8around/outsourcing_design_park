@@ -842,11 +842,11 @@ export class ProjectService {
         query = query.not('id', 'in', `(${completedProjectIds.join(',')})`);
       }
 
-      // 3. 정렬: is_urgent DESC, installation_request_date DESC
+      // 3. 정렬: is_urgent DESC, installation_request_date ASC
       // history_logs는 created_at DESC로 정렬
       query = query
         .order('is_urgent', { ascending: false })
-        .order('installation_request_date', { ascending: false })
+        .order('installation_request_date', { ascending: true })
         .order('created_at', { referencedTable: 'history_logs', ascending: false });
 
       // 4. 임베드 테이블 결과 제한 (각 프로젝트당 최신 로그 1개)
