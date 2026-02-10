@@ -11,13 +11,31 @@ import type {
   RowClassRules,
 } from "ag-grid-community";
 import { themeAlpine } from "ag-grid-community";
-import { Card, Tag, Tooltip, Button, Typography, Badge, Space } from "antd";
-import { ReloadOutlined, FireOutlined, RollbackOutlined, ArrowsAltOutlined } from "@ant-design/icons";
+import {
+  Card,
+  Tag,
+  Tooltip,
+  Button,
+  Typography,
+  Badge,
+  Space,
+  Select,
+} from "antd";
+import {
+  ReloadOutlined,
+  FireOutlined,
+  RollbackOutlined,
+  ArrowsAltOutlined,
+} from "@ant-design/icons";
 import { format } from "date-fns";
 import { registerAgGridModules } from "@/lib/agGridSetup";
 import { projectService } from "@/lib/services/projects.service";
 import { PROCESS_STAGES, ProcessStageName } from "@/types/project";
-import type { ProjectGridItem, LatestLogInfo } from "@/types/dashboard";
+import type {
+  ProjectGridItem,
+  LatestLogInfo,
+  InProgressProjectsSortType,
+} from "@/types/dashboard";
 import { LogCategory } from "@/types/log";
 
 // AG Grid 모듈 등록
@@ -175,6 +193,9 @@ export default function InProgressProjectsGrid() {
   const gridRef = useRef<AgGridReact<ProjectGridItem>>(null);
   const [total, setTotal] = useState(0);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
+  const [sortType, setSortType] =
+    useState<InProgressProjectsSortType>("last_log_created");
+  const sortRef = useRef<InProgressProjectsSortType>("last_log_created");
 
   // 컬럼 정의
   const columnDefs = useMemo<ColDef<ProjectGridItem>[]>(
@@ -261,6 +282,7 @@ export default function InProgressProjectsGrid() {
           const response = await projectService.getInProgressProjects(
             page,
             limit,
+            sortRef.current,
           );
           setTotal(response.total);
           setIsInitialLoading(false);
@@ -298,6 +320,18 @@ export default function InProgressProjectsGrid() {
     // 캐시 초기화 (데이터 다시 로드)
     api.purgeInfiniteCache();
     // 스크롤 최상단으로 이동
+    api.ensureIndexVisible(0, "top");
+  }, []);
+
+  // 정렬 변경
+  const handleSortChange = useCallback((value: InProgressProjectsSortType) => {
+    setSortType(value);
+    sortRef.current = value;
+
+    const api = gridRef.current?.api;
+    if (!api) return;
+
+    api.purgeInfiniteCache();
     api.ensureIndexVisible(0, "top");
   }, []);
 
@@ -355,23 +389,35 @@ export default function InProgressProjectsGrid() {
               disabled={isInitialLoading}
             />
           </div>
-          {/* 오른쪽: 축소/확장 버튼 그룹 */}
-          <Space.Compact>
-            <Button
-              icon={<RollbackOutlined />}
-              onClick={resetColumnWidths}
+          {/* 오른쪽: 정렬 Select + 축소/확장 버튼 그룹 */}
+          <div className="flex items-center gap-2">
+            <Select
+              value={sortType}
+              onChange={handleSortChange}
+              options={[
+                { value: "last_log_created", label: "최근활동순" },
+                { value: "installation_stage_start", label: "설치시작일순" },
+              ]}
+              style={{ width: 140 }}
               disabled={isInitialLoading}
-            >
-              초기화
-            </Button>
-            <Button
-              icon={<ArrowsAltOutlined />}
-              onClick={autoSizeAllColumns}
-              disabled={isInitialLoading}
-            >
-              확장
-            </Button>
-          </Space.Compact>
+            />
+            <Space.Compact>
+              <Button
+                icon={<RollbackOutlined />}
+                onClick={resetColumnWidths}
+                disabled={isInitialLoading}
+              >
+                초기화
+              </Button>
+              <Button
+                icon={<ArrowsAltOutlined />}
+                onClick={autoSizeAllColumns}
+                disabled={isInitialLoading}
+              >
+                확장
+              </Button>
+            </Space.Compact>
+          </div>
         </div>
       }
       styles={{ body: { padding: 0 } }}

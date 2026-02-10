@@ -17,6 +17,7 @@ import type {
   ProjectGridItem,
   InProgressProjectsResponse,
   LatestLogInfo,
+  InProgressProjectsSortType,
 } from '@/types/dashboard';
 import { isManager } from '@/lib/utils/permissions';
 
@@ -321,7 +322,6 @@ export class ProjectService {
         .update({
           ...dto,
           updated_at: new Date().toISOString(),
-          last_saved_at: new Date().toISOString()
         })
         .eq('id', projectId)
         .select()
@@ -722,7 +722,8 @@ export class ProjectService {
   // 최적화: history_logs 임베드 쿼리로 N+1 문제 해결 (21회 → 1회)
   async getInProgressProjects(
     page = 1,
-    limit = 20
+    limit = 20,
+    sort: InProgressProjectsSortType = 'last_log_created'
   ): Promise<InProgressProjectsResponse> {
     try {
       // 1. 진행중인 프로젝트 조회 - history_logs 임베드 포함
@@ -748,10 +749,19 @@ export class ProjectService {
         .eq('is_completed', false)
         .eq('history_logs.is_deleted', false);
 
-      // 2. 정렬: is_urgent DESC, installation_request_date ASC
-      // history_logs는 created_at DESC로 정렬
+      // 2. 정렬 적용
+      // 1순위: 긴급 프로젝트 상단 고정
+      query = query.order('is_urgent', { ascending: false });
+
+      // 2순위: 선택된 정렬 기준
+      if (sort === 'last_log_created') {
+        query = query.order('last_log_created_at', { ascending: false, nullsFirst: false });
+      } else if (sort === 'installation_stage_start') {
+        query = query.order('installation_stage_start_date', { ascending: true, nullsFirst: false });
+      }
+
+      // 3순위: 설치요청일 오름차순 / history_logs 임베드 정렬 (최신 로그 1개 표시용)
       query = query
-        .order('is_urgent', { ascending: false })
         .order('installation_request_date', { ascending: true })
         .order('created_at', { referencedTable: 'history_logs', ascending: false });
 

@@ -446,9 +446,10 @@ export type Database = {
           expected_completion_date: string
           id: string
           installation_request_date: string
-          is_urgent: boolean | null
+          installation_stage_start_date: string | null
           is_completed: boolean
-          last_saved_at: string | null
+          is_urgent: boolean | null
+          last_log_created_at: string | null
           notes: string | null
           order_date: string
           outsourcing_company: string
@@ -468,9 +469,10 @@ export type Database = {
           expected_completion_date: string
           id?: string
           installation_request_date: string
-          is_urgent?: boolean | null
+          installation_stage_start_date?: string | null
           is_completed?: boolean
-          last_saved_at?: string | null
+          is_urgent?: boolean | null
+          last_log_created_at?: string | null
           notes?: string | null
           order_date: string
           outsourcing_company: string
@@ -490,9 +492,10 @@ export type Database = {
           expected_completion_date?: string
           id?: string
           installation_request_date?: string
-          is_urgent?: boolean | null
+          installation_stage_start_date?: string | null
           is_completed?: boolean
-          last_saved_at?: string | null
+          is_urgent?: boolean | null
+          last_log_created_at?: string | null
           notes?: string | null
           order_date?: string
           outsourcing_company?: string

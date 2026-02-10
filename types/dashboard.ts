@@ -2,6 +2,9 @@
 import type { ProcessStageName } from "./project";
 import type { LogCategory, LogType, ApprovalStatus } from "./log";
 
+// 진행중인 프로젝트 정렬 타입
+export type InProgressProjectsSortType = "last_log_created" | "installation_stage_start";
+
 // 최신 로그 정보
 export interface LatestLogInfo {
   id: string;

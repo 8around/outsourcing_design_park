@@ -122,7 +122,8 @@ CREATE TABLE projects (
   created_by UUID NOT NULL REFERENCES users(id),
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  last_saved_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  last_log_created_at TIMESTAMP WITH TIME ZONE DEFAULT NULL,
+  installation_stage_start_date DATE DEFAULT NULL,
   deleted_at TIMESTAMP WITH TIME ZONE DEFAULT NULL
 );
 
@@ -133,6 +134,8 @@ CREATE INDEX idx_projects_site_name ON projects(site_name);
 CREATE INDEX idx_projects_urgent ON projects(is_urgent);
 CREATE INDEX idx_projects_is_completed ON projects(is_completed) WHERE deleted_at IS NULL;
 CREATE INDEX idx_projects_dates ON projects(order_date, expected_completion_date);
+CREATE INDEX idx_projects_inprogress_log_sort ON projects(is_urgent DESC, last_log_created_at DESC NULLS LAST) WHERE deleted_at IS NULL AND is_completed = false;
+CREATE INDEX idx_projects_inprogress_install_sort ON projects(is_urgent DESC, installation_stage_start_date ASC NULLS LAST) WHERE deleted_at IS NULL AND is_completed = false;
 ```
 
 **컬럼 설명:**
@@ -154,7 +157,8 @@ CREATE INDEX idx_projects_dates ON projects(order_date, expected_completion_date
 - `created_by`: 프로젝트 생성자 ID, 작성자 추적용
 - `created_at`: 프로젝트 생성 시각, 등록일 관리용
 - `updated_at`: 마지막 수정 시각, 변경 이력 추적용
-- `last_saved_at`: 마지막 저장 시각, 저장 시점 표시용
+- `last_log_created_at`: 최신 히스토리 로그 생성 시각, 대시보드 정렬용 (트리거로 자동 갱신)
+- `installation_stage_start_date`: 설치 공정단계 시작일, 대시보드 정렬용 비정규화 (트리거로 자동 갱신)
 - `deleted_at`: 삭제 시각, Soft Delete용 타임스탬프 (NULL이면 활성 프로젝트)
 
 ---
@@ -1384,6 +1388,8 @@ CREATE TRIGGER update_project_is_completed_trigger
 - **데이터 일관성**: 관련 테이블간 데이터 동기화
 - **Auth 동기화**: auth.users와 public.users 간 자동 동기화 (신규 가입, 이메일 변경)
 - **프로젝트 완료 상태**: process_stages status 변경/삭제 시 projects.is_completed 자동 갱신
+- **최신 로그 시각 동기화**: history_logs INSERT 또는 소프트 삭제 시 projects.last_log_created_at 자동 갱신 (SECURITY DEFINER)
+- **설치일정 시작일 동기화**: process_stages의 installation start_date 변경 시 projects.installation_stage_start_date 자동 갱신 (SECURITY DEFINER)
 
 ---
 
