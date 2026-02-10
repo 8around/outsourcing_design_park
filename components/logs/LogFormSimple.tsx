@@ -253,21 +253,8 @@ export default function LogFormSimple({
         )}
       </div>
 
-      {/* 작성자 정보 표시 */}
-      <div className="bg-gray-50 rounded-md p-3">
-        <p className="text-sm text-gray-600">
-          <span className="font-medium">작성자:</span> {(user as { name?: string })?.name || user?.email || '알 수 없음'}
-        </p>
-        {formData.approvalRequestTo && (
-          <p className="text-sm text-gray-600 mt-1">
-            <span className="font-medium">확인 요청 대상:</span>{' '}
-            {users.find(u => u.id === formData.approvalRequestTo)?.name || '선택됨'}
-          </p>
-        )}
-      </div>
-
       {/* 버튼 */}
-      <div className="flex justify-end gap-3 pt-4">
+      <div className="flex justify-end gap-3">
         {onCancel && (
           <button
             type="button"

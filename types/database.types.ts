@@ -446,8 +446,10 @@ export type Database = {
           expected_completion_date: string
           id: string
           installation_request_date: string
+          installation_stage_start_date: string | null
+          is_completed: boolean
           is_urgent: boolean | null
-          last_saved_at: string | null
+          last_log_created_at: string | null
           notes: string | null
           order_date: string
           outsourcing_company: string
@@ -467,8 +469,10 @@ export type Database = {
           expected_completion_date: string
           id?: string
           installation_request_date: string
+          installation_stage_start_date?: string | null
+          is_completed?: boolean
           is_urgent?: boolean | null
-          last_saved_at?: string | null
+          last_log_created_at?: string | null
           notes?: string | null
           order_date: string
           outsourcing_company: string
@@ -488,8 +492,10 @@ export type Database = {
           expected_completion_date?: string
           id?: string
           installation_request_date?: string
+          installation_stage_start_date?: string | null
+          is_completed?: boolean
           is_urgent?: boolean | null
-          last_saved_at?: string | null
+          last_log_created_at?: string | null
           notes?: string | null
           order_date?: string
           outsourcing_company?: string
@@ -659,12 +665,6 @@ export type Database = {
     }
     Functions: {
       check_weekly_report_setup: { Args: never; Returns: Json }
-      get_completed_project_ids: {
-        Args: never
-        Returns: {
-          project_id: string
-        }[]
-      }
       get_weekly_report_job_runs: {
         Args: { limit_rows?: number }
         Returns: {
@@ -693,8 +693,6 @@ export type Database = {
           username: string
         }[]
       }
-      show_limit: { Args: never; Returns: number }
-      show_trgm: { Args: { "": string }; Returns: string[] }
       test_weekly_report_generation: { Args: never; Returns: string }
     }
     Enums: {

@@ -55,10 +55,12 @@ export interface Database {
           thumbnail_url: string | null
           notes: string | null
           is_urgent: boolean
+          is_completed: boolean
           created_by: string
           created_at: string
           updated_at: string
-          last_saved_at: string
+          last_log_created_at: string | null
+          installation_stage_start_date: string | null
         }
         Insert: {
           id?: string
@@ -75,10 +77,12 @@ export interface Database {
           thumbnail_url?: string | null
           notes?: string | null
           is_urgent?: boolean
+          is_completed?: boolean
           created_by: string
           created_at?: string
           updated_at?: string
-          last_saved_at?: string
+          last_log_created_at?: string | null
+          installation_stage_start_date?: string | null
         }
         Update: {
           id?: string
@@ -95,10 +99,12 @@ export interface Database {
           thumbnail_url?: string | null
           notes?: string | null
           is_urgent?: boolean
+          is_completed?: boolean
           created_by?: string
           created_at?: string
           updated_at?: string
-          last_saved_at?: string
+          last_log_created_at?: string | null
+          installation_stage_start_date?: string | null
         }
       }
       notifications: {

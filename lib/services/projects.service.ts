@@ -1,6 +1,5 @@
 import { createClient } from '@/lib/supabase/client';
 import { generateUniqueFileName } from '@/lib/utils/file';
-import { logService } from './logs.service';
 import type {
   Project,
   ProcessStage,
@@ -18,8 +17,8 @@ import type {
   ProjectGridItem,
   InProgressProjectsResponse,
   LatestLogInfo,
+  InProgressProjectsSortType,
 } from '@/types/dashboard';
-import type { LogCategory } from '@/types/log';
 import { isManager } from '@/lib/utils/permissions';
 
 export class ProjectService {
@@ -84,35 +83,10 @@ export class ProjectService {
 
         // completion_status 필터 적용
         if (filters.completion_status && filters.completion_status !== 'all') {
-          // RPC 함수로 완료된 프로젝트 ID 조회
-          const { data: completedIds, error: rpcError } = await this.supabase
-            .rpc('get_completed_project_ids');
-
-          if (rpcError) {
-            console.error('완료 프로젝트 조회 실패:', rpcError);
-          }
-
-          const completedProjectIds = completedIds?.map((row: { project_id: string }) => row.project_id) || [];
-
           if (filters.completion_status === 'completed') {
-            // 완료된 프로젝트만 조회
-            if (completedProjectIds.length > 0) {
-              query = query.in('id', completedProjectIds);
-            } else {
-              // 완료된 프로젝트가 없으면 DB 쿼리 없이 바로 빈 결과 반환
-              return {
-                data: [],
-                total: 0,
-                page: 1,
-                totalPages: 0
-              };
-            }
+            query = query.eq('is_completed', true);
           } else if (filters.completion_status === 'in_progress') {
-            // 진행중 프로젝트만 조회 (완료되지 않은 프로젝트)
-            if (completedProjectIds.length > 0) {
-              query = query.not('id', 'in', `(${completedProjectIds.join(',')})`);
-            }
-            // completedProjectIds가 비어있으면 모든 프로젝트가 진행중이므로 추가 필터 불필요
+            query = query.eq('is_completed', false);
           }
         }
       }
@@ -223,8 +197,7 @@ export class ProjectService {
   // 프로젝트 생성 (이미지 업로드 및 공정 단계 포함)
   async createProject(
     dto: CreateProjectDTO,
-    images?: File[],
-    processStages?: Array<{
+    processStages: Array<{
       stage_name: string;
       stage_order: number;
       status: ProcessStatus;
@@ -232,28 +205,25 @@ export class ProjectService {
       start_date?: string;
       end_date?: string;
     }>,
+    images?: File[],
     currentStage?: string,
-    logContent?: string,
-    logCategory?: LogCategory
   ): Promise<Project> {
     try {
       const { data: { user } } = await this.supabase.auth.getUser();
       if (!user) throw new Error('인증되지 않은 사용자');
 
-      // 사용자 정보 조회
-      const { data: userData } = await this.supabase
-        .from('users')
-        .select('name')
-        .eq('id', user.id)
-        .single();
+      // 1. 프로젝트 생성 (is_completed 미리 계산)
+      const isCompleted = processStages
+        ? processStages.length > 0 && processStages.every(stage => stage.status === 'completed')
+        : false;
 
-      // 1. 프로젝트 생성
       const { data: project, error: projectError } = await this.supabase
         .from('projects')
         .insert({
           ...dto,
           created_by: user.id,
-          current_process_stage: currentStage || 'contract'
+          current_process_stage: currentStage || 'contract',
+          is_completed: isCompleted
         })
         .select()
         .single();
@@ -265,26 +235,8 @@ export class ProjectService {
         await this.uploadProjectImages(project.id, images);
       }
 
-      // 3. 공정 단계 생성 (제공된 데이터 사용 또는 기본값 - 15단계)
-      const stagesToInsert = processStages || [
-        { project_id: project.id, stage_name: 'contract', stage_order: 1, status: 'in_progress' as ProcessStatus },
-        { project_id: project.id, stage_name: 'design', stage_order: 2, status: 'waiting' as ProcessStatus },
-        { project_id: project.id, stage_name: 'order', stage_order: 3, status: 'waiting' as ProcessStatus },
-        { project_id: project.id, stage_name: 'incoming', stage_order: 4, status: 'waiting' as ProcessStatus },
-        { project_id: project.id, stage_name: 'welding', stage_order: 5, status: 'waiting' as ProcessStatus },
-        { project_id: project.id, stage_name: 'plating', stage_order: 6, status: 'waiting' as ProcessStatus },
-        { project_id: project.id, stage_name: 'painting', stage_order: 7, status: 'waiting' as ProcessStatus },
-        { project_id: project.id, stage_name: 'grc_frp', stage_order: 8, status: 'waiting' as ProcessStatus },
-        { project_id: project.id, stage_name: 'panel', stage_order: 9, status: 'waiting' as ProcessStatus },
-        { project_id: project.id, stage_name: 'fabrication', stage_order: 10, status: 'waiting' as ProcessStatus },
-        { project_id: project.id, stage_name: 'shipping', stage_order: 11, status: 'waiting' as ProcessStatus },
-        { project_id: project.id, stage_name: 'installation', stage_order: 12, status: 'waiting' as ProcessStatus },
-        { project_id: project.id, stage_name: 'certification', stage_order: 13, status: 'waiting' as ProcessStatus },
-        { project_id: project.id, stage_name: 'closing', stage_order: 14, status: 'waiting' as ProcessStatus },
-        { project_id: project.id, stage_name: 'completion', stage_order: 15, status: 'waiting' as ProcessStatus }
-      ];
-
-      const finalStages = stagesToInsert.map(stage => ({
+      // 3. 공정 단계 생성
+      const finalStages = processStages.map(stage => ({
         ...stage,
         project_id: project.id
       }));
@@ -295,18 +247,7 @@ export class ProjectService {
 
       if (stagesError) throw stagesError;
 
-      // 4. 히스토리 로그 생성 (생략 가능)
-      if (logContent && logCategory) {
-        await logService.createManualLog({
-          project_id: project.id,
-          category: logCategory,
-          content: logContent,
-          author_id: user.id,
-          author_name: userData?.name || user.email || '사용자'
-        });
-      }
-
-      // 5. 생성된 프로젝트 전체 정보 조회
+      // 4. 생성된 프로젝트 전체 정보 조회
       const createdProject = await this.getProject(project.id);
       if (!createdProject) throw new Error('프로젝트 생성 후 조회 실패');
 
@@ -371,43 +312,22 @@ export class ProjectService {
   async updateProject(
     projectId: string, 
     dto: UpdateProjectDTO,
-    logContent?: string,
-    logCategory?: LogCategory
   ): Promise<Project> {
     try {
       const { data: { user } } = await this.supabase.auth.getUser();
       if (!user) throw new Error('인증되지 않은 사용자');
-
-      // 사용자 정보 조회
-      const { data: userData } = await this.supabase
-        .from('users')
-        .select('name')
-        .eq('id', user.id)
-        .single();
 
       const { error } = await this.supabase
         .from('projects')
         .update({
           ...dto,
           updated_at: new Date().toISOString(),
-          last_saved_at: new Date().toISOString()
         })
         .eq('id', projectId)
         .select()
         .single();
 
       if (error) throw error;
-
-      // 히스토리 로그 생성 (생략 가능)
-      if (logContent && logCategory) {
-        await logService.createManualLog({
-          project_id: projectId,
-          category: logCategory,
-          content: logContent,
-          author_id: user.id,
-          author_name: userData?.name || user.email || '사용자'
-        });
-      }
 
       const updatedProject = await this.getProject(projectId);
       if (!updatedProject) throw new Error('프로젝트 수정 후 조회 실패');
@@ -802,20 +722,11 @@ export class ProjectService {
   // 최적화: history_logs 임베드 쿼리로 N+1 문제 해결 (21회 → 1회)
   async getInProgressProjects(
     page = 1,
-    limit = 20
+    limit = 20,
+    sort: InProgressProjectsSortType = 'last_log_created'
   ): Promise<InProgressProjectsResponse> {
     try {
-      // 1. 완료된 프로젝트 ID 조회 (기존 RPC 활용)
-      const { data: completedIds, error: rpcError } = await this.supabase
-        .rpc('get_completed_project_ids');
-
-      if (rpcError) {
-        console.error('완료 프로젝트 조회 실패:', rpcError);
-      }
-
-      const completedProjectIds = completedIds?.map((row: { project_id: string }) => row.project_id) || [];
-
-      // 2. 진행중인 프로젝트 조회 - history_logs 임베드 포함
+      // 1. 진행중인 프로젝트 조회 - history_logs 임베드 포함
       let query = this.supabase
         .from('projects')
         .select(`
@@ -835,24 +746,29 @@ export class ProjectService {
           )
         `, { count: 'exact' })
         .is('deleted_at', null)
+        .eq('is_completed', false)
         .eq('history_logs.is_deleted', false);
 
-      // 완료된 프로젝트 제외
-      if (completedProjectIds.length > 0) {
-        query = query.not('id', 'in', `(${completedProjectIds.join(',')})`);
+      // 2. 정렬 적용
+      // 1순위: 긴급 프로젝트 상단 고정
+      query = query.order('is_urgent', { ascending: false });
+
+      // 2순위: 선택된 정렬 기준
+      if (sort === 'last_log_created') {
+        query = query.order('last_log_created_at', { ascending: false, nullsFirst: false });
+      } else if (sort === 'installation_stage_start') {
+        query = query.order('installation_stage_start_date', { ascending: true, nullsFirst: false });
       }
 
-      // 3. 정렬: is_urgent DESC, installation_request_date ASC
-      // history_logs는 created_at DESC로 정렬
+      // 3순위: 설치요청일 오름차순 / history_logs 임베드 정렬 (최신 로그 1개 표시용)
       query = query
-        .order('is_urgent', { ascending: false })
         .order('installation_request_date', { ascending: true })
         .order('created_at', { referencedTable: 'history_logs', ascending: false });
 
-      // 4. 임베드 테이블 결과 제한 (각 프로젝트당 최신 로그 1개)
+      // 3. 임베드 테이블 결과 제한 (각 프로젝트당 최신 로그 1개)
       query = query.limit(1, { referencedTable: 'history_logs' });
 
-      // 5. 페이지네이션
+      // 4. 페이지네이션
       const from = (page - 1) * limit;
       const to = from + limit - 1;
       query = query.range(from, to);
@@ -860,8 +776,12 @@ export class ProjectService {
       const { data: projects, count, error } = await query;
       if (error) throw error;
 
-      // 6. 프로젝트 데이터 매핑 (별도 쿼리 없이 바로 사용)
+      // 5. 프로젝트 데이터 매핑 (별도 쿼리 없이 바로 사용)
       const projectsWithLogs: ProjectGridItem[] = (projects || []).map((project) => {
+        // design 단계 일정 추출
+        const designStage = project.process_stages?.find(
+          (s: { stage_name: string }) => s.stage_name === 'design'
+        );
         // installation 단계 일정 추출
         const installationStage = project.process_stages?.find(
           (s: { stage_name: string }) => s.stage_name === 'installation'
@@ -880,6 +800,10 @@ export class ProjectService {
           sales_manager_name: project.sales_manager_user?.name,
           site_manager_name: project.site_manager_user?.name,
           latest_log: latestLog as LatestLogInfo | undefined,
+          design_schedule: designStage ? {
+            start_date: designStage.start_date,
+            end_date: designStage.end_date,
+          } : undefined,
           installation_schedule: installationStage ? {
             start_date: installationStage.start_date,
             end_date: installationStage.end_date,

@@ -376,7 +376,7 @@ export default function ProjectCalendar() {
           weekends={true}
           selectable={true}
           selectMirror={true}
-          dayMaxEvents={3}
+          dayMaxEvents={5}
           eventDisplay="block"
           displayEventTime={false}
           eventTimeFormat={{
@@ -387,7 +387,7 @@ export default function ProjectCalendar() {
           views={{
             dayGridMonth: {
               titleFormat: { year: 'numeric', month: 'long' },
-              dayMaxEventRows: 3
+              dayMaxEventRows: 5
             },
             timeGridWeek: {
               titleFormat: { year: 'numeric', month: 'short', day: 'numeric' }

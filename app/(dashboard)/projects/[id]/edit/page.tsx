@@ -18,25 +18,6 @@ import Image from 'next/image'
 import type { ProcessStageName } from '@/types/project'
 import { isManager } from '@/lib/utils/permissions'
 
-// 공정 단계 정의
-const PROCESS_STAGES = [
-  { name: 'contract', label: '계약', order: 1 },
-  { name: 'design', label: '도면설계', order: 2 },
-  { name: 'order', label: '발주', order: 3 },
-  { name: 'incoming', label: '입고', order: 4 },
-  { name: 'welding', label: '용접', order: 5 },
-  { name: 'plating', label: '도금', order: 6 },
-  { name: 'painting', label: '도장', order: 7 },
-  { name: 'grc_frp', label: 'GRC/FRP', order: 8 },
-  { name: 'panel', label: '판넬', order: 9 },
-  { name: 'fabrication', label: '제작조립', order: 10 },
-  { name: 'shipping', label: '출하', order: 11 },
-  { name: 'installation', label: '설치', order: 12 },
-  { name: 'certification', label: '인증기간', order: 13 },
-  { name: 'closing', label: '마감', order: 14 },
-  { name: 'completion', label: '준공일', order: 15 }
-]
-
 interface ProcessStage {
   id?: string
   stage_name: string
@@ -164,18 +145,6 @@ export default function EditProjectPage() {
           end_date: stage.end_date
         })).sort((a, b) => a.stage_order - b.stage_order)
         setProcessStages(sortedStages)
-      } else {
-        // 기본 공정 단계 설정
-        setProcessStages(
-          PROCESS_STAGES.map(stage => ({
-            stage_name: stage.name,
-            stage_order: stage.order,
-            status: 'waiting',
-            delay_reason: undefined,
-            start_date: undefined,
-            end_date: undefined
-          }))
-        )
       }
 
       // 기존 이미지 설정
@@ -274,6 +243,7 @@ export default function EditProjectPage() {
     // 계약 및 준공일 단계의 날짜 필수 검증
     const contractStage = processStages.find(stage => stage.stage_name === 'contract')
     const completionStage = processStages.find(stage => stage.stage_name === 'completion')
+    const installationStage = processStages.find(stage => stage.stage_name === 'installation')
 
     if (!contractStage?.start_date || !contractStage?.end_date) {
       toast.error('계약 단계의 시작일과 종료일은 필수 입력 항목입니다.')
@@ -282,6 +252,11 @@ export default function EditProjectPage() {
 
     if (!completionStage?.start_date || !completionStage?.end_date) {
       toast.error('준공일 단계의 시작일과 종료일은 필수 입력 항목입니다.')
+      return
+    }
+
+    if (!installationStage?.start_date || !installationStage?.end_date) {
+      toast.error('설치 단계의 시작일과 종료일은 필수 입력 항목입니다.')
       return
     }
 
@@ -312,7 +287,6 @@ export default function EditProjectPage() {
       // 2. 공정 단계 업데이트
       for (const stage of processStages) {
         if (stage.id) {
-          // 기존 공정 업데이트
           await supabase
             .from('process_stages')
             .update({
@@ -323,19 +297,6 @@ export default function EditProjectPage() {
               updated_at: new Date().toISOString()
             })
             .eq('id', stage.id)
-        } else {
-          // 새 공정 추가 (필요한 경우)
-          await supabase
-            .from('process_stages')
-            .insert({
-              project_id: projectId,
-              stage_name: stage.stage_name,
-              stage_order: stage.stage_order,
-              status: stage.status,
-              delay_reason: stage.delay_reason,
-              start_date: stage.start_date,
-              end_date: stage.end_date
-            })
         }
       }
 
