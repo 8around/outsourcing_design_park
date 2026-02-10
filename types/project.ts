@@ -40,6 +40,7 @@ export interface Project {
   thumbnail_url?: string;
   notes?: string | null;
   is_urgent: boolean;
+  is_completed: boolean;
   created_by: string;
   created_at: string;
   updated_at: string;

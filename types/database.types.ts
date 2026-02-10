@@ -447,6 +447,7 @@ export type Database = {
           id: string
           installation_request_date: string
           is_urgent: boolean | null
+          is_completed: boolean
           last_saved_at: string | null
           notes: string | null
           order_date: string
@@ -468,6 +469,7 @@ export type Database = {
           id?: string
           installation_request_date: string
           is_urgent?: boolean | null
+          is_completed?: boolean
           last_saved_at?: string | null
           notes?: string | null
           order_date: string
@@ -489,6 +491,7 @@ export type Database = {
           id?: string
           installation_request_date?: string
           is_urgent?: boolean | null
+          is_completed?: boolean
           last_saved_at?: string | null
           notes?: string | null
           order_date?: string
@@ -693,8 +696,6 @@ export type Database = {
           username: string
         }[]
       }
-      show_limit: { Args: never; Returns: number }
-      show_trgm: { Args: { "": string }; Returns: string[] }
       test_weekly_report_generation: { Args: never; Returns: string }
     }
     Enums: {

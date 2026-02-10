@@ -55,6 +55,7 @@ export interface Database {
           thumbnail_url: string | null
           notes: string | null
           is_urgent: boolean
+          is_completed: boolean
           created_by: string
           created_at: string
           updated_at: string
@@ -75,6 +76,7 @@ export interface Database {
           thumbnail_url?: string | null
           notes?: string | null
           is_urgent?: boolean
+          is_completed?: boolean
           created_by: string
           created_at?: string
           updated_at?: string
@@ -95,6 +97,7 @@ export interface Database {
           thumbnail_url?: string | null
           notes?: string | null
           is_urgent?: boolean
+          is_completed?: boolean
           created_by?: string
           created_at?: string
           updated_at?: string

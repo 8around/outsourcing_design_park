@@ -118,6 +118,7 @@ CREATE TABLE projects (
   thumbnail_url TEXT,
   notes TEXT,
   is_urgent BOOLEAN DEFAULT FALSE,
+  is_completed BOOLEAN NOT NULL DEFAULT FALSE,
   created_by UUID NOT NULL REFERENCES users(id),
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
@@ -130,6 +131,7 @@ CREATE INDEX idx_projects_current_stage ON projects(current_process_stage);
 CREATE INDEX idx_projects_created_by ON projects(created_by);
 CREATE INDEX idx_projects_site_name ON projects(site_name);
 CREATE INDEX idx_projects_urgent ON projects(is_urgent);
+CREATE INDEX idx_projects_is_completed ON projects(is_completed) WHERE deleted_at IS NULL;
 CREATE INDEX idx_projects_dates ON projects(order_date, expected_completion_date);
 ```
 
@@ -148,6 +150,7 @@ CREATE INDEX idx_projects_dates ON projects(order_date, expected_completion_date
 - `thumbnail_url`: 썸네일 이미지 URL, 프로젝트 목록 표시용
 - `notes`: 비고 사항, 프로젝트 관련 메모 및 특이사항 기록용 (NULL 허용)
 - `is_urgent`: 급한 현장 여부, 우선순위 표시용
+- `is_completed`: 프로젝트 완료 여부, 모든 공정 단계가 completed 상태일 때 TRUE (트리거로 자동 갱신)
 - `created_by`: 프로젝트 생성자 ID, 작성자 추적용
 - `created_at`: 프로젝트 생성 시각, 등록일 관리용
 - `updated_at`: 마지막 수정 시각, 변경 이력 추적용
@@ -1334,12 +1337,53 @@ CREATE TRIGGER on_auth_user_email_updated
   FOR EACH ROW EXECUTE FUNCTION handle_user_email_update();
 ```
 
+#### 프로젝트 완료 상태 자동 갱신 트리거
+
+```sql
+-- process_stages의 status 변경 시 projects.is_completed 자동 갱신
+CREATE OR REPLACE FUNCTION update_project_is_completed()
+RETURNS TRIGGER AS $$
+DECLARE
+  target_project_id UUID;
+  v_is_completed BOOLEAN;
+BEGIN
+  IF TG_OP = 'DELETE' THEN
+    target_project_id := OLD.project_id;
+  ELSE
+    target_project_id := NEW.project_id;
+  END IF;
+
+  SELECT COALESCE(bool_and(status = 'completed'), FALSE)
+  INTO v_is_completed
+  FROM process_stages
+  WHERE project_id = target_project_id;
+
+  UPDATE projects
+  SET is_completed = v_is_completed
+  WHERE id = target_project_id
+    AND is_completed IS DISTINCT FROM v_is_completed;
+
+  IF TG_OP = 'DELETE' THEN
+    RETURN OLD;
+  ELSE
+    RETURN NEW;
+  END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER update_project_is_completed_trigger
+  AFTER UPDATE OF status OR DELETE ON process_stages
+  FOR EACH ROW
+  EXECUTE FUNCTION update_project_is_completed();
+```
+
 ### 트리거 기능
 - **자동 타임스탬프**: updated_at 컬럼 자동 관리
 - **자동 로그 생성**: 승인 요청/응답시 history_logs 자동 생성
 - **이중 추적**: approval_requests(상태) + history_logs(불변 이력)
 - **데이터 일관성**: 관련 테이블간 데이터 동기화
 - **Auth 동기화**: auth.users와 public.users 간 자동 동기화 (신규 가입, 이메일 변경)
+- **프로젝트 완료 상태**: process_stages status 변경/삭제 시 projects.is_completed 자동 갱신
 
 ---
 
@@ -1347,7 +1391,9 @@ CREATE TRIGGER on_auth_user_email_updated
 
 Supabase를 통해 호출 가능한 PostgreSQL 함수들입니다.
 
-#### get_completed_project_ids()
+#### get_completed_project_ids() *(deprecated)*
+
+> **Deprecated**: `projects.is_completed` 컬럼과 `update_project_is_completed_trigger` 트리거로 대체되었습니다. 프론트엔드에서 `.eq('is_completed', true/false)` 필터를 사용하세요. 후속 마이그레이션에서 DROP 예정.
 
 완료된 프로젝트(모든 공정 단계가 completed 상태)의 ID 목록을 반환합니다.
 
