@@ -158,8 +158,8 @@ export default function NewProjectPage() {
 
       const project = await projectService.createProject(
         projectData,
-        images,
         processStages,
+        images,
         formData.current_process_stage
       )
 

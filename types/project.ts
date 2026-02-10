@@ -40,10 +40,12 @@ export interface Project {
   thumbnail_url?: string;
   notes?: string | null;
   is_urgent: boolean;
+  is_completed: boolean;
   created_by: string;
   created_at: string;
   updated_at: string;
-  last_saved_at: string;
+  last_log_created_at: string | null;
+  installation_stage_start_date?: string | null;
   deleted_at: string | null;
 
   // 관계 데이터

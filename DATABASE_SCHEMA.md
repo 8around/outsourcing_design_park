@@ -118,10 +118,12 @@ CREATE TABLE projects (
   thumbnail_url TEXT,
   notes TEXT,
   is_urgent BOOLEAN DEFAULT FALSE,
+  is_completed BOOLEAN NOT NULL DEFAULT FALSE,
   created_by UUID NOT NULL REFERENCES users(id),
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  last_saved_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  last_log_created_at TIMESTAMP WITH TIME ZONE DEFAULT NULL,
+  installation_stage_start_date DATE DEFAULT NULL,
   deleted_at TIMESTAMP WITH TIME ZONE DEFAULT NULL
 );
 
@@ -130,7 +132,10 @@ CREATE INDEX idx_projects_current_stage ON projects(current_process_stage);
 CREATE INDEX idx_projects_created_by ON projects(created_by);
 CREATE INDEX idx_projects_site_name ON projects(site_name);
 CREATE INDEX idx_projects_urgent ON projects(is_urgent);
+CREATE INDEX idx_projects_is_completed ON projects(is_completed) WHERE deleted_at IS NULL;
 CREATE INDEX idx_projects_dates ON projects(order_date, expected_completion_date);
+CREATE INDEX idx_projects_inprogress_log_sort ON projects(is_urgent DESC, last_log_created_at DESC NULLS LAST) WHERE deleted_at IS NULL AND is_completed = false;
+CREATE INDEX idx_projects_inprogress_install_sort ON projects(is_urgent DESC, installation_stage_start_date ASC NULLS LAST) WHERE deleted_at IS NULL AND is_completed = false;
 ```
 
 **컬럼 설명:**
@@ -148,10 +153,12 @@ CREATE INDEX idx_projects_dates ON projects(order_date, expected_completion_date
 - `thumbnail_url`: 썸네일 이미지 URL, 프로젝트 목록 표시용
 - `notes`: 비고 사항, 프로젝트 관련 메모 및 특이사항 기록용 (NULL 허용)
 - `is_urgent`: 급한 현장 여부, 우선순위 표시용
+- `is_completed`: 프로젝트 완료 여부, 모든 공정 단계가 completed 상태일 때 TRUE (트리거로 자동 갱신)
 - `created_by`: 프로젝트 생성자 ID, 작성자 추적용
 - `created_at`: 프로젝트 생성 시각, 등록일 관리용
 - `updated_at`: 마지막 수정 시각, 변경 이력 추적용
-- `last_saved_at`: 마지막 저장 시각, 저장 시점 표시용
+- `last_log_created_at`: 최신 히스토리 로그 생성 시각, 대시보드 정렬용 (트리거로 자동 갱신)
+- `installation_stage_start_date`: 설치 공정단계 시작일, 대시보드 정렬용 비정규화 (트리거로 자동 갱신)
 - `deleted_at`: 삭제 시각, Soft Delete용 타임스탬프 (NULL이면 활성 프로젝트)
 
 ---
@@ -1334,72 +1341,61 @@ CREATE TRIGGER on_auth_user_email_updated
   FOR EACH ROW EXECUTE FUNCTION handle_user_email_update();
 ```
 
+#### 프로젝트 완료 상태 자동 갱신 트리거
+
+```sql
+-- process_stages의 status 변경 시 projects.is_completed 자동 갱신
+CREATE OR REPLACE FUNCTION update_project_is_completed()
+RETURNS TRIGGER AS $$
+DECLARE
+  target_project_id UUID;
+  v_is_completed BOOLEAN;
+BEGIN
+  IF TG_OP = 'DELETE' THEN
+    target_project_id := OLD.project_id;
+  ELSE
+    target_project_id := NEW.project_id;
+  END IF;
+
+  SELECT COALESCE(bool_and(status = 'completed'), FALSE)
+  INTO v_is_completed
+  FROM process_stages
+  WHERE project_id = target_project_id;
+
+  UPDATE projects
+  SET is_completed = v_is_completed
+  WHERE id = target_project_id
+    AND is_completed IS DISTINCT FROM v_is_completed;
+
+  IF TG_OP = 'DELETE' THEN
+    RETURN OLD;
+  ELSE
+    RETURN NEW;
+  END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER update_project_is_completed_trigger
+  AFTER UPDATE OF status OR DELETE ON process_stages
+  FOR EACH ROW
+  EXECUTE FUNCTION update_project_is_completed();
+```
+
 ### 트리거 기능
 - **자동 타임스탬프**: updated_at 컬럼 자동 관리
 - **자동 로그 생성**: 승인 요청/응답시 history_logs 자동 생성
 - **이중 추적**: approval_requests(상태) + history_logs(불변 이력)
 - **데이터 일관성**: 관련 테이블간 데이터 동기화
 - **Auth 동기화**: auth.users와 public.users 간 자동 동기화 (신규 가입, 이메일 변경)
+- **프로젝트 완료 상태**: process_stages status 변경/삭제 시 projects.is_completed 자동 갱신
+- **최신 로그 시각 동기화**: history_logs INSERT 또는 소프트 삭제 시 projects.last_log_created_at 자동 갱신 (SECURITY DEFINER)
+- **설치일정 시작일 동기화**: process_stages의 installation start_date 변경 시 projects.installation_stage_start_date 자동 갱신 (SECURITY DEFINER)
 
 ---
 
 ### RPC Functions (Remote Procedure Calls)
 
 Supabase를 통해 호출 가능한 PostgreSQL 함수들입니다.
-
-#### get_completed_project_ids()
-
-완료된 프로젝트(모든 공정 단계가 completed 상태)의 ID 목록을 반환합니다.
-
-```sql
--- 함수 정의
--- bool_and()를 사용하여 모든 공정 단계가 completed인 프로젝트만 반환
--- 장점: 단계 수에 관계없이 "모든 단계 완료" 로직을 정확히 표현
-CREATE OR REPLACE FUNCTION get_completed_project_ids()
-RETURNS TABLE (project_id UUID)
-LANGUAGE SQL
-STABLE
-SECURITY DEFINER
-AS $$
-  SELECT ps.project_id
-  FROM process_stages ps
-  GROUP BY ps.project_id
-  HAVING bool_and(ps.status = 'completed');
-$$;
-
--- 권한 설정 (인증된 사용자만 호출 가능)
-REVOKE EXECUTE ON FUNCTION get_completed_project_ids() FROM PUBLIC;
-REVOKE EXECUTE ON FUNCTION get_completed_project_ids() FROM anon;
-GRANT EXECUTE ON FUNCTION get_completed_project_ids() TO authenticated;
-```
-
-**사용 목적:**
-- 프로젝트 목록에서 '완료' / '진행중' 필터링 구현
-- 대시보드 통계에서 완료된 프로젝트 수 조회
-
-**반환값:**
-- `TABLE (project_id UUID)`: 완료된 프로젝트들의 UUID 목록
-
-**호출 예시 (Supabase JS):**
-```typescript
-const { data: completedIds } = await supabase.rpc('get_completed_project_ids');
-// data: [{ project_id: 'uuid-1' }, { project_id: 'uuid-2' }, ...]
-```
-
-**호출 예시 (SQL):**
-```sql
-SELECT * FROM get_completed_project_ids();
-```
-
-**핵심 로직 - `bool_and()` 함수:**
-- PostgreSQL 집계 함수로, 그룹 내 **모든 행**이 조건을 만족하면 `true` 반환
-- `process_stages`가 없는 프로젝트는 자연스럽게 제외됨 (GROUP BY에 포함 안 됨)
-- 단계 수(15개)에 의존하지 않아 향후 단계 수 변경에도 함수 수정 불필요
-
-**성능 특성:**
-- `process_stages` 테이블의 `status` 인덱스 활용
-- `GROUP BY` + `HAVING`으로 효율적인 집계
-- `STABLE` 옵션으로 같은 트랜잭션 내 캐싱 지원
 
 ---
 

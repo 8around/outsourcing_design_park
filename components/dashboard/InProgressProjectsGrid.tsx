@@ -11,13 +11,31 @@ import type {
   RowClassRules,
 } from "ag-grid-community";
 import { themeAlpine } from "ag-grid-community";
-import { Card, Tag, Tooltip, Button, Typography, Badge, Space } from "antd";
-import { ReloadOutlined, FireOutlined, RollbackOutlined, ArrowsAltOutlined } from "@ant-design/icons";
+import {
+  Card,
+  Tag,
+  Tooltip,
+  Button,
+  Typography,
+  Badge,
+  Space,
+  Select,
+} from "antd";
+import {
+  ReloadOutlined,
+  FireOutlined,
+  RollbackOutlined,
+  ArrowsAltOutlined,
+} from "@ant-design/icons";
 import { format } from "date-fns";
 import { registerAgGridModules } from "@/lib/agGridSetup";
 import { projectService } from "@/lib/services/projects.service";
 import { PROCESS_STAGES, ProcessStageName } from "@/types/project";
-import type { ProjectGridItem, LatestLogInfo } from "@/types/dashboard";
+import type {
+  ProjectGridItem,
+  LatestLogInfo,
+  InProgressProjectsSortType,
+} from "@/types/dashboard";
 import { LogCategory } from "@/types/log";
 
 // AG Grid 모듈 등록
@@ -148,7 +166,7 @@ const TruncatedCell = ({ value }: { value: string | undefined | null }) => {
 };
 
 // 5. 설치일정 셀 렌더러
-const InstallationScheduleCell = ({
+const ProcessStageScheduleCell = ({
   schedule,
 }: {
   schedule?: { start_date?: string; end_date?: string };
@@ -175,6 +193,9 @@ export default function InProgressProjectsGrid() {
   const gridRef = useRef<AgGridReact<ProjectGridItem>>(null);
   const [total, setTotal] = useState(0);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
+  const [sortType, setSortType] =
+    useState<InProgressProjectsSortType>("last_log_created");
+  const sortRef = useRef<InProgressProjectsSortType>("last_log_created");
 
   // 컬럼 정의
   const columnDefs = useMemo<ColDef<ProjectGridItem>[]>(
@@ -190,7 +211,7 @@ export default function InProgressProjectsGrid() {
       {
         headerName: "공정단계",
         field: "current_process_stage",
-        width: 100,
+        width: 85,
         cellRenderer: (params: { value?: ProcessStageName }) => (
           <ProcessStageCell stage={params.value} />
         ),
@@ -206,7 +227,7 @@ export default function InProgressProjectsGrid() {
       {
         headerName: "영업담당자",
         field: "sales_manager_name",
-        width: 95,
+        width: 90,
         cellRenderer: (params: { value?: string }) => (
           <TruncatedCell value={params.value} />
         ),
@@ -214,18 +235,26 @@ export default function InProgressProjectsGrid() {
       {
         headerName: "현장담당자",
         field: "site_manager_name",
-        width: 95,
+        width: 90,
         cellRenderer: (params: { value?: string }) => (
           <TruncatedCell value={params.value} />
         ),
       },
       {
-        headerName: "설치일정",
-        field: "installation_schedule",
-        width: 205,
+        headerName: "도면설계일정",
+        field: "design_schedule",
+        width: 210,
         cellRenderer: (params: {
           value?: { start_date?: string; end_date?: string };
-        }) => <InstallationScheduleCell schedule={params.value} />,
+        }) => <ProcessStageScheduleCell schedule={params.value} />,
+      },
+      {
+        headerName: "설치일정",
+        field: "installation_schedule",
+        width: 210,
+        cellRenderer: (params: {
+          value?: { start_date?: string; end_date?: string };
+        }) => <ProcessStageScheduleCell schedule={params.value} />,
       },
     ],
     [],
@@ -253,6 +282,7 @@ export default function InProgressProjectsGrid() {
           const response = await projectService.getInProgressProjects(
             page,
             limit,
+            sortRef.current,
           );
           setTotal(response.total);
           setIsInitialLoading(false);
@@ -290,6 +320,18 @@ export default function InProgressProjectsGrid() {
     // 캐시 초기화 (데이터 다시 로드)
     api.purgeInfiniteCache();
     // 스크롤 최상단으로 이동
+    api.ensureIndexVisible(0, "top");
+  }, []);
+
+  // 정렬 변경
+  const handleSortChange = useCallback((value: InProgressProjectsSortType) => {
+    setSortType(value);
+    sortRef.current = value;
+
+    const api = gridRef.current?.api;
+    if (!api) return;
+
+    api.purgeInfiniteCache();
     api.ensureIndexVisible(0, "top");
   }, []);
 
@@ -347,23 +389,35 @@ export default function InProgressProjectsGrid() {
               disabled={isInitialLoading}
             />
           </div>
-          {/* 오른쪽: 축소/확장 버튼 그룹 */}
-          <Space.Compact>
-            <Button
-              icon={<RollbackOutlined />}
-              onClick={resetColumnWidths}
+          {/* 오른쪽: 정렬 Select + 축소/확장 버튼 그룹 */}
+          <div className="flex items-center gap-2">
+            <Select
+              value={sortType}
+              onChange={handleSortChange}
+              options={[
+                { value: "last_log_created", label: "최근활동순" },
+                { value: "installation_stage_start", label: "설치시작일순" },
+              ]}
+              style={{ width: 140 }}
               disabled={isInitialLoading}
-            >
-              초기화
-            </Button>
-            <Button
-              icon={<ArrowsAltOutlined />}
-              onClick={autoSizeAllColumns}
-              disabled={isInitialLoading}
-            >
-              확장
-            </Button>
-          </Space.Compact>
+            />
+            <Space.Compact>
+              <Button
+                icon={<RollbackOutlined />}
+                onClick={resetColumnWidths}
+                disabled={isInitialLoading}
+              >
+                초기화
+              </Button>
+              <Button
+                icon={<ArrowsAltOutlined />}
+                onClick={autoSizeAllColumns}
+                disabled={isInitialLoading}
+              >
+                확장
+              </Button>
+            </Space.Compact>
+          </div>
         </div>
       }
       styles={{ body: { padding: 0 } }}
