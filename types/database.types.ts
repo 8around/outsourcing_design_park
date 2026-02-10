@@ -665,12 +665,6 @@ export type Database = {
     }
     Functions: {
       check_weekly_report_setup: { Args: never; Returns: Json }
-      get_completed_project_ids: {
-        Args: never
-        Returns: {
-          project_id: string
-        }[]
-      }
       get_weekly_report_job_runs: {
         Args: { limit_rows?: number }
         Returns: {
