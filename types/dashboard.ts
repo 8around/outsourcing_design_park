@@ -15,7 +15,7 @@ export interface LatestLogInfo {
 }
 
 // 설치 일정 정보
-export interface InstallationSchedule {
+export interface ProcessStageSchedule {
   start_date?: string;
   end_date?: string;
 }
@@ -31,7 +31,8 @@ export interface ProjectGridItem {
   sales_manager_name?: string;
   site_manager_name?: string;
   latest_log?: LatestLogInfo;
-  installation_schedule?: InstallationSchedule;
+  design_schedule?: ProcessStageSchedule;
+  installation_schedule?: ProcessStageSchedule;
 }
 
 // 페이지네이션 응답

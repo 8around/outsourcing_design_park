@@ -862,6 +862,10 @@ export class ProjectService {
 
       // 6. 프로젝트 데이터 매핑 (별도 쿼리 없이 바로 사용)
       const projectsWithLogs: ProjectGridItem[] = (projects || []).map((project) => {
+        // design 단계 일정 추출
+        const designStage = project.process_stages?.find(
+          (s: { stage_name: string }) => s.stage_name === 'design'
+        );
         // installation 단계 일정 추출
         const installationStage = project.process_stages?.find(
           (s: { stage_name: string }) => s.stage_name === 'installation'
@@ -880,6 +884,10 @@ export class ProjectService {
           sales_manager_name: project.sales_manager_user?.name,
           site_manager_name: project.site_manager_user?.name,
           latest_log: latestLog as LatestLogInfo | undefined,
+          design_schedule: designStage ? {
+            start_date: designStage.start_date,
+            end_date: designStage.end_date,
+          } : undefined,
           installation_schedule: installationStage ? {
             start_date: installationStage.start_date,
             end_date: installationStage.end_date,

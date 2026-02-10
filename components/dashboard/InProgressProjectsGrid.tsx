@@ -148,7 +148,7 @@ const TruncatedCell = ({ value }: { value: string | undefined | null }) => {
 };
 
 // 5. 설치일정 셀 렌더러
-const InstallationScheduleCell = ({
+const ProcessStageScheduleCell = ({
   schedule,
 }: {
   schedule?: { start_date?: string; end_date?: string };
@@ -190,7 +190,7 @@ export default function InProgressProjectsGrid() {
       {
         headerName: "공정단계",
         field: "current_process_stage",
-        width: 100,
+        width: 85,
         cellRenderer: (params: { value?: ProcessStageName }) => (
           <ProcessStageCell stage={params.value} />
         ),
@@ -206,7 +206,7 @@ export default function InProgressProjectsGrid() {
       {
         headerName: "영업담당자",
         field: "sales_manager_name",
-        width: 95,
+        width: 90,
         cellRenderer: (params: { value?: string }) => (
           <TruncatedCell value={params.value} />
         ),
@@ -214,18 +214,26 @@ export default function InProgressProjectsGrid() {
       {
         headerName: "현장담당자",
         field: "site_manager_name",
-        width: 95,
+        width: 90,
         cellRenderer: (params: { value?: string }) => (
           <TruncatedCell value={params.value} />
         ),
       },
       {
-        headerName: "설치일정",
-        field: "installation_schedule",
-        width: 205,
+        headerName: "도면설계일정",
+        field: "design_schedule",
+        width: 210,
         cellRenderer: (params: {
           value?: { start_date?: string; end_date?: string };
-        }) => <InstallationScheduleCell schedule={params.value} />,
+        }) => <ProcessStageScheduleCell schedule={params.value} />,
+      },
+      {
+        headerName: "설치일정",
+        field: "installation_schedule",
+        width: 210,
+        cellRenderer: (params: {
+          value?: { start_date?: string; end_date?: string };
+        }) => <ProcessStageScheduleCell schedule={params.value} />,
       },
     ],
     [],
