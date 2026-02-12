@@ -5,6 +5,7 @@ import {
   ProjectOutlined,
   CalendarOutlined,
   CloudServerOutlined,
+  FileExcelOutlined,
 } from '@ant-design/icons'
 import GlobalLogFeed from '@/components/logs/GlobalLogFeed'
 import PendingApprovals from '@/components/dashboard/PendingApprovals'
@@ -44,6 +45,16 @@ export default function DashboardPage() {
               onClick={() => router.push('/calendar')}
             >
               일정 보기
+            </Button>
+            <Button
+              icon={<FileExcelOutlined />}
+              onClick={() => {
+                const scheduleUrl = 'https://docs.google.com/spreadsheets/u/0/d/1AXBMIatb_wuG2953EE1P1-cf01c56pruH9NBFbjBjoc/htmlview'
+                window.open(scheduleUrl, '_blank')
+              }}
+              title="현장 공정표 열기"
+            >
+              현장 공정표
             </Button>
             <Button
               icon={<CloudServerOutlined />}
